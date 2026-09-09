@@ -1,10 +1,7 @@
 import re
 import subprocess
 import threading
-from urllib.parse import quote_plus
 from pathlib import Path
-
-from ovos_bus_client import Message
 
 from ovos_workshop.decorators import intent_handler
 from ovos_workshop.intents import IntentBuilder
