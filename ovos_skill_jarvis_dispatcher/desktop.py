@@ -33,28 +33,6 @@ class DesktopActionsMixin:
         }
         self.speak(spoken_actions[action])
 
-    def _window_action(self, action: str, agent: str) -> None:
-        helper = Path.home() / ".local/bin/jarvis-agent-window"
-        display = self.AGENT_NAMES[agent]
-
-        try:
-            subprocess.run(
-                [str(helper), action, agent],
-                check=True,
-                timeout=15
-            )
-        except Exception:
-            self.log.exception("Agent window action failed")
-            self.speak(f"I could not {action} {display}.")
-            return
-
-        responses = {
-            "open": f"{display} is ready.",
-            "focus": f"Showing {display}.",
-            "minimize": f"{display} is minimized.",
-            "close": f"{display} is hidden. Its work continues."
-        }
-        self.speak(responses[action])
 
     def _desktop_app_from_message(self, message):
         utterance = str(
