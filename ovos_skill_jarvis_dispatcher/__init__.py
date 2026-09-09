@@ -10,6 +10,12 @@ from ovos_workshop.decorators import intent_handler
 from ovos_workshop.intents import IntentBuilder
 from ovos_workshop.skills.converse import ConversationalSkill
 
+from .vocabulary import (
+    BRAVE_SEARCH_PROMPTS,
+    BROWSER_NAVIGATION_ACTIONS,
+    FIREFOX_SEARCH_PROMPTS,
+)
+
 
 class JarvisDispatcherSkill(ConversationalSkill):
     """Allowlisted control of isolated agent windows and messaging."""
@@ -188,75 +194,8 @@ class JarvisDispatcherSkill(ConversationalSkill):
                         )
 
 
-        # Visible Brave browser controls.
-        self._browser_navigation_actions = {
-            "scroll down": "scroll_down",
-            "school down": "scroll_down",
-            "scroll the page down": "scroll_down",
-            "crawl down": "scroll_down",
-            "move down": "scroll_down",
-            "go down": "scroll_down",
-            "scroll lower": "scroll_down",
-            "scroll down a little": "scroll_down",
-            "scroll up": "scroll_up",
-            "school up": "scroll_up",
-            "scroll the page up": "scroll_up",
-            "crawl up": "scroll_up",
-            "move up": "scroll_up",
-            "go up": "scroll_up",
-            "scroll higher": "scroll_up",
-            "scroll up a little": "scroll_up",
-            "page down": "page_down",
-            "page town": "page_down",
-            "next screen": "page_down",
-            "one page down": "page_down",
-            "pagedown": "page_down",
-            "next page": "page_down",
-            "page up": "page_up",
-            "previous screen": "page_up",
-            "one page up": "page_up",
-            "pageup": "page_up",
-            "previous page": "page_up",
-            "go to the top": "top",
-            "go to the top of the page": "top",
-            "go top of the page": "top",
-            "go to top of the page": "top",
-            "go to top of page": "top",
-            "go top of page": "top",
-            "up on the page": "top",
-            "move to the top": "top",
-            "scroll to the top": "top",
-            "top of the page": "top",
-            "go to the bottom": "bottom",
-            "go to the bottom of the page": "bottom",
-            "go bottom of the page": "bottom",
-            "go to bottom of the page": "bottom",
-            "go to bottom of page": "bottom",
-            "go bottom of page": "bottom",
-            "down on the page": "bottom",
-            "move to the bottom": "bottom",
-            "scroll to the bottom": "bottom",
-            "scroll to the bottom of the page": "bottom",
-            "bottom of the page": "bottom",
-            "go back": "back",
-            "back a page": "back",
-            "previous page in brave": "back",
-            "go forward": "forward",
-            "forward a page": "forward",
-            "open a new tab": "new_tab",
-            "welcome to the new tab": "new_tab",
-            "new tab": "new_tab",
-            "close this tab": "close_tab",
-            "close the tab": "close_tab",
-            "close tab": "close_tab",
-            "close up": "close_tab",
-            "refresh the page": "refresh",
-            "refresh page": "refresh",
-            "reload the page": "refresh",
-            "focus the address bar": "address",
-            "go to the address bar": "address",
-            "focus on the address bar": "address"
-        }
+        # Visible browser controls.
+        self._browser_navigation_actions = BROWSER_NAVIGATION_ACTIONS
 
         for phrase in self._browser_navigation_actions:
             self.register_vocabulary(
@@ -265,34 +204,13 @@ class JarvisDispatcherSkill(ConversationalSkill):
             )
 
 
-        for phrase in (
-            "search brave",
-            "such brave",
-            "it's brave",
-            "its brave",
-            "search break",
-            "such break",
-            "search in brave",
-            "search with brave",
-            "brave search"
-        ):
+        for phrase in BRAVE_SEARCH_PROMPTS:
             self.register_vocabulary(
                 phrase,
                 "BraveSearchPromptCommand"
             )
 
-        for phrase in (
-            "search firefox",
-            "search fire fox",
-            "search in firefox",
-            "search with firefox",
-            "firefox search",
-            "fire fox search",
-            "stage five fox",
-            "stage 5 fox",
-            "stage five folks",
-            "stage 5 folks"
-        ):
+        for phrase in FIREFOX_SEARCH_PROMPTS:
             self.register_vocabulary(
                 phrase,
                 "FirefoxSearchPromptCommand"
