@@ -99,6 +99,10 @@ def main():
     namespace = {}
     exec((PACKAGE / "vocabulary.py").read_text(), namespace)
 
+    conversation_namespace = {}
+    exec((PACKAGE / "conversation.py").read_text(), conversation_namespace)
+    assert "re" in conversation_namespace
+
     class FakeSkill:
         def __init__(self):
             self.registrations = []
