@@ -1,0 +1,10 @@
+{
+  "name": "default",
+  "conversation": false,
+  "wake_phrase": "hey_jarvis",
+  "applications": {
+    "brave": "brave",
+    "firefox": "firefox",
+    "terminal": "terminal"
+  }
+}

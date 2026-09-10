@@ -172,46 +172,25 @@ def register_skill_vocabulary(self):
 
 
 
-    # Natural desktop application controls.
+    # Natural desktop application controls resolved by the active profile.
+    profile = getattr(self, "_jarvis_profile", None)
+    if profile is None:
+        from .profile import load_profile
+        profile = load_profile(logger=getattr(self, "log", None))
+        self._jarvis_profile = profile
+
+    applications = profile["applications"]
     self._desktop_app_aliases = {
-        "brave": [
-            "brave browser", "brave", "break"
-        ],
-        "firefox": [
-            "firefox browser", "fire fox", "firefox"
-        ],
-        "signal": [
-            "signal app", "signal"
-        ],
-        "zoom": [
-            "zoom app", "xoom", "zome", "zoom"
-        ],
-        "terminal": [
-            "command line", "terminal app",
-            "terminal", "console"
-        ],
-        "notes": [
-            "standard notes", "standard note",
-            "standard node", "notes app",
-            "notes", "a note", "note"
-        ],
-        "office": [
-            "only office", "onlyoffice",
-            "office app", "office"
-        ],
-        "claude": [
-            "claude desktop", "claude app",
-            "clawed desktop", "clawed app",
-            "claude", "clawed"
-        ],
-        "mail": [
-            "proton mail", "email app",
-            "mail app", "email", "mail"
-        ],
-        "calendar": [
-            "proton calendar", "calendar app",
-            "my calendar", "calendar"
-        ]
+        category: list(definition["aliases"])
+        for category, definition in applications.items()
+    }
+    self._desktop_app_integrations = {
+        category: definition["integration"]
+        for category, definition in applications.items()
+    }
+    self._desktop_app_display_names = {
+        category: definition["display_name"]
+        for category, definition in applications.items()
     }
 
     desktop_actions = {
@@ -432,6 +411,15 @@ def register_skill_vocabulary(self):
     for entity, phrases in dictation_commands.items():
         for phrase in phrases:
             self.register_vocabulary(phrase, entity)
+
+    for phrase in (
+        "new note",
+        "create a new note",
+        "create new note",
+        "make a new note",
+        "make new note",
+    ):
+        self.register_vocabulary(phrase, "NewNoteCommand")
 
     for phrase in (
         "read it back",
