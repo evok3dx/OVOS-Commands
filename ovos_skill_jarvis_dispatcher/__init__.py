@@ -80,6 +80,13 @@ class JarvisDispatcherSkill(
         self._focused_window_action("maximize")
 
     @intent_handler(
+        IntentBuilder("RestoreFocusedWindowIntent")
+        .require("RestoreFocusedWindowCommand")
+    )
+    def handle_restore_focused_window(self, _message):
+        self._focused_window_action("restore")
+
+    @intent_handler(
         IntentBuilder("ReadLastTypedTextIntent")
         .require("ReadLastTypedTextCommand")
     )
