@@ -387,6 +387,13 @@ def register_skill_vocabulary(self):
             "maximise this window",
             "maximize app",
             "maximise app"
+        ],
+        "RestoreFocusedWindowCommand": [
+            "restore window",
+            "restore this window",
+            "unmaximize window",
+            "unmaximise window",
+            "return window to normal"
         ]
     }
 
@@ -457,4 +464,3 @@ def register_skill_vocabulary(self):
     for entity, phrases in visible_text_commands.items():
         for phrase in phrases:
             self.register_vocabulary(phrase, entity)
-
