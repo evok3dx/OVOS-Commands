@@ -246,7 +246,7 @@ class BrowserActionsMixin:
                     stderr=subprocess.DEVNULL
                 )
 
-                self.speak(f"Searching for {query}.")
+                self.speak(f"Searching for {query} now.")
                 return
 
             if action == "navigate":
@@ -299,7 +299,7 @@ class BrowserActionsMixin:
                         "https://search.brave.com/search?q="
                         + quote_plus(entry)
                     )
-                    spoken_response = f"Searching for {entry}."
+                    spoken_response = f"Searching for {entry} now."
 
                 subprocess.run(
                     [
