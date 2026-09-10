@@ -25,7 +25,7 @@ EXPECTED_INTENTS = {
     "CloseFocusedWindowIntent", "MinimizeFocusedWindowIntent",
     "MaximizeFocusedWindowIntent", "RestoreFocusedWindowIntent",
     "ReadLastTypedTextIntent",
-    "ReadSelectedTextIntent", "ReadVisiblePageIntent",
+    "ReadSelectedTextIntent", "ReadVisiblePageIntent", "ReadFullPageIntent",
     "StartSpeechNoteDictationIntent", "PauseSpeechNoteDictationIntent",
     "ResumeSpeechNoteDictationIntent", "StopSpeechNoteDictationIntent",
     "WriteFocusedTextIntent", "BraveSearchPromptIntent",
@@ -113,7 +113,7 @@ def main():
 
     fake = FakeSkill()
     namespace["register_skill_vocabulary"](fake)
-    assert len(fake.registrations) == 869
+    assert len(fake.registrations) == 874
     for phrase in (
         "read window",
         "read this window",
@@ -136,8 +136,8 @@ def main():
     assert type(skill).__name__ == "JarvisDispatcherSkill"
 
     print("PASS: 9 modules compile")
-    print("PASS: 45 intents match the expected inventory")
-    print("PASS: 869 vocabulary registrations are present")
+    print("PASS: 46 intents match the expected inventory")
+    print("PASS: 874 vocabulary registrations are present")
     print("PASS: package imports and create_skill() succeeds")
 
 
