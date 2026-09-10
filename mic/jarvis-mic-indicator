@@ -1,0 +1,76 @@
+#!/usr/bin/env python3
+import fcntl
+import subprocess
+from pathlib import Path
+
+import gi
+
+gi.require_version("Gtk", "3.0")
+from gi.repository import GLib, Gtk
+
+
+home = Path.home()
+toggle = home / ".local/bin/jarvis-mic-toggle"
+active_icon = home / ".local/share/jarvis/mic-active.svg"
+muted_icon = home / ".local/share/jarvis/mic-muted.svg"
+
+lock_path = home / ".cache/jarvis-mic-indicator.lock"
+lock_path.parent.mkdir(parents=True, exist_ok=True)
+lock_file = open(lock_path, "w")
+try:
+    fcntl.flock(lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
+except BlockingIOError:
+    raise SystemExit(0)
+
+indicator = Gtk.StatusIcon()
+indicator.set_visible(True)
+
+last_state = None
+
+
+def listener_active():
+    result = subprocess.run(
+        [
+            "systemctl",
+            "--user",
+            "is-active",
+            "--quiet",
+            "ovos-listener",
+        ],
+        check=False,
+    )
+    return result.returncode == 0
+
+
+def update_indicator():
+    global last_state
+    active = listener_active()
+
+    if active != last_state:
+        indicator.set_from_file(
+            str(active_icon if active else muted_icon)
+        )
+        indicator.set_tooltip_text(
+            "Jarvis microphone active\nClick to mute"
+            if active
+            else "Jarvis microphone MUTED\nClick to activate"
+        )
+        last_state = active
+
+    return True
+
+
+def toggle_listener(_icon):
+    subprocess.Popen(
+        [str(toggle)],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    GLib.timeout_add(500, update_indicator)
+
+
+indicator.connect("activate", toggle_listener)
+update_indicator()
+GLib.timeout_add_seconds(1, update_indicator)
+
+Gtk.main()
