@@ -6,6 +6,8 @@ SOURCE_PACKAGE="$REPO_ROOT/ovos_skill_jarvis_dispatcher"
 TARGET_PACKAGE="$HOME/.local/src/ovos-skill-jarvis-dispatcher/ovos_skill_jarvis_dispatcher"
 SOURCE_WINDOW_HELPER="$REPO_ROOT/system_helpers/jarvis-focused-window"
 TARGET_WINDOW_HELPER="$HOME/.local/bin/jarvis-focused-window"
+SOURCE_READER_HELPER="$REPO_ROOT/system_helpers/jarvis-read-visible-text"
+TARGET_READER_HELPER="$HOME/.local/bin/jarvis-read-visible-text"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 BACKUP="${TARGET_PACKAGE}.before-modular-refactor-${STAMP}"
 
@@ -39,6 +41,13 @@ if [[ -f "$TARGET_WINDOW_HELPER" ]]; then
       "${TARGET_WINDOW_HELPER}.before-restore-window-${STAMP}"
 fi
 install -m 0755 "$SOURCE_WINDOW_HELPER" "$TARGET_WINDOW_HELPER"
+
+if [[ -f "$TARGET_READER_HELPER" ]]; then
+    cp -a \
+      "$TARGET_READER_HELPER" \
+      "${TARGET_READER_HELPER}.before-main-content-${STAMP}"
+fi
+install -m 0755 "$SOURCE_READER_HELPER" "$TARGET_READER_HELPER"
 
 echo "Deployed modular dispatcher."
 echo "Rollback copy: $BACKUP"
