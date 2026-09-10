@@ -13,6 +13,26 @@ behaviour-preserving modular refactor.
 
 Supported wake phrase: `Hey Jarvis`.
 
+## System architecture
+
+Jarvis is divided into independent layers so an optional component can fail
+without taking down direct voice control:
+
+- Wake-word detection uses OpenWakeWord.
+- Speech recognition uses Faster Whisper.
+- Spoken output uses Kokoro through Phoonnx.
+- The modular dispatcher handles browser, desktop, dictation, agent and
+  multi-step voice commands.
+- OVOS Persona and Ollama provide optional general conversation.
+
+The core command system does not require Qwen, Ollama or another language
+model. The dispatcher file named `conversation.py` handles controlled command
+follow-ups and remains part of the core system.
+
+For the command-only profile, optional conversation setup and model guidance
+for different hardware, see
+[Optional local conversation add-on](docs/conversation-addon.md).
+
 ## Browser reading
 
 `Read the page` extracts the main `<main>` or `<article>` content from the
@@ -28,6 +48,13 @@ An unexpected exception clears the temporary conversation state and leaves
 unrelated browser, desktop, dictation and agent commands available. Syntax or
 import failures can still prevent the combined skill from loading; the tray
 indicator reports that startup state so it can be restarted or investigated.
+
+Optional changes to installed OVOS packages are stored as separate,
+version-checked patches. The patch tool tests each one independently, skips
+incompatible changes and creates a rollback copy before applying anything.
+
+The complete layout, security boundaries, preserved services and recovery
+procedure are documented in [Recovery infrastructure](recovery/README.md).
 
 ## OVOS tray indicator
 
