@@ -27,10 +27,10 @@ class WakewordActionsMixin:
         self._speech_note_dictation_paused = False
 
         try:
-            self.deactivate()
+            self._clear_message_state()
         except Exception:
             self.log.exception(
-                "Could not deactivate dispatcher"
+                "Could not clear dispatcher state"
             )
 
         return True
