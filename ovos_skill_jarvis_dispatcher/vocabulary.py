@@ -447,12 +447,14 @@ def register_skill_vocabulary(self):
             "read the page",
             "read current page",
             "read this webpage",
-            "read the webpage"
+            "read the webpage",
+            "read window",
+            "read this window",
+            "read current window"
         ]
     }
 
     for entity, phrases in visible_text_commands.items():
         for phrase in phrases:
             self.register_vocabulary(phrase, entity)
-
 
