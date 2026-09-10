@@ -1,0 +1,202 @@
+#!/usr/bin/env bash
+set -u
+
+action="${1:-}"
+app="${2:-}"
+
+case "$app" in
+  brave)
+    window_match="brave-browser.Brave-browser"
+    title="Brave"
+    ;;
+  firefox)
+    window_match="Navigator.firefox"
+    title="Firefox"
+    ;;
+  signal)
+    window_match="signal.signal"
+    title="Signal"
+    ;;
+  zoom)
+    window_match="zoom.zoom"
+    title="Zoom"
+    ;;
+  terminal)
+    window_match="gnome-terminal-server.Gnome-terminal"
+    title="Terminal"
+    ;;
+  notes)
+    window_match="standard notes.Standard Notes"
+    title="Notes"
+    ;;
+  office)
+    window_match="DesktopEditors.ONLYOFFICE"
+    title="Office"
+    ;;
+  claude)
+    window_match="com.anthropic.claude.com.anthropic.Claude"
+    title="Claude"
+    ;;
+  mail)
+    window_match="proton mail.Proton Mail"
+    title="Mail"
+    ;;
+  calendar)
+    window_match="calendar.proton.me.Brave-browser"
+    title="Calendar"
+    ;;
+  *)
+    echo "Unsupported application" >&2
+    exit 2
+    ;;
+esac
+
+find_window() {
+  wmctrl -lx |
+    awk -v wanted="$window_match" '
+      index(tolower($0), tolower(wanted)) {
+        print $1
+        exit
+      }
+    '
+}
+
+wait_for_window() {
+  local window_id=""
+
+  for _ in {1..40}; do
+    window_id="$(find_window)"
+
+    if [[ -n "$window_id" ]]; then
+      printf '%s\n' "$window_id"
+      return 0
+    fi
+
+    sleep 0.25
+  done
+
+  return 1
+}
+
+show_window() {
+  local window_id="$1"
+
+  wmctrl -ir "$window_id" -b remove,hidden >/dev/null 2>&1 || true
+  wmctrl -ia "$window_id"
+}
+
+launch_window() {
+  case "$app" in
+    brave)
+      nohup /usr/bin/brave-browser-stable \
+        >/dev/null 2>&1 &
+      ;;
+    firefox)
+      nohup /usr/bin/firefox \
+        >/dev/null 2>&1 &
+      ;;
+    signal)
+      nohup /opt/Signal/signal-desktop \
+        >/dev/null 2>&1 &
+      ;;
+    zoom)
+      nohup /usr/bin/zoom \
+        >/dev/null 2>&1 &
+      ;;
+    terminal)
+      nohup /usr/bin/gnome-terminal \
+        >/dev/null 2>&1 &
+      ;;
+    notes)
+      nohup "${JARVIS_STANDARD_NOTES:-$HOME/Apps/standard-notes-3.202.0-linux-x86_64.AppImage}" \
+        >/dev/null 2>&1 &
+      ;;
+    claude)
+      /usr/bin/gtk-launch com.anthropic.Claude \
+        >/dev/null 2>&1 &
+      ;;
+    mail)
+      nohup /usr/bin/proton-mail \
+        >/dev/null 2>&1 &
+      ;;
+    calendar)
+      nohup /usr/bin/brave-browser-stable \
+        --app=https://calendar.proton.me/ \
+        >/dev/null 2>&1 &
+      ;;
+    office)
+      if [[ -x /usr/bin/desktopeditors ]]; then
+        nohup /usr/bin/desktopeditors >/dev/null 2>&1 &
+      elif [[ -x /usr/bin/onlyoffice-desktopeditors ]]; then
+        nohup /usr/bin/onlyoffice-desktopeditors >/dev/null 2>&1 &
+      elif [[ -x /opt/onlyoffice/desktopeditors/DesktopEditors ]]; then
+        nohup /opt/onlyoffice/desktopeditors/DesktopEditors \
+          >/dev/null 2>&1 &
+      elif /usr/bin/gtk-launch onlyoffice-desktopeditors \
+          >/dev/null 2>&1; then
+        :
+      elif /usr/bin/gtk-launch org.onlyoffice.desktopeditors \
+          >/dev/null 2>&1; then
+        :
+      elif [[ -x /usr/bin/flatpak ]]; then
+        nohup /usr/bin/flatpak run org.onlyoffice.desktopeditors \
+          >/dev/null 2>&1 &
+      else
+        return 1
+      fi
+      ;;
+  esac
+}
+
+case "$action" in
+  open|focus)
+    window_id="$(find_window)"
+
+    if [[ -n "$window_id" ]]; then
+      show_window "$window_id"
+      exit 0
+    fi
+
+    launch_window || {
+      echo "Could not launch $title" >&2
+      exit 1
+    }
+
+    if window_id="$(wait_for_window)"; then
+      show_window "$window_id"
+      exit 0
+    fi
+
+    echo "Could not find the $title window" >&2
+    exit 1
+    ;;
+
+  minimize)
+    window_id="$(find_window)"
+
+    if [[ -z "$window_id" ]]; then
+      echo "$title is not open" >&2
+      exit 1
+    fi
+
+    xdotool windowminimize "$window_id"
+    ;;
+
+  close)
+    window_id="$(find_window)"
+
+    if [[ -z "$window_id" ]]; then
+      echo "$title is not open" >&2
+      exit 1
+    fi
+
+    wmctrl -ic "$window_id"
+    ;;
+
+  *)
+    echo \
+      "Usage: jarvis-app-window {open|focus|minimize|close} APPLICATION" \
+      >&2
+    exit 2
+    ;;
+esac

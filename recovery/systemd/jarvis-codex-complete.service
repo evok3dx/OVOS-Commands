@@ -1,0 +1,6 @@
+[Unit]
+Description=Jar Codex completion notification
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/jarvis-agent-complete codex

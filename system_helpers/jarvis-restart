@@ -1,0 +1,182 @@
+#!/usr/bin/env bash
+set -u
+
+mode="core"
+
+case "${1:-}" in
+    "")
+        ;;
+    --full)
+        mode="full"
+        ;;
+    *)
+        echo "Usage: jarvis-restart [--full]" >&2
+        exit 2
+        ;;
+esac
+
+state_dir="$HOME/.local/state/jarvis"
+bar_width=36
+maximum_wait=180
+
+mkdir -p "$state_dir"
+
+if [[ "$mode" == "full" ]]; then
+    history_file="$state_dir/full-load-times"
+    default_estimate=28
+    description="Jarvis, listener and wake word"
+else
+    history_file="$state_dir/core-load-times"
+    default_estimate=25
+    description="Jarvis core"
+fi
+
+if [[ -s "$history_file" ]]; then
+    estimated_seconds="$(
+        tail -n 10 "$history_file" |
+        awk '
+            /^[0-9]+$/ {
+                total += $1
+                count++
+            }
+            END {
+                if (count)
+                    printf "%d", total / count
+            }
+        '
+    )"
+else
+    estimated_seconds="$default_estimate"
+fi
+
+if [[ -z "${estimated_seconds:-}" ]] ||
+   (( estimated_seconds < 1 )); then
+    estimated_seconds="$default_estimate"
+fi
+
+start_epoch="$(date +%s)"
+start_time="$(date --iso-8601=seconds)"
+
+if [[ "$mode" == "full" ]]; then
+    systemctl --user restart \
+      ovos-listener.service \
+      ovos-core.service
+else
+    systemctl --user restart ovos-core.service
+fi
+
+echo "Loading ${description}..."
+echo "Estimated from recent ${mode} loads: ${estimated_seconds}s"
+
+while true; do
+    current_epoch="$(date +%s)"
+    elapsed=$((current_epoch - start_epoch))
+
+    core_logs="$(
+        journalctl --user \
+          -u ovos-core.service \
+          --since "$start_time" \
+          --no-pager -o cat
+    )"
+
+    core_ready=false
+    listener_ready=false
+    services_ready=false
+
+    if printf '%s\n' "$core_logs" |
+       rg -q \
+       'ovos-skill-jarvis-dispatcher.*(is ready|loaded successfully)'; then
+        core_ready=true
+    fi
+
+    if [[ "$mode" == "full" ]]; then
+        listener_logs="$(
+            journalctl --user \
+              -u ovos-listener.service \
+              --since "$start_time" \
+              --no-pager -o cat
+        )"
+
+        if printf '%s\n' "$listener_logs" |
+           rg -q 'Loading hotword: hey_jarvis'; then
+            listener_ready=true
+        fi
+    elif systemctl --user is-active --quiet ovos-listener.service; then
+        listener_ready=true
+    fi
+
+    if systemctl --user is-active --quiet ovos-listener.service &&
+       systemctl --user is-active --quiet ovos-core.service &&
+       systemctl --user is-active --quiet ovos-audio.service; then
+        services_ready=true
+    fi
+
+    if "$core_ready" && "$listener_ready" && "$services_ready"; then
+        percent=100
+        filled="$bar_width"
+        remaining=0
+        ready=true
+    else
+        percent=$((elapsed * 100 / estimated_seconds))
+
+        if (( percent > 99 )); then
+            percent=99
+        fi
+
+        filled=$((percent * bar_width / 100))
+        remaining=$((estimated_seconds - elapsed))
+
+        if (( remaining < 0 )); then
+            remaining=0
+        fi
+
+        ready=false
+    fi
+
+    empty=$((bar_width - filled))
+    filled_bar="$(printf "%${filled}s" "" | tr ' ' '#')"
+    empty_bar="$(printf "%${empty}s" "")"
+
+    printf '\r[%s%s] %3d%%  elapsed %3ds  ETA %3ds' \
+      "$filled_bar" \
+      "$empty_bar" \
+      "$percent" \
+      "$elapsed" \
+      "$remaining"
+
+    if "$ready"; then
+        printf '\n'
+        printf '%s\n' "$elapsed" >> "$history_file"
+
+        history_tmp="${history_file}.tmp"
+        tail -n 10 "$history_file" > "$history_tmp"
+        mv "$history_tmp" "$history_file"
+
+        new_average="$(
+            awk '
+                {
+                    total += $1
+                    count++
+                }
+                END {
+                    if (count)
+                        printf "%d", total / count
+                }
+            ' "$history_file"
+        )"
+
+        echo "Jarvis is ready."
+        echo "Mode: ${mode}"
+        echo "Actual load time: ${elapsed}s"
+        echo "Updated ${mode} average: ${new_average}s"
+        exit 0
+    fi
+
+    if (( elapsed >= maximum_wait )); then
+        printf '\n'
+        echo "Jarvis did not become ready within three minutes." >&2
+        exit 1
+    fi
+
+    sleep 1
+done

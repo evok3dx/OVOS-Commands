@@ -1,0 +1,7 @@
+[Unit]
+Description=Jarvis Claude response reader
+After=ovos-messagebus.service ovos-audio.service
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/jarvis-read-claude-response.py

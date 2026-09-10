@@ -1,0 +1,119 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+action="${1:-}"
+agent="${2:-}"
+
+case "$agent" in
+  codex)
+    agent_user="agent-codex"
+    workspace="/home/$agent_user/workspace"
+    title="Codex Agent"
+    ;;
+  claude)
+    agent_user="agent-claude"
+    workspace="/home/$agent_user/workspace"
+    title="Claude Agent"
+    ;;
+  *)
+    echo "Unsupported agent" >&2
+    exit 2
+    ;;
+esac
+
+find_window() {
+  wmctrl -l |
+    awk -v wanted="$title" '
+      index($0, wanted) {
+        print $1
+        exit
+      }
+    '
+}
+
+wait_for_window() {
+  local window_id
+
+  for _ in {1..25}; do
+    window_id="$(find_window)"
+
+    if [[ -n "$window_id" ]]; then
+      printf '%s\n' "$window_id"
+      return 0
+    fi
+
+    sleep 0.2
+  done
+
+  return 1
+}
+
+show_window() {
+  local window_id="$1"
+
+  wmctrl -ir "$window_id" -b remove,hidden || true
+  wmctrl -ia "$window_id"
+}
+
+launch_window() {
+  gnome-terminal \
+    --window \
+    --title="$title" \
+    -- bash -lc "
+      exec sudo -n -u $agent_user \
+        /usr/bin/tmux new-session -A -s work \
+        -c $workspace
+    "
+}
+
+case "$action" in
+  open|focus)
+    window_id="$(find_window)"
+
+    if [[ -n "$window_id" ]]; then
+      show_window "$window_id"
+      exit 0
+    fi
+
+    for _ in 1 2; do
+      launch_window
+
+      if window_id="$(wait_for_window)"; then
+        show_window "$window_id"
+        exit 0
+      fi
+    done
+
+    echo "Failed to open $title" >&2
+    exit 1
+    ;;
+
+  minimize)
+    window_id="$(find_window)"
+
+    if [[ -z "$window_id" ]]; then
+      echo "$title is not open" >&2
+      exit 1
+    fi
+
+    xdotool windowminimize "$window_id"
+    ;;
+
+  close)
+    window_id="$(find_window)"
+
+    if [[ -z "$window_id" ]]; then
+      echo "$title is not open" >&2
+      exit 1
+    fi
+
+    wmctrl -ic "$window_id"
+    ;;
+
+  *)
+    echo \
+      "Usage: jarvis-agent-window {open|focus|minimize|close} {codex|claude}" \
+      >&2
+    exit 2
+    ;;
+esac

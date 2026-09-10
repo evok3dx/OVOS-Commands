@@ -1,0 +1,44 @@
+{
+  "listener": {
+    "VAD": {
+      "module": "ovos-vad-plugin-silero"
+    },
+    "wake_word": "hey_jarvis",
+    "instant_listen": true,
+    "fake_barge_in": true,
+    "barge_in_volume": 15,
+    "barge_in_delay": 0.25
+  },
+  "hotwords": {
+    "hey_jarvis": {
+      "module": "ovos-ww-plugin-openwakeword",
+      "listen": true,
+      "threshold": 0.5
+    }
+  },
+  "sounds": {
+    "start_listening": "$HOME/.local/share/ovos/sounds/jarvis-ready.wav"
+  },
+  "stt": {
+    "module": "ovos-stt-plugin-fasterwhisper",
+    "ovos-stt-plugin-fasterwhisper": {
+      "model": "small.en",
+      "use_cuda": false,
+      "compute_type": "int8",
+      "beam_size": 1,
+      "cpu_threads": 8
+    }
+  },
+  "tts": {
+    "module": "ovos-tts-plugin-phoonnx",
+    "ovos-tts-plugin-phoonnx": {
+      "voice": "kokoro/af_bella"
+    }
+  },
+  "intents": {
+    "persona": {
+      "handle_fallback": false,
+      "ignore_plugin_personas": true
+    }
+  }
+}

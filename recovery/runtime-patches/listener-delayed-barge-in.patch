@@ -1,0 +1,123 @@
+--- a/ovos_dinkum_listener/service.py
++++ b/ovos_dinkum_listener/service.py
+@@ -20,7 +20,7 @@
+ from pathlib import Path
+ from shutil import which
+ from tempfile import NamedTemporaryFile
+-from threading import Thread, RLock, Event
++from threading import Thread, RLock, Event, Timer
+ from typing import List, Tuple, Optional, Union
+ 
+ import speech_recognition as sr
+@@ -184,6 +184,9 @@
+         self.config = Configuration()
+         self._applied_config_hash = self._config_hash()
+         self._default_vol = 70  # for barge-in
++        self._barge_in_timer = None
++        self._barge_in_generation = 0
++        self._barge_in_lock = RLock()
+ 
+         self._before_start()  # connect to bus
+ 
+@@ -528,16 +531,54 @@
+         """ callback when voice loop exits SLEEP mode"""
+         self.bus.emit(Message("mycroft.awoken"))
+ 
+-    def _record_begin(self):
+-        LOG.debug("Record begin")
+-        if self.fake_barge_in:
+-            LOG.info(f"fake barge-in lowering volume to: {self.fake_barge_in_volume}")
++    def _apply_fake_barge_in(self, generation):
++        """Lower volume after the wake acknowledgement sound finishes."""
++        with self._barge_in_lock:
++            if generation != self._barge_in_generation:
++                return
++            self._barge_in_timer = None
++            if not self.fake_barge_in:
++                return
++
++            LOG.info(
++                f"fake barge-in lowering volume to: "
++                f"{self.fake_barge_in_volume}"
++            )
+             self.bus.emit(
+-                Message("mycroft.volume.set",
+-                        {"percent": self.fake_barge_in_volume / 100,  # alsa plugin expects between 0-1
+-                         "play_sound": False},
+-                        {"skill_id": "dinkum-listener"})
++                Message(
++                    "mycroft.volume.set",
++                    {
++                        "percent": self.fake_barge_in_volume / 100,
++                        "play_sound": False
++                    },
++                    {"skill_id": "dinkum-listener"}
++                )
+             )
++
++    def _record_begin(self):
++        LOG.debug("Record begin")
++
++        with self._barge_in_lock:
++            self._barge_in_generation += 1
++            generation = self._barge_in_generation
++
++            if self._barge_in_timer:
++                self._barge_in_timer.cancel()
++                self._barge_in_timer = None
++
++            if self.fake_barge_in:
++                delay = Configuration().get(
++                    "listener", {}
++                ).get("barge_in_delay", 0.25)
++
++                self._barge_in_timer = Timer(
++                    max(0.0, float(delay)),
++                    self._apply_fake_barge_in,
++                    args=(generation,)
++                )
++                self._barge_in_timer.daemon = True
++                self._barge_in_timer.start()
++
+         self.bus.emit(Message("recognizer_loop:record_begin"))
+ 
+     def _save_ww(self, audio_bytes, ww_meta, save_path=None):
+@@ -656,14 +697,30 @@
+ 
+     def _record_end_signal(self):
+         LOG.debug("Record end")
+-        if self.fake_barge_in:
+-            LOG.info(f"fake barge-in restoring volume to: {self._default_vol}")
+-            self.bus.emit(
+-                Message("mycroft.volume.set",
+-                        {"percent": self._default_vol / 100,  # alsa plugin expects between 0-1
+-                         "play_sound": False},
+-                        {"skill_id": "dinkum-listener"})
+-            )
++
++        with self._barge_in_lock:
++            self._barge_in_generation += 1
++
++            if self._barge_in_timer:
++                self._barge_in_timer.cancel()
++                self._barge_in_timer = None
++
++            if self.fake_barge_in:
++                LOG.info(
++                    f"fake barge-in restoring volume to: "
++                    f"{self._default_vol}"
++                )
++                self.bus.emit(
++                    Message(
++                        "mycroft.volume.set",
++                        {
++                            "percent": self._default_vol / 100,
++                            "play_sound": False
++                        },
++                        {"skill_id": "dinkum-listener"}
++                    )
++                )
++
+         self.bus.emit(Message("recognizer_loop:record_end"))
+ 
+     def __normtranscripts(self, transcripts: List[Tuple[str, float]]) -> List[str]:
