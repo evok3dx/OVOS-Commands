@@ -39,5 +39,7 @@ bash scripts/install-ovos-tray.sh
 
 The shield is green when the three OVOS services and Jarvis dispatcher are
 ready, amber while starting, red on failure and grey when stopped. Its menu
-provides core restart, full restart, start, stop and recent logs. It polls
-local systemd state every three seconds and does not load any AI models.
+uses plain-language labels: Restart Commands reloads the core and dispatcher,
+while Restart Voice System also reloads the listener and wake word. It also
+provides start, stop and recent-log actions. It polls local systemd state every
+three seconds and does not load any AI models.
