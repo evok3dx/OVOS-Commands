@@ -110,13 +110,15 @@ class OvosTray:
                 for name, value in states.items()
             )
             self.status_icon.set_tooltip_text(
-                f"OVOS: {state}\n{details}"
+                f"Voice system: {state}\n{details}"
             )
         except Exception as error:
             self.status_icon.set_from_file(
                 str(self.icon_dir / "ovos-failed.svg")
             )
-            self.status_icon.set_tooltip_text(f"OVOS tray error: {error}")
+            self.status_icon.set_tooltip_text(
+                f"Voice-system tray error: {error}"
+            )
         return GLib.SOURCE_CONTINUE
 
     def _background(self, command):
@@ -173,10 +175,10 @@ class OvosTray:
     def _build_menu(self):
         menu = Gtk.Menu()
         entries = (
-            ("Restart Jarvis", self._restart),
-            ("Full restart", self._full_restart),
-            ("Start OVOS", self._start),
-            ("Stop OVOS", self._stop),
+            ("Restart Commands", self._restart),
+            ("Restart Voice System", self._full_restart),
+            ("Start Voice System", self._start),
+            ("Stop Voice System", self._stop),
             ("Recent logs", self._logs),
             ("Exit tray", lambda _item: Gtk.main_quit()),
         )
