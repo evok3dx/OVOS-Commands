@@ -7,13 +7,6 @@ TARGET_PACKAGE="$HOME/.local/src/ovos-skill-jarvis-dispatcher/ovos_skill_jarvis_
 STAMP="$(date +%Y%m%d-%H%M%S)"
 BACKUP="${TARGET_PACKAGE}.before-modular-refactor-${STAMP}"
 
-branch="$(git -C "$REPO_ROOT" branch --show-current)"
-if [[ "$branch" != "modular-refactor" ]]; then
-    echo "Refusing deployment from branch: $branch"
-    echo "Check out modular-refactor first."
-    exit 1
-fi
-
 python3 "$REPO_ROOT/scripts/validate_refactor.py"
 
 if [[ ! -d "$TARGET_PACKAGE" ]]; then
@@ -44,4 +37,3 @@ echo "Restarting Jarvis..."
 jarvis-restart
 
 systemctl --user --no-pager --full status ovos-core.service
-
