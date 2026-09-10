@@ -13,6 +13,14 @@ behaviour-preserving modular refactor.
 
 Supported wake phrase: `Hey Jarvis`.
 
+## Browser reading
+
+`Read the page` extracts the main `<main>` or `<article>` content from the
+HTML clipboard data supplied by Firefox or Brave. If semantic extraction is
+not available, it safely falls back to all copied page text. `Read the full
+page` deliberately reads the complete browser selection, while `Read selected
+text` remains unchanged.
+
 ## Runtime resilience
 
 Multi-turn conversation failures are contained inside `ConversationMixin`.
