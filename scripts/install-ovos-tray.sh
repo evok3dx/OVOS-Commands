@@ -21,7 +21,7 @@ desktop_file="$autostart_dir/ovos-tray.desktop"
 {
     printf '%s\n' '[Desktop Entry]'
     printf '%s\n' 'Type=Application'
-    printf '%s\n' 'Name=OVOS Status'
+    printf '%s\n' 'Name=Voice System Status'
     printf 'Exec=%s\n' "$bin_dir/ovos-tray"
     printf '%s\n' 'Terminal=false'
     printf '%s\n' 'X-GNOME-Autostart-enabled=true'
@@ -30,4 +30,4 @@ desktop_file="$autostart_dir/ovos-tray.desktop"
 pkill -f "$bin_dir/ovos-tray" 2>/dev/null || true
 nohup "$bin_dir/ovos-tray" > "$state_dir/ovos-tray.log" 2>&1 &
 
-echo "OVOS tray installed and started."
+echo "Voice-system tray installed and started."
