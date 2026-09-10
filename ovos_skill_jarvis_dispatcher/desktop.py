@@ -68,21 +68,16 @@ class DesktopActionsMixin:
             self.speak("I could not identify the application.")
             return
 
-        display_names = {
-            "brave": "Brave",
-            "firefox": "Firefox",
-            "signal": "Signal",
-            "zoom": "Zoom",
-            "terminal": "Terminal",
-            "notes": "Notes",
-            "office": "Office",
-            "claude": "Claude"
-        }
+        self._run_desktop_app_action(app, action)
 
-        display_names.update({
-            "mail": "Proton Mail",
-            "calendar": "Proton Calendar",
-        })
+    def _run_desktop_app_action(self, app, action, announce=True):
+        """Run one resolved application action and report success."""
+
+        display_name = self._desktop_app_display_names.get(
+            app,
+            app.replace("_", " ").title(),
+        )
+        integration = self._desktop_app_integrations.get(app, app)
 
         spoken_actions = {
             "open": "Opening",
@@ -99,7 +94,7 @@ class DesktopActionsMixin:
                         / ".local/bin/jarvis-app-window"
                     ),
                     action,
-                    app
+                    integration
                 ],
                 check=True,
                 timeout=15,
@@ -112,16 +107,13 @@ class DesktopActionsMixin:
                 f"{action} {app}"
             )
 
-            if action in ("minimize", "close"):
-                self.speak(
-                    f"{display_names[app]} is not open."
-                )
-            else:
-                self.speak(
-                    f"I could not open {display_names[app]}."
-                )
-            return
+            if announce:
+                if action in ("minimize", "close"):
+                    self.speak(f"{display_name} is not open.")
+                else:
+                    self.speak(f"I could not open {display_name}.")
+            return False
 
-        self.speak(
-            f"{spoken_actions[action]} {display_names[app]}."
-        )
+        if announce:
+            self.speak(f"{spoken_actions[action]} {display_name}.")
+        return True

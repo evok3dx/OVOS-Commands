@@ -13,8 +13,24 @@ from .conversation import ConversationMixin
 from .desktop import DesktopActionsMixin
 from .dictation import DictationActionsMixin
 from .helpers import DispatcherHelpersMixin
+from .profile import load_profile
 from .vocabulary import register_skill_vocabulary
 from .wakeword import WakewordActionsMixin
+
+try:
+    from .integrations.standard_notes import StandardNotesIntegrationMixin
+except Exception as error:
+    _standard_notes_import_error = str(error)
+
+    class StandardNotesIntegrationMixin:
+        """Fail-safe replacement for an unavailable optional integration."""
+
+        def _create_new_note(self):
+            self.log.error(
+                f"Standard Notes integration unavailable: "
+                f"{_standard_notes_import_error}"
+            )
+            self.speak("The new-note action is unavailable.")
 
 
 class JarvisDispatcherSkill(
@@ -23,6 +39,7 @@ class JarvisDispatcherSkill(
     DispatcherHelpersMixin,
     WakewordActionsMixin,
     DictationActionsMixin,
+    StandardNotesIntegrationMixin,
     DesktopActionsMixin,
     BrowserActionsMixin,
     ConversationalSkill,
@@ -44,6 +61,7 @@ class JarvisDispatcherSkill(
         self._speech_note_dictation_paused = False
         self._message_retries = 0
         self._confirmation_retries = 0
+        self._jarvis_profile = load_profile(logger=self.log)
 
         self.add_event(
             "recognizer_loop:wakeword",
@@ -357,6 +375,13 @@ class JarvisDispatcherSkill(
     )
     def handle_close_desktop_app(self, message):
         self._desktop_app_action(message, "close")
+
+    @intent_handler(
+        IntentBuilder("NewNoteIntent")
+        .require("NewNoteCommand")
+    )
+    def handle_new_note(self, _message):
+        self._create_new_note()
 
     @intent_handler(
         IntentBuilder("OpenCodexCommandIntent")

@@ -12,7 +12,10 @@ requires-python = ">=3.10"
 "ovos-skill-jarvis-dispatcher.openvoiceos" = "ovos_skill_jarvis_dispatcher:JarvisDispatcherSkill"
 
 [tool.setuptools]
-packages = ["ovos_skill_jarvis_dispatcher"]
+packages = [
+  "ovos_skill_jarvis_dispatcher",
+  "ovos_skill_jarvis_dispatcher.integrations",
+]
 
 [tool.setuptools.package-data]
 ovos_skill_jarvis_dispatcher = ["locale/en-US/vocab/*.voc"]

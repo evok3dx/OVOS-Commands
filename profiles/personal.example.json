@@ -1,0 +1,13 @@
+{
+  "name": "personal",
+  "conversation": false,
+  "wake_phrase": "hey_jarvis",
+  "applications": {
+    "brave": "brave",
+    "firefox": "firefox",
+    "terminal": "terminal",
+    "notes": "standard_notes",
+    "mail": "proton_mail",
+    "calendar": "proton_calendar"
+  }
+}

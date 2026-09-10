@@ -23,6 +23,19 @@ Examples:
 Open, launch, start, focus, show, switch, minimise, hide, close, quit and exit
 variants are supported where applicable.
 
+### Standard Notes
+
+When the active profile maps `notes` to Standard Notes:
+
+- `New note`
+- `Create a new note`
+- `Create new note`
+- `Make a new note`
+- `Make new note`
+
+Jarvis focuses or opens Standard Notes, verifies that it owns the active
+window, and only then sends `Alt+Shift+N`.
+
 ## Browser search and navigation
 
 Examples:

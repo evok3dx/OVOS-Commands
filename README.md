@@ -47,6 +47,8 @@ for different hardware, see the
 | Path | Purpose |
 |---|---|
 | `ovos_skill_jarvis_dispatcher/` | Modular OVOS command skill |
+| `ovos_skill_jarvis_dispatcher/integrations/` | Contained application-specific actions |
+| `profiles/` | Validated machine profiles and app mappings |
 | `system_helpers/` | Allowlists and focused desktop automation |
 | `tray/` | Independent OVOS status indicator |
 | `mic/` | Independent microphone indicator and toggle |
@@ -118,6 +120,7 @@ of OVOS. Both indicators use process locks to prevent duplicate instances.
 - [Voice-system optimisation and stabilisation](docs/ovos-voice-system-optimisation-and-stabilisation.md)
 - [Modular refactor runtime tests](docs/modular-refactor-runtime-tests.md)
 - [Optional local conversation add-on](docs/conversation-addon.md)
+- [Profiles and application integrations](docs/profiles-and-integrations.md)
 - [Recovery infrastructure](recovery/README.md)
 
 ## Known-good baseline

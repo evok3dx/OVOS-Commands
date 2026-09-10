@@ -1,0 +1,17 @@
+{
+  "name": "brain",
+  "conversation": true,
+  "wake_phrase": "hey_jarvis",
+  "applications": {
+    "brave": "brave",
+    "firefox": "firefox",
+    "signal": "signal",
+    "zoom": "zoom",
+    "terminal": "terminal",
+    "notes": "standard_notes",
+    "office": "onlyoffice",
+    "claude": "claude_desktop",
+    "mail": "proton_mail",
+    "calendar": "proton_calendar"
+  }
+}

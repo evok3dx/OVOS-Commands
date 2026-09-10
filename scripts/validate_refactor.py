@@ -10,7 +10,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PACKAGE = ROOT / "ovos_skill_jarvis_dispatcher"
-EXPECTED_MODULES = {
+EXPECTED_ROOT_MODULES = {
     "__init__.py",
     "agents.py",
     "browser.py",
@@ -18,13 +18,18 @@ EXPECTED_MODULES = {
     "desktop.py",
     "dictation.py",
     "helpers.py",
+    "profile.py",
     "vocabulary.py",
     "wakeword.py",
+}
+EXPECTED_INTEGRATION_MODULES = {
+    "__init__.py",
+    "standard_notes.py",
 }
 EXPECTED_INTENTS = {
     "CloseFocusedWindowIntent", "MinimizeFocusedWindowIntent",
     "MaximizeFocusedWindowIntent", "RestoreFocusedWindowIntent",
-    "ReadLastTypedTextIntent",
+    "ReadLastTypedTextIntent", "NewNoteIntent",
     "ReadSelectedTextIntent", "ReadVisiblePageIntent", "ReadFullPageIntent",
     "StartSpeechNoteDictationIntent", "PauseSpeechNoteDictationIntent",
     "ResumeSpeechNoteDictationIntent", "StopSpeechNoteDictationIntent",
@@ -80,9 +85,17 @@ def install_import_stubs():
 
 def main():
     found = {path.name for path in PACKAGE.glob("*.py")}
-    assert found == EXPECTED_MODULES, (found, EXPECTED_MODULES)
+    assert found == EXPECTED_ROOT_MODULES, (found, EXPECTED_ROOT_MODULES)
 
-    for path in PACKAGE.glob("*.py"):
+    integrations = PACKAGE / "integrations"
+    found_integrations = {path.name for path in integrations.glob("*.py")}
+    assert found_integrations == EXPECTED_INTEGRATION_MODULES, (
+        found_integrations,
+        EXPECTED_INTEGRATION_MODULES,
+    )
+
+    python_files = list(PACKAGE.glob("*.py")) + list(integrations.glob("*.py"))
+    for path in python_files:
         py_compile.compile(str(path), doraise=True)
 
     tree = ast.parse((PACKAGE / "__init__.py").read_text())
@@ -96,6 +109,12 @@ def main():
         and isinstance(node.args[0], ast.Constant)
     }
     assert intents == EXPECTED_INTENTS, (intents, EXPECTED_INTENTS)
+
+    profile_namespace = {}
+    exec((PACKAGE / "profile.py").read_text(), profile_namespace)
+    brain_profile = profile_namespace["resolve_profile"](
+        profile_namespace["BRAIN_COMPATIBILITY_PROFILE"]
+    )
 
     namespace = {}
     exec((PACKAGE / "vocabulary.py").read_text(), namespace)
@@ -112,8 +131,9 @@ def main():
             self.registrations.append((phrase, entity))
 
     fake = FakeSkill()
+    fake._jarvis_profile = brain_profile
     namespace["register_skill_vocabulary"](fake)
-    assert len(fake.registrations) == 874
+    assert len(fake.registrations) == 879
     for phrase in (
         "read window",
         "read this window",
@@ -123,11 +143,34 @@ def main():
             phrase,
             "ReadVisiblePageCommand",
         ) in fake.registrations
+    for phrase in (
+        "new note",
+        "create a new note",
+        "create new note",
+        "make a new note",
+        "make new note",
+    ):
+        assert (phrase, "NewNoteCommand") in fake.registrations
     assert len(fake._browser_navigation_actions) == 66
     assert set(fake._desktop_app_aliases) == {
         "brave", "firefox", "signal", "zoom", "terminal", "notes",
         "office", "claude", "mail", "calendar",
     }
+
+    profiles = sorted((ROOT / "profiles").glob("*.json"))
+    assert len(profiles) == 3
+    for path in profiles:
+        raw_profile = __import__("json").loads(path.read_text())
+        profile_namespace["resolve_profile"](raw_profile)
+
+    try:
+        profile_namespace["resolve_profile"]({
+            "applications": {"notes": "terminal"},
+        })
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("Incompatible category mapping was accepted")
 
     install_import_stubs()
     sys.path.insert(0, str(ROOT))
@@ -135,9 +178,10 @@ def main():
     skill = package.create_skill()
     assert type(skill).__name__ == "JarvisDispatcherSkill"
 
-    print("PASS: 9 modules compile")
-    print("PASS: 46 intents match the expected inventory")
-    print("PASS: 874 vocabulary registrations are present")
+    print(f"PASS: {len(python_files)} Python modules compile")
+    print("PASS: 47 intents match the expected inventory")
+    print("PASS: 879 vocabulary registrations are present")
+    print("PASS: 3 deployment profiles validate")
     print("PASS: package imports and create_skill() succeeds")
 
 
