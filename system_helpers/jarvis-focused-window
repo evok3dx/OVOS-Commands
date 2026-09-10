@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+set -u
+
+action="${1:-}"
+window_id="$(xdotool getactivewindow 2>/dev/null)"
+
+if [[ -z "$window_id" ]]; then
+    echo "No focused window" >&2
+    exit 1
+fi
+
+window_class="$(xprop -id "$window_id" WM_CLASS 2>/dev/null)"
+window_class="${window_class,,}"
+
+case "$window_class" in
+  *nemo-desktop*|*plank*|*cinnamon*)
+    echo "Refusing to control the desktop or panel" >&2
+    exit 1
+    ;;
+esac
+
+case "$action" in
+  close)
+    wmctrl -ic "$window_id"
+    ;;
+  minimize)
+    xdotool windowminimize "$window_id"
+    ;;
+  maximize)
+    wmctrl -ir "$window_id" -b add,maximized_vert,maximized_horz
+    ;;
+  restore)
+    wmctrl -ir "$window_id" -b remove,maximized_vert,maximized_horz
+    ;;
+  *)
+    echo "Usage: jarvis-focused-window {close|minimize|maximize|restore}" >&2
+    exit 2
+    ;;
+esac
