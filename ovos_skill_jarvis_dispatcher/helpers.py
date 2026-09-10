@@ -15,6 +15,9 @@ class DispatcherHelpersMixin:
         if mode == "selection":
             introduction = "Reading the selected text."
             failure = "I could not find any selected text."
+        elif mode == "full-page":
+            introduction = "I will read the full page now."
+            failure = "I could not read that page."
         else:
             introduction = "I will read the page now."
             failure = "I could not read that page."
