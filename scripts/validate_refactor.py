@@ -113,7 +113,7 @@ def main():
 
     fake = FakeSkill()
     namespace["register_skill_vocabulary"](fake)
-    assert len(fake.registrations) == 867
+    assert len(fake.registrations) == 869
     for phrase in (
         "read window",
         "read this window",
@@ -137,7 +137,7 @@ def main():
 
     print("PASS: 9 modules compile")
     print("PASS: 45 intents match the expected inventory")
-    print("PASS: 867 vocabulary registrations are present")
+    print("PASS: 869 vocabulary registrations are present")
     print("PASS: package imports and create_skill() succeeds")
 
 
