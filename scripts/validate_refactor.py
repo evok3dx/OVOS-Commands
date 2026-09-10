@@ -112,7 +112,16 @@ def main():
 
     fake = FakeSkill()
     namespace["register_skill_vocabulary"](fake)
-    assert len(fake.registrations) == 859
+    assert len(fake.registrations) == 862
+    for phrase in (
+        "read window",
+        "read this window",
+        "read current window",
+    ):
+        assert (
+            phrase,
+            "ReadVisiblePageCommand",
+        ) in fake.registrations
     assert len(fake._browser_navigation_actions) == 66
     assert set(fake._desktop_app_aliases) == {
         "brave", "firefox", "signal", "zoom", "terminal", "notes",
@@ -127,7 +136,7 @@ def main():
 
     print("PASS: 9 modules compile")
     print("PASS: 44 intents match the known-good inventory")
-    print("PASS: 859 vocabulary registrations are present")
+    print("PASS: 862 vocabulary registrations are present")
     print("PASS: package imports and create_skill() succeeds")
 
 
