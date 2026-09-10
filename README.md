@@ -43,3 +43,18 @@ uses plain-language labels: Restart Commands reloads the core and dispatcher,
 while Restart Voice System also reloads the listener and wake word. It also
 provides start, stop and recent-log actions. It polls local systemd state every
 three seconds and does not load any AI models.
+
+## Jarvis microphone indicator
+
+Install the separate microphone status and control icon with:
+
+```bash
+bash scripts/install-jarvis-mic-indicator.sh
+```
+
+The microphone icon is green while `ovos-listener` is active and red while it
+is stopped. Clicking it toggles only the listener, which disables or restores
+wake-word and push-to-command input without stopping the rest of OVOS. A file
+lock prevents duplicate indicator processes. The installer validates Python,
+shell and SVG sources, generates a portable autostart entry, backs up changed
+live files and restarts the indicator.
