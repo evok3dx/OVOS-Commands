@@ -1,5 +1,6 @@
 import re
 import subprocess
+import time
 from pathlib import Path
 
 
@@ -15,10 +16,12 @@ class DispatcherHelpersMixin:
             introduction = "Reading the selected text."
             failure = "I could not find any selected text."
         else:
-            introduction = "Reading the page."
+            introduction = "I will read the page now."
             failure = "I could not read that page."
 
         self.speak(introduction, wait=True)
+        # Let the audio device drain before the external reader takes over.
+        time.sleep(0.3)
 
         try:
             subprocess.run(
