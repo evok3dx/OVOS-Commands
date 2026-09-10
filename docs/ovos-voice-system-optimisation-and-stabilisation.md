@@ -1,4 +1,4 @@
-# Post-Firefox OVOS Optimisation and Stabilisation
+# OVOS Voice System Optimisation and Stabilisation
 
 ## Purpose and scope
 
