@@ -1,0 +1,70 @@
+#!/usr/bin/python3
+
+import subprocess
+import time
+import sys
+
+AGENTS = {
+    "codex": ("agent-codex", "codex"),
+    "claude": ("agent-claude", "claude"),
+}
+
+MAX_MESSAGE_LENGTH = 8000
+
+
+
+
+
+
+def run_as(user, *arguments, input_text=None):
+    return subprocess.run(
+        ["/usr/sbin/runuser", "-u", user, "--", "/usr/bin/tmux", *arguments],
+        input=input_text,
+        text=True,
+        check=True,
+        capture_output=True,
+    )
+
+
+def main():
+    if len(sys.argv) != 2 or sys.argv[1] not in AGENTS:
+        raise SystemExit("Allowed agents: codex or claude")
+
+    agent = sys.argv[1]
+    user, expected_process = AGENTS[agent]
+
+    message = sys.stdin.read(MAX_MESSAGE_LENGTH + 1).strip()
+
+    if not message:
+        raise SystemExit("Message is empty")
+
+    if len(message) > MAX_MESSAGE_LENGTH:
+        raise SystemExit("Message is too long")
+
+    if "\0" in message:
+        raise SystemExit("Invalid message")
+
+    process = run_as(
+        user,
+        "display-message",
+        "-p",
+        "-t",
+        "work",
+        "#{pane_current_command}",
+    ).stdout.strip()
+
+    if process != expected_process:
+        raise SystemExit(
+            f"Refusing to send: expected {expected_process}, found {process}"
+        )
+
+    run_as(user, "load-buffer", "-", input_text=message)
+    run_as(user, "paste-buffer", "-d", "-t", "work")
+    time.sleep(0.5)
+    run_as(user, "send-keys", "-t", "work", "Enter")
+
+    print(f"Message sent to {agent}")
+
+
+if __name__ == "__main__":
+    main()

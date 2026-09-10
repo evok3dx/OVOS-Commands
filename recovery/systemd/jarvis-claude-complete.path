@@ -1,0 +1,9 @@
+[Unit]
+Description=Watch for completed Claude responses
+
+[Path]
+PathChanged=/var/spool/jarvis-responses/claude/latest.json
+Unit=jarvis-claude-complete.service
+
+[Install]
+WantedBy=default.target

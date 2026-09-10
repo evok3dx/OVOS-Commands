@@ -1,0 +1,15 @@
+# %h/.config/systemd/user/ovos-messagebus.service
+[Unit]
+Documentation=https://openvoiceos.github.io/ovos-docker/about/glossary/components/#ovos-messagebus
+Description=Open Voice OS - Message bus service
+PartOf=ovos.service
+Requires=ovos.service
+
+[Service]
+ExecStart=%h/.local/bin/ovos_messagebus-x86_64-unknown-linux-gnu
+ExecReload=/usr/bin/kill -s HUP $MAINPID
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=ovos.service

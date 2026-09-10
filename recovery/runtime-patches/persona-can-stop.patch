@@ -1,0 +1,15 @@
+--- a/ovos_persona/__init__.py
++++ b/ovos_persona/__init__.py
+@@ -570,6 +570,12 @@
+         self.speak_dialog("release_persona", {"persona": self.active_persona})
+         self.active_persona = None
+ 
++    def can_stop(self, message=None):
++        """Report that active persona output can be cancelled."""
++
++        return True
++
++
+     def stop_session(self, session: Session):
+         if self._active_sessions.get(session.session_id):
+             self._active_sessions[session.session_id] = False
