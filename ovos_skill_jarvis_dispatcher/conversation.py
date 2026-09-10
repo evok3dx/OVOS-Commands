@@ -120,6 +120,24 @@ class ConversationMixin:
             return bool(self._message_stage)
 
     def converse(self, message):
+        """Handle a follow-up without allowing a failure to trap the skill."""
+
+        try:
+            return self._converse_impl(message)
+        except Exception:
+            self.log.exception("Dispatcher conversation failed")
+
+            try:
+                self._clear_message_state()
+            except Exception:
+                self.log.exception(
+                    "Could not clear failed dispatcher conversation"
+                )
+
+            self.speak("That command failed, but Jarvis is still available.")
+            return True
+
+    def _converse_impl(self, message):
         """Handle only the next expected message or confirmation."""
 
         utterances = message.data.get("utterances") or []
