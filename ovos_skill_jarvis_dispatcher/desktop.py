@@ -7,7 +7,7 @@ class DesktopActionsMixin:
     """Allowlisted desktop application and window actions."""
 
     def _focused_window_action(self, action: str) -> None:
-        """Close or minimise the currently focused normal window."""
+        """Control the currently focused normal window."""
 
         helper = Path.home() / ".local/bin/jarvis-focused-window"
 
@@ -29,7 +29,8 @@ class DesktopActionsMixin:
         spoken_actions = {
             "close": "Window closed.",
             "minimize": "Window minimized.",
-            "maximize": "Window maximized."
+            "maximize": "Window maximized.",
+            "restore": "Window restored."
         }
         self.speak(spoken_actions[action])
 
