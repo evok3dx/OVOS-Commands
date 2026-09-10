@@ -452,6 +452,7 @@ def register_skill_vocabulary(self):
             "read the selection"
         ],
         "ReadVisiblePageCommand": [
+            "read page",
             "read this page",
             "read the page",
             "read current page",
@@ -460,6 +461,12 @@ def register_skill_vocabulary(self):
             "read window",
             "read this window",
             "read current window"
+        ],
+        "ReadFullPageCommand": [
+            "read full page",
+            "read the full page",
+            "read the entire page",
+            "read everything on the page"
         ]
     }
 
