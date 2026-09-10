@@ -1,0 +1,178 @@
+#!/usr/bin/env bash
+set -u
+
+mode="${1:-}"
+clipboard_backup="$(mktemp)"
+captured_text="$(mktemp)"
+captured_html="$(mktemp)"
+main_text="$(mktemp)"
+had_clipboard=0
+
+restore_clipboard() {
+    if [[ "$had_clipboard" -eq 1 ]]; then
+        xclip -selection clipboard -i \
+          < "$clipboard_backup" 2>/dev/null || true
+    fi
+
+    rm -f \
+      "$clipboard_backup" \
+      "$captured_text" \
+      "$captured_html" \
+      "$main_text"
+}
+
+trap restore_clipboard EXIT
+
+if xclip -selection clipboard -o \
+     > "$clipboard_backup" 2>/dev/null; then
+    had_clipboard=1
+fi
+
+copy_browser_page() {
+    local window_id
+    local window_class
+
+    window_id="$(xdotool getactivewindow 2>/dev/null)"
+    window_class="$(xprop -id "$window_id" WM_CLASS 2>/dev/null)"
+    window_class="${window_class,,}"
+
+    case "$window_class" in
+      *brave-browser*|*firefox*|*navigator*)
+        ;;
+      *)
+        echo "The focused window is not a supported browser" >&2
+        exit 1
+        ;;
+    esac
+
+    xdotool key --clearmodifiers ctrl+a
+    sleep 0.2
+    xdotool key --clearmodifiers ctrl+c
+    sleep 0.4
+
+    if ! xclip -selection clipboard -o \
+         > "$captured_text" 2>/dev/null; then
+        echo "Could not copy the page" >&2
+        exit 1
+    fi
+
+    if [[ ! -s "$captured_text" ]]; then
+        echo "The copied page was empty" >&2
+        exit 1
+    fi
+}
+
+extract_main_content() {
+    # Browsers normally expose an HTML clipboard target after Copy. If they
+    # do not, leave captured_text unchanged and use the safe full-page copy.
+    if ! xclip -selection clipboard -t text/html -o \
+         > "$captured_html" 2>/dev/null; then
+        return 0
+    fi
+
+    if [[ ! -s "$captured_html" ]]; then
+        return 0
+    fi
+
+    if ! "$HOME/.venvs/ovos/bin/python" \
+         - "$captured_html" "$main_text" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+from bs4 import BeautifulSoup
+
+
+source = Path(sys.argv[1])
+target = Path(sys.argv[2])
+soup = BeautifulSoup(source.read_bytes(), "lxml")
+
+for element in soup.select(
+    "script, style, nav, header, footer, aside, form, button, "
+    "svg, noscript, iframe, dialog"
+):
+    element.decompose()
+
+candidates = []
+for selector in ("main", "article", '[role="main"]'):
+    candidates.extend(soup.select(selector))
+
+def clean(value):
+    value = re.sub(r"[ \t]+", " ", value)
+    value = re.sub(r"\n{3,}", "\n\n", value)
+    return value.strip()
+
+def text_length(element):
+    return len(clean(element.get_text(" ", strip=True)))
+
+container = max(candidates, key=text_length) if candidates else soup.body
+if container is None:
+    raise SystemExit(0)
+
+blocks = []
+for element in container.select("h1, h2, h3, p, blockquote, pre, li"):
+    value = clean(element.get_text(" ", strip=True))
+    if len(value) < 2:
+        continue
+    if blocks and value == blocks[-1]:
+        continue
+    blocks.append(value)
+
+result = clean("\n\n".join(blocks))
+if len(result) < 120:
+    result = clean(container.get_text("\n", strip=True))
+
+# A short result is probably a browser-generated fragment without semantic
+# article markup. In that case the shell helper retains the full-page copy.
+if len(result) >= 120:
+    target.write_text(result + "\n")
+PY
+    then
+        return 0
+    fi
+
+    if [[ -s "$main_text" ]]; then
+        cp "$main_text" "$captured_text"
+    fi
+}
+
+case "$mode" in
+  selection)
+    if ! xclip -selection primary -o \
+         > "$captured_text" 2>/dev/null; then
+        echo "No selected text" >&2
+        exit 1
+    fi
+
+    if [[ ! -s "$captured_text" ]]; then
+        echo "No selected text" >&2
+        exit 1
+    fi
+    ;;
+
+  page)
+    copy_browser_page
+    extract_main_content
+    ;;
+
+  full-page)
+    copy_browser_page
+    ;;
+
+  *)
+    echo \
+      "Usage: jarvis-read-visible-text {selection|page|full-page}" \
+      >&2
+    exit 2
+    ;;
+esac
+
+xclip -selection clipboard -i < "$captured_text"
+
+flatpak run net.mkiol.SpeechNote \
+  --action start-reading-clipboard \
+  >/dev/null 2>&1
+
+result="$?"
+sleep 1
+exit "$result"
