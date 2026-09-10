@@ -41,6 +41,7 @@ check_patch() {
     package="$1"
     expected="$2"
     patch_name="$3"
+    target="$4"
     patch_file="$repo_dir/recovery/runtime-patches/$patch_name"
     installed="$(version_of "$package")"
 
@@ -68,6 +69,11 @@ check_patch() {
         return
     fi
 
+    stamp="$(date +%Y%m%d-%H%M%S)"
+    backup="$site_packages/$target.before-jarvis-$stamp"
+    cp -a "$site_packages/$target" "$backup"
+    echo "Backup: $backup"
+
     if patch --forward --batch -p1 -d "$site_packages" < "$patch_file"; then
         echo "PASS: applied"
     else
@@ -75,10 +81,14 @@ check_patch() {
     fi
 }
 
-check_patch ovos-core 2.1.1 ovos-core-phal-timeout.patch
-check_patch ovos-dinkum-listener 0.5.0 listener-delayed-barge-in.patch
-check_patch ovos-persona 0.7.1 persona-empty-utterance.patch
-check_patch ovos-persona 0.7.1 persona-can-stop.patch
+check_patch ovos-core 2.1.1 ovos-core-phal-timeout.patch \
+  ovos_core/skill_manager.py
+check_patch ovos-dinkum-listener 0.5.0 listener-delayed-barge-in.patch \
+  ovos_dinkum_listener/service.py
+check_patch ovos-persona 0.7.1 persona-empty-utterance.patch \
+  ovos_persona/__init__.py
+check_patch ovos-persona 0.7.1 persona-can-stop.patch \
+  ovos_persona/__init__.py
 
 echo
 if "$apply_changes"; then
