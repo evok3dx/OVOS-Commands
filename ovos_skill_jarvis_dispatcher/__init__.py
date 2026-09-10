@@ -128,6 +128,13 @@ class JarvisDispatcherSkill(
     def handle_read_visible_page(self, _message):
         self._read_visible_text("page")
 
+    @intent_handler(
+        IntentBuilder("ReadFullPageIntent")
+        .require("ReadFullPageCommand")
+    )
+    def handle_read_full_page(self, _message):
+        self._read_visible_text("full-page")
+
 
 
 
