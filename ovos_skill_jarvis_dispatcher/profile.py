@@ -30,7 +30,7 @@ APPLICATION_INTEGRATIONS = {
         "display_name": "Notes",
         "aliases": [
             "standard notes", "standard note", "standard node",
-            "notes app", "notes", "a note", "note",
+            "notes app", "notes", "nodes", "a note", "note",
         ],
     },
     "onlyoffice": {

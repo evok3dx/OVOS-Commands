@@ -133,7 +133,7 @@ def main():
     fake = FakeSkill()
     fake._jarvis_profile = brain_profile
     namespace["register_skill_vocabulary"](fake)
-    assert len(fake.registrations) == 879
+    assert len(fake.registrations) == 894
     for phrase in (
         "read window",
         "read this window",
@@ -180,7 +180,7 @@ def main():
 
     print(f"PASS: {len(python_files)} Python modules compile")
     print("PASS: 47 intents match the expected inventory")
-    print("PASS: 879 vocabulary registrations are present")
+    print("PASS: 894 vocabulary registrations are present")
     print("PASS: 3 deployment profiles validate")
     print("PASS: package imports and create_skill() succeeds")
 

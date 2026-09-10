@@ -70,6 +70,17 @@ Deploy the modular dispatcher to the current user's OVOS source installation:
 bash scripts/deploy-modular-refactor.sh
 ```
 
+For users who speak immediately after the wake-word beep, the reversible
+listener tuning helper can retain the earliest command audio:
+
+```bash
+bash scripts/set-instant-listen.sh enable
+jarvis-restart --full
+```
+
+Use `status` to inspect the setting or `disable` to restore delayed capture.
+Every change creates a timestamped configuration backup.
+
 Install the independent indicators when required:
 
 ```bash

@@ -52,3 +52,19 @@ The `conversation` and `wake_phrase` values record installation choices for a
 future bootstrap installer. The dispatcher does not directly reconfigure the
 OVOS Persona or listener services from these values. This prevents deploying
 an application profile from unexpectedly changing the machine's voice stack.
+
+## Immediate command capture
+
+If the first word of a command is clipped after the wake phrase, enable OVOS
+`instant_listen` separately from profile deployment:
+
+```bash
+bash scripts/set-instant-listen.sh enable
+jarvis-restart --full
+```
+
+The helper validates the existing JSON, creates a timestamped backup and
+writes the update atomically. It supports `status` and `disable`. Keeping this
+outside the deployment script makes the listener experiment independently
+reversible if it captures wake-word or notification audio on a particular
+microphone.
