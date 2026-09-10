@@ -393,6 +393,8 @@ def register_skill_vocabulary(self):
             "restore this window",
             "unmaximize window",
             "unmaximise window",
+            "unmaximized window",
+            "unmaximised window",
             "return window to normal"
         ]
     }
