@@ -97,7 +97,7 @@ FIREFOX_SEARCH_PROMPTS = (
 )
 
 
-def register_skill_vocabulary(self):
+def register_skill_vocabulary(self, include_custom=True):
     """Register all dispatcher vocabulary without changing intent behaviour."""
     aliases = {
         "CodexKeyword": [
@@ -171,6 +171,18 @@ def register_skill_vocabulary(self):
     for entity, phrases in aliases.items():
         for phrase in phrases:
             self.register_vocabulary(phrase, entity)
+
+    for phrase in ("mute mic", "mute microphone"):
+        self.register_vocabulary(
+            phrase,
+            "MuteSystemMicrophoneCommand"
+        )
+
+    for phrase in ("mute jarvis", "stop jarvis listening"):
+        self.register_vocabulary(
+            phrase,
+            "MuteJarvisCommand"
+        )
 
 
 
@@ -547,3 +559,12 @@ def register_skill_vocabulary(self):
         "join copied zoom meeting",
     ):
         self.register_vocabulary(phrase, "JoinZoomMeetingCommand")
+
+    if include_custom:
+        from .custom_commands import (
+            collect_builtin_phrases,
+            register_custom_vocabulary,
+        )
+
+        builtin_phrases = collect_builtin_phrases(self._jarvis_profile)
+        register_custom_vocabulary(self, builtin_phrases)

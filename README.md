@@ -17,7 +17,9 @@ Jarvis provides local voice control for:
 - Focused text editing, clipboard actions and field navigation
 - Standard Notes, Proton Mail and Zoom-specific integrations
 - Speech Note dictation, typing and read-back
-- Codex and Claude agent windows, messaging and response reading
+- Codex and Claude agent windows, plus guarded Claude Desktop messaging
+- System microphone mute and Jarvis-listener mute
+- A small tray editor for safe personal command phrases
 - Voice-system status, microphone control and safe restart operations
 
 See the [Jarvis command reference](docs/command-reference.md) for practical
@@ -50,6 +52,7 @@ for different hardware, see the
 |---|---|
 | `ovos_skill_jarvis_dispatcher/` | Modular OVOS command skill |
 | `ovos_skill_jarvis_dispatcher/integrations/` | Contained application-specific actions |
+| `command_editor/` | GTK editor for personal phrases mapped to approved actions |
 | `profiles/` | Validated machine profiles and app mappings |
 | `system_helpers/` | Allowlists and focused desktop automation |
 | `tray/` | Independent OVOS status indicator |
@@ -72,6 +75,16 @@ Deploy the modular dispatcher to the current user's OVOS source installation:
 bash scripts/deploy-modular-refactor.sh
 ```
 
+Install the tray command editor separately when required:
+
+```bash
+bash scripts/install-command-editor.sh
+```
+
+The installer preserves existing personal phrases and creates a precise
+rollback for every file it changes. Use
+`bash scripts/uninstall-command-editor.sh` to restore those files.
+
 For users who speak immediately after the wake-word beep, the reversible
 listener tuning helper can retain the earliest command audio:
 
@@ -93,7 +106,7 @@ bash scripts/install-jarvis-mic-indicator.sh
 Deployment scripts create rollback copies before replacing live files. Runtime
 package patches are not automatically applied by dispatcher deployment.
 
-## Standard commands, integrations and custom profiles
+## Standard commands, integrations and personal customisation
 
 The project deliberately separates three concepts:
 
@@ -102,6 +115,7 @@ The project deliberately separates three concepts:
 | Standard commands | Reusable behaviour across applications | Tab, Shift+Tab, copy, paste, save, search this page |
 | Integrations | Allowlisted behaviour tied to one application | Standard Notes new/search, Proton Mail compose/search, copied-link Zoom join |
 | Profiles | Personal machine mappings without arbitrary commands | `notes` → `standard_notes`, `mail` → `proton_mail` |
+| Personal phrases | User-added wording for an existing approved action | `show my notes` → Open Notes |
 
 Generic behaviour belongs in modules such as `text_editing.py`, `browser.py`
 and `desktop.py`. Product-specific behaviour belongs in an independently
@@ -109,12 +123,31 @@ guarded module under `integrations/`. Personal app choices belong in JSON under
 `profiles/`. This keeps reusable commands portable while preventing one optional
 integration from disabling the rest of the dispatcher.
 
+Personal phrases are edited from **Commands…** in the OVOS tray and stored in
+`~/.config/jarvis/custom-commands.json` with private permissions. Built-in
+phrases are visible but read-only. The editor rejects built-in collisions,
+reserved conversation words, unknown actions and arbitrary executable or shell
+content. Adding genuinely new behaviour still requires reviewed code.
+
 Current integrations:
 
 - `standard_notes.py`: new note, current-note search and all-notes search
 - `proton_mail.py`: new message and mailbox search
 - `zoom.py`: locally validates a copied Zoom invitation and launches the
   registered `zoommtg` handler without browser redirection
+- `claude_desktop.py`: routes ordinary Claude window and message commands to
+  Claude Desktop while keeping explicit `Claude agent` commands isolated
+
+## Microphone controls
+
+- `Mute mic` and `Mute microphone` mute the system input through an allowlisted
+  `wpctl` or `pactl` helper.
+- `Mute Jarvis` and `Stop Jarvis listening` stop only `ovos-listener` through
+  the existing microphone toggle.
+
+System microphone mute deliberately has no voice unmute command because the
+microphone cannot hear it. Jarvis-listener mute is reversed from the microphone
+indicator. These are separate controls and are not installed twice.
 
 The Brain profile is an example deployment, not a universal default. Exact
 executables, app choices, secrets and local paths should remain in profiles or
@@ -153,12 +186,13 @@ separate profile created by the concurrently installed DEB executable.
 
 The OVOS tray shield is green when the required services and dispatcher are
 ready, amber while starting, red on failure and grey when stopped. Its menu
-provides command restart, full voice-system restart, start, stop and recent-log
-actions.
+provides the command editor, command restart, full voice-system restart, start,
+stop and recent-log actions.
 
 The separate microphone icon is green while `ovos-listener` is active and red
 while stopped. Clicking it toggles only the listener without stopping the rest
-of OVOS. Both indicators use process locks to prevent duplicate instances.
+of OVOS. Their installers replace the current indicator process before starting
+one instance of the updated version.
 
 ## Documentation
 
@@ -168,11 +202,13 @@ of OVOS. Both indicators use process locks to prevent duplicate instances.
 - [Optional local conversation add-on](docs/conversation-addon.md)
 - [Profiles and application integrations](docs/profiles-and-integrations.md)
 - [Focused commands, integrations and runtime isolation](docs/focused-commands-integrations-and-runtime-isolation.md)
+- [Final local controls and command editor](docs/final-local-controls-and-command-editor.md)
+- [Command editor guide](COMMAND-EDITOR.md)
 - [Recovery infrastructure](recovery/README.md)
 
 ## Known-good baseline
 
 The initial commit preserves the tested monolithic dispatcher before its
 behaviour-preserving modular refactor. The current modular validation baseline
-is maintained by `scripts/validate_refactor.py`: 15 Python modules, 63 intents,
-994 vocabulary registrations and three validated profiles.
+is maintained by `scripts/validate_refactor.py`: 18 Python modules, 66 intents,
+998 built-in vocabulary registrations and three validated profiles.

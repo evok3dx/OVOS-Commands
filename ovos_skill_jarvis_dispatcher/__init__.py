@@ -10,13 +10,48 @@ from ovos_workshop.skills.converse import ConversationalSkill
 from .agents import AgentActionsMixin
 from .browser import BrowserActionsMixin
 from .conversation import ConversationMixin
+from .custom_commands import CustomCommandsMixin
 from .desktop import DesktopActionsMixin
 from .dictation import DictationActionsMixin
 from .helpers import DispatcherHelpersMixin
 from .profile import load_profile
+from .system_audio import SystemAudioActionsMixin
 from .text_editing import TextEditingActionsMixin
 from .vocabulary import register_skill_vocabulary
 from .wakeword import WakewordActionsMixin
+
+try:
+    from .integrations.claude_desktop import ClaudeDesktopIntegrationMixin
+except Exception as error:
+    _claude_desktop_import_error = str(error)
+
+    class ClaudeDesktopIntegrationMixin:
+        """Fail-safe replacement for an unavailable optional integration."""
+
+        def _route_claude_window_action(self, message, action):
+            utterance = str(message.data.get("utterance", "")).lower()
+            if "agent" in utterance:
+                self._window_action(action, "claude")
+                return
+            self.log.error(
+                f"Claude Desktop integration unavailable: "
+                f"{_claude_desktop_import_error}"
+            )
+            self.speak("Claude Desktop control is unavailable.")
+
+        def _route_claude_message(self, message):
+            utterance = str(message.data.get("utterance", "")).lower()
+            if "agent" in utterance:
+                self._message_agent("claude")
+                return
+            self._message_claude_desktop()
+
+        def _message_claude_desktop(self):
+            self.log.error(
+                f"Claude Desktop integration unavailable: "
+                f"{_claude_desktop_import_error}"
+            )
+            self.speak("Claude Desktop messaging is unavailable.")
 
 try:
     from .integrations.zoom import ZoomIntegrationMixin
@@ -78,10 +113,13 @@ except Exception as error:
 class JarvisDispatcherSkill(
     AgentActionsMixin,
     ConversationMixin,
+    CustomCommandsMixin,
     DispatcherHelpersMixin,
     WakewordActionsMixin,
     DictationActionsMixin,
+    SystemAudioActionsMixin,
     TextEditingActionsMixin,
+    ClaudeDesktopIntegrationMixin,
     ZoomIntegrationMixin,
     ProtonMailIntegrationMixin,
     StandardNotesIntegrationMixin,
@@ -119,6 +157,26 @@ class JarvisDispatcherSkill(
         )
 
         register_skill_vocabulary(self)
+
+    @intent_handler(
+        IntentBuilder("CustomCommandIntent").require("CustomCommandPhrase")
+    )
+    def handle_custom_command(self, message):
+        self._run_custom_command(message)
+
+    @intent_handler(
+        IntentBuilder("MuteSystemMicrophoneIntent")
+        .require("MuteSystemMicrophoneCommand")
+    )
+    def handle_mute_system_microphone(self, _message):
+        self._mute_system_microphone()
+
+    @intent_handler(
+        IntentBuilder("MuteJarvisIntent")
+        .require("MuteJarvisCommand")
+    )
+    def handle_mute_jarvis(self, _message):
+        self._mute_jarvis_listener()
 
 
     @intent_handler(
@@ -538,8 +596,8 @@ class JarvisDispatcherSkill(
         .require("OpenKeyword")
         .require("ClaudeKeyword")
     )
-    def handle_open_claude(self, _):
-        self._window_action("open", "claude")
+    def handle_open_claude(self, message):
+        self._route_claude_window_action(message, "open")
 
     @intent_handler(
         IntentBuilder("FocusCodexIntent")
@@ -554,8 +612,8 @@ class JarvisDispatcherSkill(
         .require("FocusKeyword")
         .require("ClaudeKeyword")
     )
-    def handle_focus_claude(self, _):
-        self._window_action("focus", "claude")
+    def handle_focus_claude(self, message):
+        self._route_claude_window_action(message, "focus")
 
     @intent_handler(
         IntentBuilder("MinimizeCodexIntent")
@@ -570,8 +628,8 @@ class JarvisDispatcherSkill(
         .require("MinimizeKeyword")
         .require("ClaudeKeyword")
     )
-    def handle_minimize_claude(self, _):
-        self._window_action("minimize", "claude")
+    def handle_minimize_claude(self, message):
+        self._route_claude_window_action(message, "minimize")
 
     @intent_handler(
         IntentBuilder("CloseCodexWindowIntent")
@@ -586,8 +644,8 @@ class JarvisDispatcherSkill(
         .require("CloseKeyword")
         .require("ClaudeKeyword")
     )
-    def handle_close_claude(self, _):
-        self._window_action("close", "claude")
+    def handle_close_claude(self, message):
+        self._route_claude_window_action(message, "close")
 
     @intent_handler(
         IntentBuilder("MessageCodexIntent")
@@ -602,8 +660,8 @@ class JarvisDispatcherSkill(
         .require("MessageKeyword")
         .require("ClaudeKeyword")
     )
-    def handle_message_claude(self, _):
-        self._message_agent("claude")
+    def handle_message_claude(self, message):
+        self._route_claude_message(message)
 
 
     @intent_handler(
@@ -619,8 +677,8 @@ class JarvisDispatcherSkill(
         .require("WriteKeyword")
         .require("ClaudeKeyword")
     )
-    def handle_write_claude(self, _):
-        self._message_agent("claude")
+    def handle_write_claude(self, message):
+        self._route_claude_message(message)
 
     @intent_handler(
         IntentBuilder("TypeCodexIntent")
@@ -635,8 +693,8 @@ class JarvisDispatcherSkill(
         .require("TypeKeyword")
         .require("ClaudeKeyword")
     )
-    def handle_type_claude(self, _):
-        self._message_agent("claude")
+    def handle_type_claude(self, message):
+        self._route_claude_message(message)
 
     @intent_handler(
         IntentBuilder("SpeakCodexIntent")
@@ -651,8 +709,8 @@ class JarvisDispatcherSkill(
         .require("SpeakKeyword")
         .require("ClaudeKeyword")
     )
-    def handle_speak_claude(self, _):
-        self._message_agent("claude")
+    def handle_speak_claude(self, message):
+        self._route_claude_message(message)
 
     @intent_handler(
         IntentBuilder("TalkCodexIntent")
@@ -667,8 +725,8 @@ class JarvisDispatcherSkill(
         .require("TalkKeyword")
         .require("ClaudeKeyword")
     )
-    def handle_talk_claude(self, _):
-        self._message_agent("claude")
+    def handle_talk_claude(self, message):
+        self._route_claude_message(message)
 
 
 
