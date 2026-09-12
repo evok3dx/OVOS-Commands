@@ -64,8 +64,10 @@ BROWSER_NAVIGATION_ACTIONS = {
     "refresh the page": "refresh",
     "refresh page": "refresh",
     "reload the page": "refresh",
+    "focus address bar": "address",
     "focus the address bar": "address",
     "go to the address bar": "address",
+    "go to address bar": "address",
     "focus on the address bar": "address",
 }
 
@@ -444,6 +446,10 @@ def register_skill_vocabulary(self):
             "read this page",
             "read the page",
             "read current page",
+            "read the complete page",
+            "please read the complete page",
+            "read the whole page",
+            "please read the whole page",
             "read this webpage",
             "read the webpage",
             "read window",
@@ -461,3 +467,83 @@ def register_skill_vocabulary(self):
     for entity, phrases in visible_text_commands.items():
         for phrase in phrases:
             self.register_vocabulary(phrase, entity)
+
+    text_editing_commands = {
+        "SelectAllTextCommand": [
+            "select all", "select all text", "select the text", "select everything"
+        ],
+        "DeleteSelectedTextCommand": [
+            "delete text", "delete the text",
+            "delete selected text", "delete the selected text"
+        ],
+        "ClearFocusedTextCommand": [
+            "clear text", "clear the text", "clear all text",
+            "clear page", "clear the page", "clear this page"
+        ],
+        "UndoTextEditCommand": [
+            "undo", "undo that", "undo the last change"
+        ],
+        "RedoTextEditCommand": [
+            "redo", "redo that", "redo the last change"
+        ],
+        "CopySelectedTextCommand": [
+            "copy", "copy text", "copy the text", "copy selected text"
+        ],
+        "CutSelectedTextCommand": [
+            "cut", "cut text", "cut the text", "cut selected text"
+        ],
+        "PasteTextCommand": [
+            "paste", "paste text", "paste the text", "paste here"
+        ],
+        "SaveDocumentCommand": [
+            "save", "save this", "save document", "save the document"
+        ],
+        "SearchFocusedContentCommand": [
+            "search page", "search this page", "search the page",
+            "find on page", "find on this page", "search document",
+            "search this document", "find in this document",
+            "search this note", "find in this note",
+            "search this node", "find in this node"
+        ],
+        "PressTabCommand": [
+            "press tab", "tab", "next field", "next box",
+            "go to next field", "go to the next field",
+            "move to next field", "move to the next field"
+        ],
+        "PressShiftTabCommand": [
+            "press shift tab", "shift tab", "previous field", "previous box",
+            "go to previous field", "go to the previous field",
+            "move to previous field", "move to the previous field"
+        ]
+    }
+
+    for entity, phrases in text_editing_commands.items():
+        for phrase in phrases:
+            self.register_vocabulary(phrase, entity)
+
+    for phrase in (
+        "search notes", "search my notes", "find a note",
+        "find note", "look up a note", "look up notes",
+        "look up my notes", "look for a note", "look for notes",
+    ):
+        self.register_vocabulary(phrase, "SearchNotesCommand")
+
+    for phrase in (
+        "new email", "create new email", "create an email",
+        "compose email", "compose an email", "write a new email",
+        "write an email",
+    ):
+        self.register_vocabulary(phrase, "NewEmailCommand")
+
+    for phrase in (
+        "search mail", "search my mail", "search email", "search my email",
+        "find an email", "find email", "look up an email", "look through my mail",
+    ):
+        self.register_vocabulary(phrase, "SearchMailCommand")
+
+    for phrase in (
+        "join meeting", "join the meeting", "join zoom meeting",
+        "join the zoom meeting", "join copied meeting",
+        "join copied zoom meeting",
+    ):
+        self.register_vocabulary(phrase, "JoinZoomMeetingCommand")

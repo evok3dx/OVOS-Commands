@@ -46,7 +46,7 @@ class DictationActionsMixin:
     def _start_speech_note_dictation(self):
         """Begin active-window dictation after spoken feedback finishes."""
 
-        self.speak("Start speaking.", wait=True)
+        self.speak("I'm listening.", wait=True)
 
         if self._speech_note_action("start-listening-active-window"):
             self._speech_note_dictating = True

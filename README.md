@@ -14,6 +14,8 @@ Jarvis provides local voice control for:
 
 - Brave and Firefox search, navigation and page reading
 - Desktop application and focused-window control
+- Focused text editing, clipboard actions and field navigation
+- Standard Notes, Proton Mail and Zoom-specific integrations
 - Speech Note dictation, typing and read-back
 - Codex and Claude agent windows, messaging and response reading
 - Voice-system status, microphone control and safe restart operations
@@ -70,6 +72,17 @@ Deploy the modular dispatcher to the current user's OVOS source installation:
 bash scripts/deploy-modular-refactor.sh
 ```
 
+For users who speak immediately after the wake-word beep, the reversible
+listener tuning helper can retain the earliest command audio:
+
+```bash
+bash scripts/set-instant-listen.sh enable
+jarvis-restart --full
+```
+
+Use `status` to inspect the setting or `disable` to restore delayed capture.
+Every change creates a timestamped configuration backup.
+
 Install the independent indicators when required:
 
 ```bash
@@ -79,6 +92,33 @@ bash scripts/install-jarvis-mic-indicator.sh
 
 Deployment scripts create rollback copies before replacing live files. Runtime
 package patches are not automatically applied by dispatcher deployment.
+
+## Standard commands, integrations and custom profiles
+
+The project deliberately separates three concepts:
+
+| Layer | Purpose | Examples |
+|---|---|---|
+| Standard commands | Reusable behaviour across applications | Tab, Shift+Tab, copy, paste, save, search this page |
+| Integrations | Allowlisted behaviour tied to one application | Standard Notes new/search, Proton Mail compose/search, copied-link Zoom join |
+| Profiles | Personal machine mappings without arbitrary commands | `notes` → `standard_notes`, `mail` → `proton_mail` |
+
+Generic behaviour belongs in modules such as `text_editing.py`, `browser.py`
+and `desktop.py`. Product-specific behaviour belongs in an independently
+guarded module under `integrations/`. Personal app choices belong in JSON under
+`profiles/`. This keeps reusable commands portable while preventing one optional
+integration from disabling the rest of the dispatcher.
+
+Current integrations:
+
+- `standard_notes.py`: new note, current-note search and all-notes search
+- `proton_mail.py`: new message and mailbox search
+- `zoom.py`: locally validates a copied Zoom invitation and launches the
+  registered `zoommtg` handler without browser redirection
+
+The Brain profile is an example deployment, not a universal default. Exact
+executables, app choices, secrets and local paths should remain in profiles or
+allowlisted helpers rather than being mixed into generic command logic.
 
 ## Browser reading
 
@@ -103,6 +143,12 @@ See [Recovery infrastructure](recovery/README.md) for the preserved service
 layout, security boundaries, configuration fragments, agent hooks and runtime
 patch procedure.
 
+Desktop applications are started through detached transient user services.
+This prevents an OVOS command restart from terminating an application merely
+because Jarvis originally launched it. The application helper also selects the
+Brain's regular Flatpak Brave installation (`com.brave.Browser`), avoiding the
+separate profile created by the concurrently installed DEB executable.
+
 ## Status indicators
 
 The OVOS tray shield is green when the required services and dispatcher are
@@ -121,10 +167,12 @@ of OVOS. Both indicators use process locks to prevent duplicate instances.
 - [Modular refactor runtime tests](docs/modular-refactor-runtime-tests.md)
 - [Optional local conversation add-on](docs/conversation-addon.md)
 - [Profiles and application integrations](docs/profiles-and-integrations.md)
+- [Focused commands, integrations and runtime isolation](docs/focused-commands-integrations-and-runtime-isolation.md)
 - [Recovery infrastructure](recovery/README.md)
 
 ## Known-good baseline
 
 The initial commit preserves the tested monolithic dispatcher before its
 behaviour-preserving modular refactor. The current modular validation baseline
-is maintained by `scripts/validate_refactor.py`.
+is maintained by `scripts/validate_refactor.py`: 15 Python modules, 63 intents,
+994 vocabulary registrations and three validated profiles.

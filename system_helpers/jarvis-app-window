@@ -95,62 +95,73 @@ show_window() {
   wmctrl -ia "$window_id"
 }
 
+detached_launch() {
+  local unit="jarvis-launch-${app}-$(date +%s%N)"
+
+  /usr/bin/systemd-run \
+    --user \
+    --quiet \
+    --collect \
+    --property=Type=exec \
+    --unit="$unit" \
+    -- "$@"
+}
+
 launch_window() {
   case "$app" in
     brave)
-      nohup /usr/bin/brave-browser-stable \
-        >/dev/null 2>&1 &
+      if /usr/bin/flatpak info com.brave.Browser >/dev/null 2>&1; then
+        detached_launch /usr/bin/flatpak run com.brave.Browser
+      else
+        detached_launch /usr/bin/brave-browser-stable
+      fi
       ;;
     firefox)
-      nohup /usr/bin/firefox \
-        >/dev/null 2>&1 &
+      detached_launch /usr/bin/firefox
       ;;
     signal)
-      nohup /opt/Signal/signal-desktop \
-        >/dev/null 2>&1 &
+      detached_launch /opt/Signal/signal-desktop
       ;;
     zoom)
-      nohup /usr/bin/zoom \
-        >/dev/null 2>&1 &
+      detached_launch /usr/bin/zoom
       ;;
     terminal)
-      nohup /usr/bin/gnome-terminal \
-        >/dev/null 2>&1 &
+      detached_launch /usr/bin/gnome-terminal
       ;;
     notes)
-      nohup "${JARVIS_STANDARD_NOTES:-$HOME/Apps/standard-notes-3.202.0-linux-x86_64.AppImage}" \
-        >/dev/null 2>&1 &
+      detached_launch \
+        "${JARVIS_STANDARD_NOTES:-$HOME/Apps/standard-notes-3.202.0-linux-x86_64.AppImage}"
       ;;
     claude)
-      /usr/bin/gtk-launch com.anthropic.Claude \
-        >/dev/null 2>&1 &
+      detached_launch /usr/bin/gtk-launch com.anthropic.Claude
       ;;
     mail)
-      nohup /usr/bin/proton-mail \
-        >/dev/null 2>&1 &
+      detached_launch /usr/bin/proton-mail
       ;;
     calendar)
-      nohup /usr/bin/brave-browser-stable \
-        --app=https://calendar.proton.me/ \
-        >/dev/null 2>&1 &
+      if /usr/bin/flatpak info com.brave.Browser >/dev/null 2>&1; then
+        detached_launch \
+          /usr/bin/flatpak run com.brave.Browser \
+          --app=https://calendar.proton.me/
+      else
+        detached_launch \
+          /usr/bin/brave-browser-stable \
+          --app=https://calendar.proton.me/
+      fi
       ;;
     office)
       if [[ -x /usr/bin/desktopeditors ]]; then
-        nohup /usr/bin/desktopeditors >/dev/null 2>&1 &
+        detached_launch /usr/bin/desktopeditors
       elif [[ -x /usr/bin/onlyoffice-desktopeditors ]]; then
-        nohup /usr/bin/onlyoffice-desktopeditors >/dev/null 2>&1 &
+        detached_launch /usr/bin/onlyoffice-desktopeditors
       elif [[ -x /opt/onlyoffice/desktopeditors/DesktopEditors ]]; then
-        nohup /opt/onlyoffice/desktopeditors/DesktopEditors \
-          >/dev/null 2>&1 &
-      elif /usr/bin/gtk-launch onlyoffice-desktopeditors \
-          >/dev/null 2>&1; then
+        detached_launch /opt/onlyoffice/desktopeditors/DesktopEditors
+      elif detached_launch /usr/bin/gtk-launch onlyoffice-desktopeditors; then
         :
-      elif /usr/bin/gtk-launch org.onlyoffice.desktopeditors \
-          >/dev/null 2>&1; then
+      elif detached_launch /usr/bin/gtk-launch org.onlyoffice.desktopeditors; then
         :
       elif [[ -x /usr/bin/flatpak ]]; then
-        nohup /usr/bin/flatpak run org.onlyoffice.desktopeditors \
-          >/dev/null 2>&1 &
+        detached_launch /usr/bin/flatpak run org.onlyoffice.desktopeditors
       else
         return 1
       fi

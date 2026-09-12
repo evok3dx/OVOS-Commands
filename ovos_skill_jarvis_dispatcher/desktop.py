@@ -26,13 +26,8 @@ class DesktopActionsMixin:
             self.speak("I could not control that window.")
             return
 
-        spoken_actions = {
-            "close": "Window closed.",
-            "minimize": "Window minimized.",
-            "maximize": "Window maximized.",
-            "restore": "Window restored."
-        }
-        self.speak(spoken_actions[action])
+        if action == "close":
+            self.speak("Window closed.")
 
 
     def _desktop_app_from_message(self, message):
@@ -79,13 +74,6 @@ class DesktopActionsMixin:
         )
         integration = self._desktop_app_integrations.get(app, app)
 
-        spoken_actions = {
-            "open": "Opening",
-            "focus": "Showing",
-            "minimize": "Minimizing",
-            "close": "Closing"
-        }
-
         try:
             subprocess.run(
                 [
@@ -114,6 +102,8 @@ class DesktopActionsMixin:
                     self.speak(f"I could not open {display_name}.")
             return False
 
-        if announce:
-            self.speak(f"{spoken_actions[action]} {display_name}.")
+        if announce and action == "open":
+            self.speak(f"Opening {display_name}.")
+        elif announce and action == "close":
+            self.speak(f"{display_name} closed.")
         return True

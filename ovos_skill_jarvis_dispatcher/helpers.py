@@ -1,6 +1,5 @@
 import re
 import subprocess
-import time
 from pathlib import Path
 
 
@@ -8,23 +7,14 @@ class DispatcherHelpersMixin:
     """Shared text, window and visible-content helpers."""
 
     def _read_visible_text(self, mode: str) -> None:
-        """Read selected text or the focused browser page."""
+        """Read selected text or useful content from the focused app."""
 
         helper = Path.home() / ".local/bin/jarvis-read-visible-text"
 
         if mode == "selection":
-            introduction = "Reading the selected text."
             failure = "I could not find any selected text."
-        elif mode == "full-page":
-            introduction = "I will read the full page now."
-            failure = "I could not read that page."
         else:
-            introduction = "I will read the page now."
-            failure = "I could not read that page."
-
-        self.speak(introduction, wait=True)
-        # Let the audio device drain before the external reader takes over.
-        time.sleep(0.3)
+            failure = "I could not read content from that window."
 
         try:
             subprocess.run(

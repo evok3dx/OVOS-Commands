@@ -45,10 +45,14 @@ copy_browser_page() {
         ;;
     esac
 
+    # Clear the working clipboard so a failed Copy cannot replay stale text.
+    : | xclip -selection clipboard -i
+
     xdotool key --clearmodifiers ctrl+a
     sleep 0.2
     xdotool key --clearmodifiers ctrl+c
     sleep 0.4
+    xdotool key --clearmodifiers Escape 2>/dev/null || true
 
     if ! xclip -selection clipboard -o \
          > "$captured_text" 2>/dev/null; then
@@ -60,6 +64,65 @@ copy_browser_page() {
         echo "The copied page was empty" >&2
         exit 1
     fi
+}
+
+focused_window_class() {
+    local window_id
+
+    window_id="$(xdotool getactivewindow 2>/dev/null)" || return 1
+    xprop -id "$window_id" WM_CLASS 2>/dev/null |
+      tr '[:upper:]' '[:lower:]'
+}
+
+copy_with_shortcut() {
+    local select_keys="$1"
+    local copy_keys="$2"
+
+    # Clear the working clipboard so a failed Copy cannot replay stale text.
+    : | xclip -selection clipboard -i
+
+    xdotool key --clearmodifiers "$select_keys"
+    sleep 0.2
+    xdotool key --clearmodifiers "$copy_keys"
+    sleep 0.4
+    # Remove the temporary selection where the application supports Escape.
+    xdotool key --clearmodifiers Escape 2>/dev/null || true
+
+    if ! xclip -selection clipboard -o \
+         > "$captured_text" 2>/dev/null; then
+        echo "Could not copy readable content from the focused application" >&2
+        return 1
+    fi
+
+    if [[ ! -s "$captured_text" ]]; then
+        echo "The focused application did not provide readable content" >&2
+        return 1
+    fi
+}
+
+copy_focused_content() {
+    local window_class
+
+    window_class="$(focused_window_class)" || {
+        echo "Could not identify the focused application" >&2
+        return 1
+    }
+
+    case "$window_class" in
+      *brave-browser*|*firefox*|*navigator*)
+        copy_browser_page
+        extract_main_content
+        ;;
+      *gnome-terminal*|*mate-terminal*|*xfce4-terminal*|*konsole*|*xterm*)
+        # Terminal emulators reserve Ctrl+C for interrupting processes.
+        copy_with_shortcut ctrl+shift+a ctrl+shift+c
+        ;;
+      *)
+        # Standard Notes, ONLYOFFICE, mail clients and most GTK/Electron apps
+        # expose the active editor/document through the normal copy shortcut.
+        copy_with_shortcut ctrl+a ctrl+c
+        ;;
+    esac
 }
 
 extract_main_content() {
@@ -151,12 +214,13 @@ case "$mode" in
     ;;
 
   page)
-    copy_browser_page
-    extract_main_content
+    copy_focused_content
     ;;
 
   full-page)
-    copy_browser_page
+    # Compatibility for older installed vocabulary. Reading is intentionally
+    # limited to the focused application's useful content.
+    copy_focused_content
     ;;
 
   *)

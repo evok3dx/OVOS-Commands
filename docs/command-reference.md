@@ -36,6 +36,30 @@ When the active profile maps `notes` to Standard Notes:
 Jarvis focuses or opens Standard Notes, verifies that it owns the active
 window, and only then sends `Alt+Shift+N`.
 
+- `Search notes` opens the universal Standard Notes search.
+- `Search this note` uses focused-document search in the open note.
+- `Search this node` is retained as an STT-tolerant pronunciation variant.
+
+### Proton Mail
+
+- `New email`
+- `Compose an email`
+- `Search mail`
+- `Find an email`
+
+Proton actions verify that the configured Mail integration is Proton Mail and
+that its window owns focus. Search opens the field before asking for the query.
+
+### Zoom
+
+- Copy a genuine Zoom invitation link.
+- Say `Join meeting` or `Join copied Zoom meeting`.
+
+The integration accepts only `zoom.us` and its subdomains, extracts the meeting
+number and encoded password locally, and passes a `zoommtg` URI to the locally
+registered Zoom handler. Meeting links and passwords are not spoken or
+deliberately logged.
+
 ## Browser search and navigation
 
 Examples:
@@ -97,6 +121,25 @@ Examples:
 
 The focused-window helper refuses to control the desktop or Cinnamon panel.
 
+## Focused editing and field navigation
+
+Examples:
+
+- `Select all`
+- `Delete selected text`
+- `Clear text` (requires confirmation)
+- `Undo` / `Redo`
+- `Copy text` / `Cut text` / `Paste text`
+- `Save document`
+- `Press Tab` / `Next field` / `Next box`
+- `Press Shift Tab` / `Previous field` / `Previous box`
+- `Search this page` / `Search this document`
+
+Search opens the application's search field first, then asks what to search
+for, verifies the original window still owns focus and enters the response.
+Terminal uses its compatible copy, select and search shortcuts; unsafe editing
+operations are refused there.
+
 ## Codex and Claude agents
 
 Examples:
@@ -132,6 +175,8 @@ split across:
 - [Agent commands](../ovos_skill_jarvis_dispatcher/agents.py)
 - [Controlled follow-ups](../ovos_skill_jarvis_dispatcher/conversation.py)
 - [Wake-word interruption](../ovos_skill_jarvis_dispatcher/wakeword.py)
+- [Focused editing and navigation](../ovos_skill_jarvis_dispatcher/text_editing.py)
+- [Application integrations](../ovos_skill_jarvis_dispatcher/integrations/)
 
 Run `python3 scripts/validate_refactor.py` after changing commands or
 vocabulary.
