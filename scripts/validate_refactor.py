@@ -19,18 +19,29 @@ EXPECTED_ROOT_MODULES = {
     "dictation.py",
     "helpers.py",
     "profile.py",
+    "text_editing.py",
     "vocabulary.py",
     "wakeword.py",
 }
 EXPECTED_INTEGRATION_MODULES = {
     "__init__.py",
+    "proton_mail.py",
     "standard_notes.py",
+    "zoom.py",
 }
 EXPECTED_INTENTS = {
     "CloseFocusedWindowIntent", "MinimizeFocusedWindowIntent",
     "MaximizeFocusedWindowIntent", "RestoreFocusedWindowIntent",
     "ReadLastTypedTextIntent", "NewNoteIntent",
     "ReadSelectedTextIntent", "ReadVisiblePageIntent", "ReadFullPageIntent",
+    "SelectAllTextIntent", "DeleteSelectedTextIntent",
+    "ClearFocusedTextIntent", "UndoTextEditIntent", "RedoTextEditIntent",
+    "CopySelectedTextIntent", "CutSelectedTextIntent",
+    "PasteTextIntent", "SaveDocumentIntent",
+    "SearchFocusedContentIntent", "SearchNotesIntent",
+    "PressTabIntent", "PressShiftTabIntent",
+    "NewEmailIntent", "SearchMailIntent",
+    "JoinZoomMeetingIntent",
     "StartSpeechNoteDictationIntent", "PauseSpeechNoteDictationIntent",
     "ResumeSpeechNoteDictationIntent", "StopSpeechNoteDictationIntent",
     "WriteFocusedTextIntent", "BraveSearchPromptIntent",
@@ -133,11 +144,15 @@ def main():
     fake = FakeSkill()
     fake._jarvis_profile = brain_profile
     namespace["register_skill_vocabulary"](fake)
-    assert len(fake.registrations) == 879
+    assert len(fake.registrations) == 994
     for phrase in (
         "read window",
         "read this window",
         "read current window",
+        "read the complete page",
+        "please read the complete page",
+        "read the whole page",
+        "please read the whole page",
     ):
         assert (
             phrase,
@@ -151,7 +166,50 @@ def main():
         "make new note",
     ):
         assert (phrase, "NewNoteCommand") in fake.registrations
-    assert len(fake._browser_navigation_actions) == 66
+    for phrase in (
+        "search page", "search this page", "search the page",
+        "find on page", "find on this page", "search document",
+        "search this document", "find in this document",
+        "search this note", "find in this note",
+        "search this node", "find in this node",
+    ):
+        assert (phrase, "SearchFocusedContentCommand") in fake.registrations
+    for phrase in (
+        "search notes", "search my notes", "find a note",
+        "find note", "look up a note", "look up notes",
+        "look up my notes", "look for a note", "look for notes",
+    ):
+        assert (phrase, "SearchNotesCommand") in fake.registrations
+    for phrase in (
+        "press tab", "tab", "next field", "next box",
+        "go to next field", "go to the next field",
+        "move to next field", "move to the next field",
+    ):
+        assert (phrase, "PressTabCommand") in fake.registrations
+    for phrase in (
+        "press shift tab", "shift tab", "previous field", "previous box",
+        "go to previous field", "go to the previous field",
+        "move to previous field", "move to the previous field",
+    ):
+        assert (phrase, "PressShiftTabCommand") in fake.registrations
+    for phrase in (
+        "new email", "create new email", "create an email",
+        "compose email", "compose an email", "write a new email",
+        "write an email",
+    ):
+        assert (phrase, "NewEmailCommand") in fake.registrations
+    for phrase in (
+        "search mail", "search my mail", "search email", "search my email",
+        "find an email", "find email", "look up an email", "look through my mail",
+    ):
+        assert (phrase, "SearchMailCommand") in fake.registrations
+    for phrase in (
+        "join meeting", "join the meeting", "join zoom meeting",
+        "join the zoom meeting", "join copied meeting",
+        "join copied zoom meeting",
+    ):
+        assert (phrase, "JoinZoomMeetingCommand") in fake.registrations
+    assert len(fake._browser_navigation_actions) == 68
     assert set(fake._desktop_app_aliases) == {
         "brave", "firefox", "signal", "zoom", "terminal", "notes",
         "office", "claude", "mail", "calendar",
@@ -179,8 +237,8 @@ def main():
     assert type(skill).__name__ == "JarvisDispatcherSkill"
 
     print(f"PASS: {len(python_files)} Python modules compile")
-    print("PASS: 47 intents match the expected inventory")
-    print("PASS: 879 vocabulary registrations are present")
+    print("PASS: 63 intents match the expected inventory")
+    print("PASS: 994 vocabulary registrations are present")
     print("PASS: 3 deployment profiles validate")
     print("PASS: package imports and create_skill() succeeds")
 

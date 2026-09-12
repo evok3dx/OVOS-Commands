@@ -246,7 +246,6 @@ class BrowserActionsMixin:
                     stderr=subprocess.DEVNULL
                 )
 
-                self.speak(f"Searching for {query} now.")
                 return
 
             if action == "navigate":
@@ -293,13 +292,11 @@ class BrowserActionsMixin:
                         flags=re.IGNORECASE
                     ):
                         url = "https://" + url
-                    spoken_response = "Opening it."
                 else:
                     url = (
                         "https://search.brave.com/search?q="
                         + quote_plus(entry)
                     )
-                    spoken_response = f"Searching for {entry} now."
 
                 subprocess.run(
                     [
@@ -334,7 +331,6 @@ class BrowserActionsMixin:
                     timeout=10
                 )
 
-                self.speak(spoken_response)
                 return
 
             command = commands.get(action)

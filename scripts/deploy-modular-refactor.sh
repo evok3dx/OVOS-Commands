@@ -58,6 +58,7 @@ for module in \
     dictation.py \
     helpers.py \
     profile.py \
+    text_editing.py \
     vocabulary.py \
     wakeword.py; do
     install -m 0644 "$SOURCE_PACKAGE/$module" "$TARGET_PACKAGE/$module"
@@ -66,7 +67,9 @@ done
 mkdir -p "$TARGET_PACKAGE/integrations"
 install -m 0644 \
   "$SOURCE_PACKAGE/integrations/__init__.py" \
+  "$SOURCE_PACKAGE/integrations/proton_mail.py" \
   "$SOURCE_PACKAGE/integrations/standard_notes.py" \
+  "$SOURCE_PACKAGE/integrations/zoom.py" \
   "$TARGET_PACKAGE/integrations/"
 
 python3 -m py_compile \

@@ -14,8 +14,43 @@ from .desktop import DesktopActionsMixin
 from .dictation import DictationActionsMixin
 from .helpers import DispatcherHelpersMixin
 from .profile import load_profile
+from .text_editing import TextEditingActionsMixin
 from .vocabulary import register_skill_vocabulary
 from .wakeword import WakewordActionsMixin
+
+try:
+    from .integrations.zoom import ZoomIntegrationMixin
+except Exception as error:
+    _zoom_import_error = str(error)
+
+    class ZoomIntegrationMixin:
+        """Fail-safe replacement for an unavailable optional integration."""
+
+        def _join_zoom_meeting(self):
+            self.log.error(
+                f"Zoom integration unavailable: {_zoom_import_error}"
+            )
+            self.speak("The Zoom meeting action is unavailable.")
+
+try:
+    from .integrations.proton_mail import ProtonMailIntegrationMixin
+except Exception as error:
+    _proton_mail_import_error = str(error)
+
+    class ProtonMailIntegrationMixin:
+        """Fail-safe replacement for an unavailable optional integration."""
+
+        def _create_new_email(self):
+            self.log.error(
+                f"Proton Mail integration unavailable: {_proton_mail_import_error}"
+            )
+            self.speak("The new-email action is unavailable.")
+
+        def _search_proton_mail(self):
+            self.log.error(
+                f"Proton Mail integration unavailable: {_proton_mail_import_error}"
+            )
+            self.speak("Mail search is unavailable.")
 
 try:
     from .integrations.standard_notes import StandardNotesIntegrationMixin
@@ -32,6 +67,13 @@ except Exception as error:
             )
             self.speak("The new-note action is unavailable.")
 
+        def _search_standard_notes(self):
+            self.log.error(
+                f"Standard Notes integration unavailable: "
+                f"{_standard_notes_import_error}"
+            )
+            self.speak("Notes search is unavailable.")
+
 
 class JarvisDispatcherSkill(
     AgentActionsMixin,
@@ -39,6 +81,9 @@ class JarvisDispatcherSkill(
     DispatcherHelpersMixin,
     WakewordActionsMixin,
     DictationActionsMixin,
+    TextEditingActionsMixin,
+    ZoomIntegrationMixin,
+    ProtonMailIntegrationMixin,
     StandardNotesIntegrationMixin,
     DesktopActionsMixin,
     BrowserActionsMixin,
@@ -151,7 +196,62 @@ class JarvisDispatcherSkill(
         .require("ReadFullPageCommand")
     )
     def handle_read_full_page(self, _message):
-        self._read_visible_text("full-page")
+        # Preserve older phrases but use the focused-content reader.
+        self._read_visible_text("page")
+
+    @intent_handler(IntentBuilder("SelectAllTextIntent").require("SelectAllTextCommand"))
+    def handle_select_all_text(self, _message):
+        self._select_all_text()
+
+    @intent_handler(IntentBuilder("DeleteSelectedTextIntent").require("DeleteSelectedTextCommand"))
+    def handle_delete_selected_text(self, _message):
+        self._delete_selected_text()
+
+    @intent_handler(IntentBuilder("ClearFocusedTextIntent").require("ClearFocusedTextCommand"))
+    def handle_clear_focused_text(self, _message):
+        self._clear_focused_text()
+
+    @intent_handler(IntentBuilder("UndoTextEditIntent").require("UndoTextEditCommand"))
+    def handle_undo_text_edit(self, _message):
+        self._undo_text_edit()
+
+    @intent_handler(IntentBuilder("RedoTextEditIntent").require("RedoTextEditCommand"))
+    def handle_redo_text_edit(self, _message):
+        self._redo_text_edit()
+
+    @intent_handler(IntentBuilder("CopySelectedTextIntent").require("CopySelectedTextCommand"))
+    def handle_copy_selected_text(self, _message):
+        self._copy_selected_text()
+
+    @intent_handler(IntentBuilder("CutSelectedTextIntent").require("CutSelectedTextCommand"))
+    def handle_cut_selected_text(self, _message):
+        self._cut_selected_text()
+
+    @intent_handler(IntentBuilder("PasteTextIntent").require("PasteTextCommand"))
+    def handle_paste_text(self, _message):
+        self._paste_text()
+
+    @intent_handler(IntentBuilder("SaveDocumentIntent").require("SaveDocumentCommand"))
+    def handle_save_document(self, _message):
+        self._save_document()
+
+    @intent_handler(IntentBuilder("PressTabIntent").require("PressTabCommand"))
+    def handle_press_tab(self, _message):
+        self._press_tab()
+
+    @intent_handler(
+        IntentBuilder("PressShiftTabIntent")
+        .require("PressShiftTabCommand")
+    )
+    def handle_press_shift_tab(self, _message):
+        self._press_shift_tab()
+
+    @intent_handler(
+        IntentBuilder("SearchFocusedContentIntent")
+        .require("SearchFocusedContentCommand")
+    )
+    def handle_search_focused_content(self, _message):
+        self._search_focused_content()
 
 
 
@@ -382,6 +482,34 @@ class JarvisDispatcherSkill(
     )
     def handle_new_note(self, _message):
         self._create_new_note()
+
+    @intent_handler(
+        IntentBuilder("SearchNotesIntent")
+        .require("SearchNotesCommand")
+    )
+    def handle_search_notes(self, _message):
+        self._search_standard_notes()
+
+    @intent_handler(
+        IntentBuilder("NewEmailIntent")
+        .require("NewEmailCommand")
+    )
+    def handle_new_email(self, _message):
+        self._create_new_email()
+
+    @intent_handler(
+        IntentBuilder("SearchMailIntent")
+        .require("SearchMailCommand")
+    )
+    def handle_search_mail(self, _message):
+        self._search_proton_mail()
+
+    @intent_handler(
+        IntentBuilder("JoinZoomMeetingIntent")
+        .require("JoinZoomMeetingCommand")
+    )
+    def handle_join_zoom_meeting(self, _message):
+        self._join_zoom_meeting()
 
     @intent_handler(
         IntentBuilder("OpenCodexCommandIntent")
