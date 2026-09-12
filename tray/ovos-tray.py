@@ -133,6 +133,15 @@ class OvosTray:
             start_new_session=True,
         )
 
+    @staticmethod
+    def _commands(_item=None):
+        subprocess.Popen(
+            [str(Path.home() / ".local/bin/jarvis-command-editor")],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+
     def _restart(self, _item=None):
         self._background(
             [str(Path.home() / ".local/bin/jarvis-restart")]
@@ -175,6 +184,7 @@ class OvosTray:
     def _build_menu(self):
         menu = Gtk.Menu()
         entries = (
+            ("Commands…", self._commands),
             ("Restart Commands", self._restart),
             ("Restart Voice System", self._full_restart),
             ("Start Voice System", self._start),

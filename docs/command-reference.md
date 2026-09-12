@@ -60,6 +60,26 @@ number and encoded password locally, and passes a `zoommtg` URI to the locally
 registered Zoom handler. Meeting links and passwords are not spoken or
 deliberately logged.
 
+### Claude Desktop and Claude agent
+
+Ordinary Claude wording controls the graphical Claude Desktop application:
+
+- `Open Claude`
+- `Focus Claude`
+- `Message Claude`
+
+`Message Claude` focuses or opens Claude Desktop, verifies that its window owns
+focus, then asks what to send and types the response into its chat.
+
+The isolated terminal agent remains explicit:
+
+- `Open Claude agent`
+- `Focus Claude agent`
+- `Message Claude agent`
+
+This prevents an ordinary request for Claude from being routed to the local
+coding and task agent.
+
 ## Browser search and navigation
 
 Examples:
@@ -160,8 +180,20 @@ message size and expected tmux process before sending anything.
 Examples:
 
 - `Read today's date`
+- `Mute mic` / `Mute microphone`
+- `Mute Jarvis` / `Stop Jarvis listening`
 - `Stop`
 - `Hey Jarvis` while speech is playing to interrupt and begin another command
+
+## Personal command phrases
+
+Choose **Commands…** from the OVOS tray to view approved actions and all their
+existing built-in phrases. A personal phrase can be added to the selected
+action and activated with **Save & Reload**.
+
+Built-ins are read-only. Personal phrases cannot run arbitrary applications,
+hotkeys or shell commands; they can only call actions already implemented and
+allowlisted by Jarvis.
 
 ## Source of truth
 
@@ -174,6 +206,8 @@ split across:
 - [Dictation commands](../ovos_skill_jarvis_dispatcher/dictation.py)
 - [Agent commands](../ovos_skill_jarvis_dispatcher/agents.py)
 - [Controlled follow-ups](../ovos_skill_jarvis_dispatcher/conversation.py)
+- [Personal phrase validation](../ovos_skill_jarvis_dispatcher/custom_commands.py)
+- [System microphone control](../ovos_skill_jarvis_dispatcher/system_audio.py)
 - [Wake-word interruption](../ovos_skill_jarvis_dispatcher/wakeword.py)
 - [Focused editing and navigation](../ovos_skill_jarvis_dispatcher/text_editing.py)
 - [Application integrations](../ovos_skill_jarvis_dispatcher/integrations/)

@@ -404,7 +404,8 @@ class ConversationMixin:
                 if token in accepted:
                     send_payload = (
                         self._pending_agent,
-                        self._pending_message
+                        self._pending_message,
+                        self._pending_window_id,
                     )
                     self._clear_message_state()
                 elif self._confirmation_retries > 0:
@@ -456,8 +457,10 @@ class ConversationMixin:
             return True
 
         if send_payload:
-            agent, prompt = send_payload
-            self._send_agent_message(agent, prompt)
+            agent, prompt, window_id = send_payload
+            if agent == "claude_desktop":
+                self._send_claude_desktop_message(prompt, window_id)
+            else:
+                self._send_agent_message(agent, prompt)
 
         return True
-

@@ -3,7 +3,9 @@
 
 import ast
 import py_compile
+import stat
 import sys
+import tempfile
 import types
 from pathlib import Path
 
@@ -15,10 +17,12 @@ EXPECTED_ROOT_MODULES = {
     "agents.py",
     "browser.py",
     "conversation.py",
+    "custom_commands.py",
     "desktop.py",
     "dictation.py",
     "helpers.py",
     "profile.py",
+    "system_audio.py",
     "text_editing.py",
     "vocabulary.py",
     "wakeword.py",
@@ -28,8 +32,10 @@ EXPECTED_INTEGRATION_MODULES = {
     "proton_mail.py",
     "standard_notes.py",
     "zoom.py",
+    "claude_desktop.py",
 }
 EXPECTED_INTENTS = {
+    "CustomCommandIntent",
     "CloseFocusedWindowIntent", "MinimizeFocusedWindowIntent",
     "MaximizeFocusedWindowIntent", "RestoreFocusedWindowIntent",
     "ReadLastTypedTextIntent", "NewNoteIntent",
@@ -42,6 +48,8 @@ EXPECTED_INTENTS = {
     "PressTabIntent", "PressShiftTabIntent",
     "NewEmailIntent", "SearchMailIntent",
     "JoinZoomMeetingIntent",
+    "MuteSystemMicrophoneIntent",
+    "MuteJarvisIntent",
     "StartSpeechNoteDictationIntent", "PauseSpeechNoteDictationIntent",
     "ResumeSpeechNoteDictationIntent", "StopSpeechNoteDictationIntent",
     "WriteFocusedTextIntent", "BraveSearchPromptIntent",
@@ -143,8 +151,18 @@ def main():
 
     fake = FakeSkill()
     fake._jarvis_profile = brain_profile
-    namespace["register_skill_vocabulary"](fake)
-    assert len(fake.registrations) == 994
+    namespace["register_skill_vocabulary"](fake, include_custom=False)
+    assert len(fake.registrations) == 998
+    for phrase in ("mute mic", "mute microphone"):
+        assert (
+            phrase,
+            "MuteSystemMicrophoneCommand",
+        ) in fake.registrations
+    for phrase in ("mute jarvis", "stop jarvis listening"):
+        assert (
+            phrase,
+            "MuteJarvisCommand",
+        ) in fake.registrations
     for phrase in (
         "read window",
         "read this window",
@@ -236,9 +254,57 @@ def main():
     skill = package.create_skill()
     assert type(skill).__name__ == "JarvisDispatcherSkill"
 
+    from ovos_skill_jarvis_dispatcher.custom_commands import (
+        collect_builtin_inventory,
+        read_mapping,
+        validate_mapping,
+        write_mapping,
+    )
+
+    assert validate_mapping(
+        {"show my notes": "application.open.notes"},
+        profile=brain_profile,
+        builtin_phrases={"open notes"},
+    ) == {"show my notes": "application.open.notes"}
+    try:
+        validate_mapping(
+            {"open notes": "application.open.notes"},
+            profile=brain_profile,
+            builtin_phrases={"open notes"},
+        )
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("A built-in phrase collision was accepted")
+
+    inventory = collect_builtin_inventory(brain_profile)
+    assert set(inventory["mail.new"]) == {
+        "new email", "create new email", "create an email",
+        "compose email", "compose an email", "write a new email",
+        "write an email",
+    }
+
+    with tempfile.TemporaryDirectory() as directory:
+        custom_path = Path(directory) / "custom-commands.json"
+        written = write_mapping(
+            {"show my notes": "application.open.notes"},
+            path=custom_path,
+            profile=brain_profile,
+            builtin_phrases={"open notes"},
+        )
+        assert read_mapping(
+            path=custom_path,
+            profile=brain_profile,
+            builtin_phrases={"open notes"},
+        ) == written
+        assert stat.S_IMODE(custom_path.stat().st_mode) == 0o600
+
     print(f"PASS: {len(python_files)} Python modules compile")
-    print("PASS: 63 intents match the expected inventory")
-    print("PASS: 994 vocabulary registrations are present")
+    print("PASS: 66 intents match the expected inventory")
+    print("PASS: 998 vocabulary registrations are present")
+    print("PASS: personal phrase validation rejects built-in collisions")
+    print("PASS: personal phrases save atomically with private permissions")
+    print("PASS: built-in phrases are grouped by editor action")
     print("PASS: 3 deployment profiles validate")
     print("PASS: package imports and create_skill() succeeds")
 

@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+action="${1:-}"
+
+case "$action" in
+  mute)
+    muted=1
+    ;;
+  unmute)
+    muted=0
+    ;;
+  *)
+    echo "Usage: $0 {mute|unmute}" >&2
+    exit 2
+    ;;
+esac
+
+if command -v wpctl >/dev/null 2>&1; then
+    wpctl set-mute @DEFAULT_AUDIO_SOURCE@ "$muted"
+    exit 0
+fi
+
+if command -v pactl >/dev/null 2>&1; then
+    source_name="$(pactl get-default-source)"
+    [[ -n "$source_name" ]] || {
+        echo "No default microphone is configured" >&2
+        exit 1
+    }
+    pactl set-source-mute "$source_name" "$muted"
+    exit 0
+fi
+
+echo "Neither wpctl nor pactl is available" >&2
+exit 1

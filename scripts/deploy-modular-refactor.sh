@@ -10,6 +10,8 @@ SOURCE_READER_HELPER="$REPO_ROOT/system_helpers/jarvis-read-visible-text"
 TARGET_READER_HELPER="$HOME/.local/bin/jarvis-read-visible-text"
 SOURCE_APP_HELPER="$REPO_ROOT/system_helpers/jarvis-app-window"
 TARGET_APP_HELPER="$HOME/.local/bin/jarvis-app-window"
+SOURCE_MIC_HELPER="$REPO_ROOT/system_helpers/jarvis-system-microphone"
+TARGET_MIC_HELPER="$HOME/.local/bin/jarvis-system-microphone"
 PROFILE_NAME="${JARVIS_PROFILE:-brain}"
 SOURCE_PROFILE="$REPO_ROOT/profiles/$PROFILE_NAME.json"
 TARGET_PROFILE_DIR="$HOME/.config/jarvis"
@@ -54,10 +56,12 @@ for module in \
     agents.py \
     browser.py \
     conversation.py \
+    custom_commands.py \
     desktop.py \
     dictation.py \
     helpers.py \
     profile.py \
+    system_audio.py \
     text_editing.py \
     vocabulary.py \
     wakeword.py; do
@@ -67,6 +71,7 @@ done
 mkdir -p "$TARGET_PACKAGE/integrations"
 install -m 0644 \
   "$SOURCE_PACKAGE/integrations/__init__.py" \
+  "$SOURCE_PACKAGE/integrations/claude_desktop.py" \
   "$SOURCE_PACKAGE/integrations/proton_mail.py" \
   "$SOURCE_PACKAGE/integrations/standard_notes.py" \
   "$SOURCE_PACKAGE/integrations/zoom.py" \
@@ -96,6 +101,13 @@ if [[ -f "$TARGET_APP_HELPER" ]]; then
       "${TARGET_APP_HELPER}.before-profile-integrations-${STAMP}"
 fi
 install -m 0755 "$SOURCE_APP_HELPER" "$TARGET_APP_HELPER"
+
+if [[ -f "$TARGET_MIC_HELPER" ]]; then
+    cp -a \
+      "$TARGET_MIC_HELPER" \
+      "${TARGET_MIC_HELPER}.before-system-microphone-${STAMP}"
+fi
+install -m 0755 "$SOURCE_MIC_HELPER" "$TARGET_MIC_HELPER"
 
 mkdir -p "$TARGET_PROFILE_DIR"
 if [[ -f "$TARGET_PROFILE" ]]; then
