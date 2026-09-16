@@ -1,7 +1,6 @@
 import re
 import subprocess
 import threading
-from pathlib import Path
 
 from ovos_workshop.decorators import intent_handler
 from ovos_workshop.intents import IntentBuilder
@@ -29,22 +28,14 @@ except Exception as error:
     class ClaudeDesktopIntegrationMixin:
         """Fail-safe replacement for an unavailable optional integration."""
 
-        def _route_claude_window_action(self, message, action):
-            utterance = str(message.data.get("utterance", "")).lower()
-            if "agent" in utterance:
-                self._window_action(action, "claude")
-                return
+        def _route_claude_window_action(self, _message, _action):
             self.log.error(
                 f"Claude Desktop integration unavailable: "
                 f"{_claude_desktop_import_error}"
             )
             self.speak("Claude control is unavailable.")
 
-        def _route_claude_message(self, message):
-            utterance = str(message.data.get("utterance", "")).lower()
-            if "agent" in utterance:
-                self._message_agent("claude")
-                return
+        def _route_claude_message(self, _message):
             self._message_claude_desktop()
 
         def _message_claude_desktop(self):
@@ -175,6 +166,10 @@ class JarvisDispatcherSkill(
         self._last_typed_text = None
         self._speech_note_dictating = False
         self._speech_note_dictation_paused = False
+        self._speech_note_reading = False
+        self._reader_listener_muted = False
+        self._reader_monitor_generation = 0
+        self._reader_monitor_lock = threading.RLock()
         self._message_retries = 0
         self._confirmation_retries = 0
         self._jarvis_profile = load_profile(logger=self.log)
@@ -183,10 +178,13 @@ class JarvisDispatcherSkill(
             "recognizer_loop:wakeword",
             self._pause_speech_note_reading
         )
-
+        # Keyboard/listen-button activation does not emit the wake-word event.
+        # record_begin is the common boundary for both wake-word and manually
+        # requested listening, so reader interruption behaves the same either
+        # way.  The handler is idempotent when both events are emitted.
         self.add_event(
-            "recognizer_loop:wakeword",
-            self._interrupt_speech_on_wakeword
+            "recognizer_loop:record_begin",
+            self._pause_speech_note_reading
         )
 
         register_skill_vocabulary(self)
@@ -357,14 +355,6 @@ class JarvisDispatcherSkill(
     def handle_read_visible_page(self, _message):
         self._read_visible_text("page")
 
-    @intent_handler(
-        IntentBuilder("ReadFullPageIntent")
-        .require("ReadFullPageCommand")
-    )
-    def handle_read_full_page(self, _message):
-        # Preserve older phrases but use the focused-content reader.
-        self._read_visible_text("page")
-
     @intent_handler(IntentBuilder("SelectAllTextIntent").require("SelectAllTextCommand"))
     def handle_select_all_text(self, _message):
         self._select_all_text()
@@ -419,9 +409,6 @@ class JarvisDispatcherSkill(
     def handle_search_focused_content(self, _message):
         self._search_focused_content()
 
-
-
-
     @intent_handler(
         IntentBuilder("StartSpeechNoteDictationIntent")
         .require("StartSpeechNoteDictationCommand")
@@ -472,12 +459,6 @@ class JarvisDispatcherSkill(
         self._speech_note_dictation_paused = False
         self.speak("Dictation stopped.")
 
-
-
-
-
-
-
     @intent_handler(
         IntentBuilder("WriteFocusedTextIntent")
         .require("WriteFocusedTextCommand")
@@ -524,16 +505,6 @@ class JarvisDispatcherSkill(
         )
         self._arm_message_timeout(20)
 
-
-
-
-
-
-
-
-
-
-
     @intent_handler(
         IntentBuilder("BraveSearchPromptIntent")
         .require("BraveSearchPromptCommand")
@@ -543,7 +514,6 @@ class JarvisDispatcherSkill(
             message,
             "brave"
         )
-
 
     @intent_handler(
         IntentBuilder("FirefoxSearchPromptIntent")
@@ -574,12 +544,6 @@ class JarvisDispatcherSkill(
         .require("BrowserNavigationCommand")
     )
     def handle_browser_navigation(self, message):
-        utterance = str(
-            message.data.get("utterance", "")
-        ).strip()
-
-
-
         phrase = next(
             (
                 value
@@ -626,12 +590,6 @@ class JarvisDispatcherSkill(
         .require("OpenDesktopAppCommand")
     )
     def handle_open_desktop_app(self, message):
-        utterance = str(
-            message.data.get("utterance", "")
-        ).strip()
-
-
-
         self._desktop_app_action(message, "open")
 
     @intent_handler(
@@ -654,6 +612,27 @@ class JarvisDispatcherSkill(
     )
     def handle_close_desktop_app(self, message):
         self._desktop_app_action(message, "close")
+
+    @intent_handler(
+        IntentBuilder("MaximizeDesktopAppIntent")
+        .require("MaximizeDesktopAppCommand")
+    )
+    def handle_maximize_desktop_app(self, message):
+        self._desktop_app_action(message, "maximize")
+
+    @intent_handler(
+        IntentBuilder("OpenChatGPTWebsiteIntent")
+        .require("OpenChatGPTWebsiteCommand")
+    )
+    def handle_open_chatgpt_website(self, _message):
+        self._open_fixed_website("ChatGPT", "https://chatgpt.com/")
+
+    @intent_handler(
+        IntentBuilder("OpenClaudeWebsiteIntent")
+        .require("OpenClaudeWebsiteCommand")
+    )
+    def handle_open_claude_website(self, _message):
+        self._open_fixed_website("Claude", "https://claude.ai/")
 
     @intent_handler(
         IntentBuilder("NewNoteIntent")
@@ -718,6 +697,10 @@ class JarvisDispatcherSkill(
         .require("ClaudeKeyword")
     )
     def handle_open_claude(self, message):
+        utterance = str(message.data.get("utterance", "")).lower()
+        if "website" in utterance or "online" in utterance:
+            self._open_fixed_website("Claude", "https://claude.ai/")
+            return
         self._route_claude_window_action(message, "open")
 
     @intent_handler(
@@ -923,16 +906,12 @@ class JarvisDispatcherSkill(
     def handle_talk_hermes(self, _message):
         self._message_hermes_desktop()
 
-
-
-
     @intent_handler(
         IntentBuilder("SearchCodexIntent")
         .require("SearchCodexCommand")
     )
     def handle_search_codex(self, _):
         self._search_codex()
-
 
     @intent_handler(
         IntentBuilder("ReadCodexResponseIntent")
@@ -955,16 +934,12 @@ class JarvisDispatcherSkill(
     def handle_read_latest_response(self, _):
         self._read_agent_response()
 
-
-
     @intent_handler(
         IntentBuilder("OpenClaudeAliasIntent")
         .require("OpenClaudeCommand")
     )
     def handle_open_claude_alias(self, _):
         self._window_action("open", "claude")
-
-
 
     @intent_handler(
         IntentBuilder("NaturalDateIntent")

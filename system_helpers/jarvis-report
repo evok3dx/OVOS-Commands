@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+jarvis_home="${JARVIS_HOME:-$HOME}"
+repository="${JARVIS_REPOSITORY:-$jarvis_home/.local/src/ovos-skill-jarvis-dispatcher}"
+reporter="$repository/scripts/create_ai_report.py"
+
+[[ -f "$reporter" ]] || {
+  echo "Jarvis report generator not found: $reporter" >&2
+  exit 1
+}
+
+exec python3 "$reporter" "$@"

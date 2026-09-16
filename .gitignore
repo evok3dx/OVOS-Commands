@@ -9,6 +9,10 @@ __pycache__/
 *.egg-info/
 .venv/
 venv/
+.pytest_cache/
+.mypy_cache/
+dist/
+*.tar.gz
 load-times*
 restart-history*
 mycroft.conf

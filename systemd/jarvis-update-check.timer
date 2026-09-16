@@ -1,0 +1,10 @@
+[Unit]
+Description=Monthly read-only Jarvis update check
+
+[Timer]
+OnCalendar=monthly
+RandomizedDelaySec=12h
+Persistent=true
+
+[Install]
+WantedBy=timers.target

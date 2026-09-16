@@ -150,6 +150,11 @@ HERMES_COMPOSER_ACTIONS = {
 
 def register_skill_vocabulary(self, include_custom=True):
     """Register all dispatcher vocabulary without changing intent behaviour."""
+    agents_enabled = bool(
+        getattr(self, "_jarvis_profile", {})
+        .get("private_extensions", {})
+        .get("agents", False)
+    )
     aliases = {
         "CodexKeyword": [
             "cortex agent",
@@ -234,6 +239,11 @@ def register_skill_vocabulary(self, include_custom=True):
         "SpeakKeyword": ["speak"],
         "TalkKeyword": ["talk"],
     }
+
+    if not agents_enabled:
+        for entity in ("CodexKeyword", "OpenCodexCommand", "FocusCodexCommand"):
+            aliases.pop(entity, None)
+        aliases["ClaudeKeyword"] = ["claude", "cloud", "clawed", "called"]
 
     for entity, phrases in aliases.items():
         for phrase in phrases:
@@ -338,7 +348,10 @@ def register_skill_vocabulary(self, include_custom=True):
         ],
         "CloseDesktopAppCommand": [
             "close", "quit", "exit"
-        ]
+        ],
+        "MaximizeDesktopAppCommand": [
+            "maximize", "maximise", "make full screen", "make fullscreen"
+        ],
     }
 
     for entity, verbs in desktop_actions.items():
@@ -349,6 +362,21 @@ def register_skill_vocabulary(self, include_custom=True):
                         f"{verb} {app_alias}",
                         entity
                     )
+
+    website_commands = {
+        "OpenChatGPTWebsiteCommand": (
+            "open the chat website", "open chat website",
+            "open the chatgpt website", "open chatgpt website",
+            "open the gpt website", "open gpt website", "open chatgpt online",
+            "open chat online",
+        ),
+        "OpenClaudeWebsiteCommand": (
+            "open the claude website", "open claude website", "open claude online",
+        ),
+    }
+    for entity, phrases in website_commands.items():
+        for phrase in phrases:
+            self.register_vocabulary(phrase, entity)
 
 
     # Visible browser controls.
@@ -429,6 +457,9 @@ def register_skill_vocabulary(self, include_custom=True):
         ]
     }
 
+    if not agents_enabled:
+        response_commands = {}
+
     for entity, phrases in response_commands.items():
         for phrase in phrases:
             self.register_vocabulary(phrase, entity)
@@ -439,6 +470,9 @@ def register_skill_vocabulary(self, include_custom=True):
         "web search",
         "research with codex"
     ]
+
+    if not agents_enabled:
+        search_commands = []
 
     for phrase in search_commands:
         self.register_vocabulary(
@@ -454,6 +488,9 @@ def register_skill_vocabulary(self, include_custom=True):
         "openclaud agent",
         "open clawed agent"
     ]
+
+    if not agents_enabled:
+        claude_open_commands = []
 
     for phrase in claude_open_commands:
         self.register_vocabulary(
@@ -509,10 +546,11 @@ def register_skill_vocabulary(self, include_custom=True):
             "reopen {name} agent",
         ),
     }
-    for entity, templates in claude_agent_command_templates.items():
-        for name in claude_names:
-            for template in templates:
-                self.register_vocabulary(template.format(name=name), entity)
+    if agents_enabled:
+        for entity, templates in claude_agent_command_templates.items():
+            for name in claude_names:
+                for template in templates:
+                    self.register_vocabulary(template.format(name=name), entity)
 
 
     natural_date_commands = [
@@ -538,8 +576,11 @@ def register_skill_vocabulary(self, include_custom=True):
             "close this up",
             "close current window",
             "close app",
+            "closed app",
             "close the app",
+            "closed the app",
             "close this app",
+            "closed this app",
             "close application",
             "close this application"
         ],
@@ -608,10 +649,18 @@ def register_skill_vocabulary(self, include_custom=True):
 
     for phrase in (
         "new note",
+        "new notes",
+        "new node",
+        "new nodes",
+        "knee nodes",
         "create a new note",
         "create new note",
+        "create a new node",
+        "create new node",
         "make a new note",
         "make new note",
+        "make a new node",
+        "make new node",
     ):
         self.register_vocabulary(phrase, "NewNoteCommand")
 
@@ -646,9 +695,15 @@ def register_skill_vocabulary(self, include_custom=True):
             "read the webpage",
             "read window",
             "read this window",
-            "read current window"
-        ],
-        "ReadFullPageCommand": [
+            "read current window",
+            "read app",
+            "read this app",
+            "read application",
+            "read this application",
+            "read screen",
+            "read this screen",
+            "read content",
+            "read this content",
             "read full page",
             "read the full page",
             "read the entire page",
@@ -714,9 +769,17 @@ def register_skill_vocabulary(self, include_custom=True):
             self.register_vocabulary(phrase, entity)
 
     for phrase in (
-        "search notes", "search my notes", "find a note",
-        "find note", "look up a note", "look up notes",
-        "look up my notes", "look for a note", "look for notes",
+        "search notes", "search note", "search a note",
+        "search my notes", "search my note",
+        "search nodes", "search node", "search a node",
+        "search my nodes", "search my node",
+        "search standard notes", "search standard note",
+        "search standard nodes", "search standard node",
+        "find a note", "find note", "find a node", "find node",
+        "look up a note", "look up notes", "look up my notes",
+        "look up a node", "look up nodes", "look up my nodes",
+        "look for a note", "look for notes",
+        "look for a node", "look for nodes",
     ):
         self.register_vocabulary(phrase, "SearchNotesCommand")
 

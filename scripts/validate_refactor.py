@@ -2,46 +2,91 @@
 """Static safety checks for the modular Jarvis dispatcher."""
 
 import ast
-import py_compile
+import json
+import re
 import stat
 import sys
 import tempfile
 import types
 from pathlib import Path
+from xml.etree import ElementTree
+
+
+sys.dont_write_bytecode = True
 
 
 ROOT = Path(__file__).resolve().parents[1]
 PACKAGE = ROOT / "ovos_skill_jarvis_dispatcher"
-EXPECTED_ROOT_MODULES = {
-    "__init__.py",
-    "agents.py",
-    "browser.py",
-    "conversation.py",
-    "custom_commands.py",
-    "desktop.py",
-    "dictation.py",
-    "helpers.py",
-    "profile.py",
-    "system_audio.py",
-    "system_controls.py",
-    "text_editing.py",
-    "vocabulary.py",
-    "wakeword.py",
-}
-EXPECTED_INTEGRATION_MODULES = {
-    "__init__.py",
-    "proton_mail.py",
-    "standard_notes.py",
-    "zoom.py",
-    "claude_desktop.py",
-    "hermes_desktop.py",
-}
+MANIFEST = json.loads(
+    (ROOT / "deployment-manifest.json").read_text(encoding="utf-8")
+)
+COMPATIBILITY = json.loads(
+    (ROOT / "compatibility.json").read_text(encoding="utf-8")
+)
+assert MANIFEST["schema_version"] == 2
+assert COMPATIBILITY["schema_version"] == 1
+EXPECTED_ROOT_MODULES = set(MANIFEST["package_modules"])
+EXPECTED_INTEGRATION_MODULES = set(MANIFEST["integration_modules"])
+EXPECTED_SYSTEM_HELPERS = set(MANIFEST["runtime_helpers"])
+EXPECTED_PROFILES = set(MANIFEST["profiles"])
+EXPECTED_SYSTEMD_TEMPLATES = set(MANIFEST["systemd_templates"])
+
+for inventory_name in (
+    "package_modules", "integration_modules", "runtime_helpers", "profiles"
+):
+    inventory = MANIFEST[inventory_name]
+    assert inventory, f"Manifest inventory is empty: {inventory_name}"
+    assert len(inventory) == len(set(inventory)), (
+        f"Manifest inventory contains duplicates: {inventory_name}"
+    )
+    assert all(Path(item).name == item for item in inventory), (
+        f"Manifest inventory contains a path: {inventory_name}"
+    )
+
+optional_files = []
+for component, files in MANIFEST["optional_components"].items():
+    assert files, f"Optional component is empty: {component}"
+    assert len(files) == len(set(files)), (
+        f"Optional component contains duplicates: {component}"
+    )
+    for relative in files:
+        path = (ROOT / relative).resolve()
+        assert ROOT == path.parent or ROOT in path.parents, (
+            f"Optional path escapes repository: {relative}"
+        )
+        assert path.is_file(), f"Optional file is missing: {relative}"
+        optional_files.append(path)
+
+for relative in EXPECTED_SYSTEMD_TEMPLATES:
+    path = (ROOT / relative).resolve()
+    assert ROOT in path.parents, f"Systemd template escapes repository: {relative}"
+    assert path.is_file(), f"Systemd template is missing: {relative}"
+
+project_source = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+version_match = re.search(r'^version = "([^"]+)"$', project_source, re.MULTILINE)
+assert version_match, "Project version is missing"
+assert MANIFEST["release_version"] == version_match.group(1)
+assert COMPATIBILITY["release_version"] == version_match.group(1)
+assert COMPATIBILITY["ovos"]["entry_point_group"] == "opm.skill"
+assert re.fullmatch(
+    r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+",
+    COMPATIBILITY["updates"]["repository"],
+)
+assert (
+    '"ovos-skill-jarvis-dispatcher.openvoiceos" = '
+    '"ovos_skill_jarvis_dispatcher:JarvisDispatcherSkill"'
+) in project_source
+for project in ("installer", "workshop", "config", "core", "plugin_manager"):
+    repository = COMPATIBILITY["upstream"][f"{project}_repository"]
+    reference = COMPATIBILITY["upstream"][f"{project}_reference_commit"]
+    assert repository.startswith("https://github.com/OpenVoiceOS/")
+    assert re.fullmatch(r"[0-9a-f]{40}", reference)
 EXPECTED_INTENTS = {
     "CustomCommandIntent",
     "CloseFocusedWindowIntent", "MinimizeFocusedWindowIntent",
     "MaximizeFocusedWindowIntent", "RestoreFocusedWindowIntent",
     "ReadLastTypedTextIntent", "NewNoteIntent",
-    "ReadSelectedTextIntent", "ReadVisiblePageIntent", "ReadFullPageIntent",
+    "ReadSelectedTextIntent", "ReadVisiblePageIntent",
     "SelectAllTextIntent", "DeleteSelectedTextIntent",
     "ClearFocusedTextIntent", "UndoTextEditIntent", "RedoTextEditIntent",
     "CopySelectedTextIntent", "CutSelectedTextIntent",
@@ -64,7 +109,9 @@ EXPECTED_INTENTS = {
     "FirefoxSearchPromptIntent", "YouTubeSearchPromptIntent",
     "YouTubeShortsIntent", "BrowserNavigationIntent",
     "OpenDesktopAppIntent", "FocusDesktopAppIntent",
-    "MinimizeDesktopAppIntent", "CloseDesktopAppIntent",
+    "MinimizeDesktopAppIntent", "MaximizeDesktopAppIntent",
+    "CloseDesktopAppIntent", "OpenChatGPTWebsiteIntent",
+    "OpenClaudeWebsiteIntent",
     "OpenCodexCommandIntent", "FocusCodexCommandIntent",
     "SearchCodexIntent", "ReadCodexResponseIntent",
     "ReadClaudeResponseIntent", "ReadLatestResponseIntent",
@@ -127,9 +174,39 @@ def main():
         EXPECTED_INTEGRATION_MODULES,
     )
 
+    found_helpers = {
+        path.name
+        for path in (ROOT / "system_helpers").iterdir()
+        if path.is_file()
+    }
+    assert found_helpers == EXPECTED_SYSTEM_HELPERS, (
+        found_helpers,
+        EXPECTED_SYSTEM_HELPERS,
+    )
+
     python_files = list(PACKAGE.glob("*.py")) + list(integrations.glob("*.py"))
     for path in python_files:
-        py_compile.compile(str(path), doraise=True)
+        compile(path.read_text(encoding="utf-8"), str(path), "exec")
+
+    for path in optional_files:
+        source = path.read_text(encoding="utf-8")
+        first_line = source.splitlines()[0]
+        if path.suffix == ".py" or "python" in first_line:
+            compile(source, str(path), "exec")
+        if path.suffix == ".svg":
+            ElementTree.parse(path)
+
+    executable_files = [
+        *(ROOT / "system_helpers" / name for name in EXPECTED_SYSTEM_HELPERS),
+        ROOT / "command_editor/jarvis-command-editor",
+        ROOT / "mic/jarvis-mic-indicator",
+        ROOT / "mic/jarvis-mic-toggle",
+        *(ROOT / "scripts").glob("*.sh"),
+        *(ROOT / "scripts").glob("*.py"),
+    ]
+    assert all(path.stat().st_mode & stat.S_IXUSR for path in executable_files), (
+        "Runtime entry points must be executable"
+    )
 
     tree = ast.parse((PACKAGE / "__init__.py").read_text())
     intents = {
@@ -142,6 +219,15 @@ def main():
         and isinstance(node.args[0], ast.Constant)
     }
     assert intents == EXPECTED_INTENTS, (intents, EXPECTED_INTENTS)
+    required_entities = {
+        node.args[0].value
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "require"
+        and node.args
+        and isinstance(node.args[0], ast.Constant)
+    }
 
     profile_namespace = {}
     exec((PACKAGE / "profile.py").read_text(), profile_namespace)
@@ -166,7 +252,58 @@ def main():
     fake = FakeSkill()
     fake._jarvis_profile = brain_profile
     namespace["register_skill_vocabulary"](fake, include_custom=False)
-    assert len(fake.registrations) == 1259
+    assert len(fake.registrations) == 1701
+    assert len(fake.registrations) == len(set(fake.registrations)), (
+        "Duplicate vocabulary registrations are present"
+    )
+    vocabulary_entities = {entity for _phrase, entity in fake.registrations}
+    assert required_entities - {"CustomCommandPhrase"} == vocabulary_entities
+
+    normal = FakeSkill()
+    normal._jarvis_profile = profile_namespace["resolve_profile"](
+        profile_namespace["SAFE_DEFAULT_PROFILE"]
+    )
+    namespace["register_skill_vocabulary"](normal, include_custom=False)
+    normal_entities = {entity for _phrase, entity in normal.registrations}
+    assert not normal_entities.intersection({
+        "CodexKeyword", "OpenCodexCommand", "FocusCodexCommand",
+        "ReadCodexResponseCommand", "ReadClaudeResponseCommand",
+        "NewClaudeAgentCommand", "CreateClaudeSubagentCommand",
+        "ShowClaudeAgentsCommand", "ResumeClaudeAgentCommand",
+    }), "Private agent vocabulary leaked into the normal configuration"
+    phrase_entities = {}
+    for phrase, entity in fake.registrations:
+        phrase_entities.setdefault(phrase, set()).add(entity)
+    collisions = {
+        phrase: entities
+        for phrase, entities in phrase_entities.items()
+        if len(entities) > 1
+    }
+    assert collisions == {
+        "close window": {"CloseFocusedWindowCommand", "CloseKeyword"}
+    }
+    for phrase in (
+        "open standard notes",
+        "open standard note",
+        "open standard nodes",
+        "open standard node",
+    ):
+        assert (phrase, "OpenDesktopAppCommand") in fake.registrations
+    for phrase in (
+        "search notes",
+        "search nodes",
+        "search standard notes",
+        "search standard nodes",
+    ):
+        assert (phrase, "SearchNotesCommand") in fake.registrations
+    for phrase in (
+        "new note",
+        "new notes",
+        "new node",
+        "new nodes",
+        "knee nodes",
+    ):
+        assert (phrase, "NewNoteCommand") in fake.registrations
     for phrase in ("claude", "cloud", "clawed", "called"):
         assert (
             phrase,
@@ -247,6 +384,11 @@ def main():
     ):
         assert (phrase, "HermesComposerCommand") in fake.registrations
     for phrase in (
+        "close app", "closed app", "close the app", "closed the app",
+        "close this app", "closed this app",
+    ):
+        assert (phrase, "CloseFocusedWindowCommand") in fake.registrations
+    for phrase in (
         "read window",
         "read this window",
         "read current window",
@@ -324,13 +466,40 @@ def main():
     assert len(fake._browser_navigation_actions) == 68
     assert set(fake._desktop_app_aliases) == {
         "brave", "firefox", "signal", "zoom", "terminal", "notes",
-        "office", "claude", "hermes", "mail", "calendar",
+        "office", "claude", "chatgpt", "hermes", "mail", "proton_mail",
+        "calendar",
     }
+    action_verbs = {
+        "OpenDesktopAppCommand": ("open", "launch", "start"),
+        "FocusDesktopAppCommand": (
+            "focus", "show", "go to", "bring up", "switch to"
+        ),
+        "MinimizeDesktopAppCommand": (
+            "minimize", "minimise", "hide", "put away"
+        ),
+        "CloseDesktopAppCommand": ("close", "quit", "exit"),
+        "MaximizeDesktopAppCommand": (
+            "maximize", "maximise", "make full screen", "make fullscreen"
+        ),
+    }
+    registrations = set(fake.registrations)
+    for aliases in fake._desktop_app_aliases.values():
+        for alias in aliases:
+            for entity, verbs in action_verbs.items():
+                for verb in verbs:
+                    assert (f"{verb} {alias}", entity) in registrations
+    for phrase in (
+        "read app", "read this app", "read application",
+        "read this application", "read screen", "read this screen",
+        "read content", "read this content", "read full page",
+        "read the full page", "read the entire page",
+    ):
+        assert (phrase, "ReadVisiblePageCommand") in registrations
 
     profiles = sorted((ROOT / "profiles").glob("*.json"))
-    assert len(profiles) == 3
+    assert {path.name for path in profiles} == EXPECTED_PROFILES
     for path in profiles:
-        raw_profile = __import__("json").loads(path.read_text())
+        raw_profile = json.loads(path.read_text())
         profile_namespace["resolve_profile"](raw_profile)
 
     try:
@@ -409,13 +578,33 @@ def main():
         ) == written
         assert stat.S_IMODE(custom_path.stat().st_mode) == 0o600
 
+    current_documents = sorted(ROOT.rglob("*.md"))
+    link_pattern = re.compile(r"\[[^]]+\]\(([^)]+)\)")
+    for document in current_documents:
+        assert document.is_file(), f"Current document is missing: {document}"
+        for target in link_pattern.findall(document.read_text(encoding="utf-8")):
+            relative = target.split("#", 1)[0]
+            if (
+                relative
+                and "://" not in relative
+                and not relative.startswith("mailto:")
+            ):
+                assert (document.parent / relative).resolve().exists(), (
+                    f"Broken link in {document.relative_to(ROOT)}: {target}"
+                )
+
     print(f"PASS: {len(python_files)} Python modules compile")
-    print("PASS: 88 intents match the expected inventory")
-    print("PASS: 1259 vocabulary registrations are present")
+    print("PASS: 90 intents match the expected inventory")
+    print("PASS: 1701 compatibility vocabulary registrations are present")
+    print("PASS: vocabulary registrations and entities are consistent")
     print("PASS: personal phrase validation rejects built-in collisions")
     print("PASS: personal phrases save atomically with private permissions")
     print("PASS: built-in phrases are grouped by editor action")
-    print("PASS: 3 deployment profiles validate")
+    print("PASS: every app alias has open, focus, minimise, maximise and close coverage")
+    print(f"PASS: {len(EXPECTED_PROFILES)} deployment profiles validate")
+    print(f"PASS: {len(EXPECTED_SYSTEM_HELPERS)} runtime helpers are packaged")
+    print(f"PASS: {len(EXPECTED_SYSTEMD_TEMPLATES)} systemd templates validate")
+    print("PASS: optional components and current documentation validate")
     print("PASS: package imports and create_skill() succeeds")
 
 

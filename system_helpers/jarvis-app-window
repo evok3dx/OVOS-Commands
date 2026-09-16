@@ -10,10 +10,16 @@ case "$app" in
   standard_notes) app="notes" ;;
   onlyoffice) app="office" ;;
   claude_desktop) app="claude" ;;
+  chatgpt_desktop) app="chatgpt" ;;
   hermes_desktop) app="hermes" ;;
+  default_mail)
+    exec "$HOME/.local/bin/jarvis-default-app" "$action" mail
+    ;;
   proton_mail) app="mail" ;;
   proton_calendar) app="calendar" ;;
 esac
+
+window_wait_attempts=40
 
 case "$app" in
   brave)
@@ -47,10 +53,21 @@ case "$app" in
   claude)
     window_match="com.anthropic.claude.com.anthropic.Claude"
     title="Claude"
+    # Claude can take longer than the general app limit on a cold Electron
+    # start, especially while restoring its account session.
+    window_wait_attempts=120
+    ;;
+  chatgpt)
+    window_match="chatgpt"
+    title="ChatGPT"
+    window_wait_attempts=120
     ;;
   hermes)
     window_match="hermes.Hermes"
     title="Hermes"
+    # Hermes starts its local backend before presenting the Electron window.
+    # A cold start can legitimately take longer than the general app limit.
+    window_wait_attempts=120
     ;;
   mail)
     window_match="proton mail.Proton Mail"
@@ -78,8 +95,9 @@ find_window() {
 
 wait_for_window() {
   local window_id=""
+  local attempt
 
-  for _ in {1..40}; do
+  for ((attempt = 0; attempt < window_wait_attempts; attempt++)); do
     window_id="$(find_window)"
 
     if [[ -n "$window_id" ]]; then
@@ -98,6 +116,19 @@ show_window() {
 
   wmctrl -ir "$window_id" -b remove,hidden >/dev/null 2>&1 || true
   wmctrl -ia "$window_id"
+  xdotool windowactivate --sync "$window_id"
+
+  # Confirm that Cinnamon completed the focus hand-off before returning to a
+  # caller that may immediately send a keyboard shortcut.
+  for _ in {1..30}; do
+    if [[ "$(xdotool getactivewindow 2>/dev/null)" == "$((window_id))" ]]; then
+      return 0
+    fi
+    sleep 0.05
+  done
+
+  echo "Could not focus the $title window" >&2
+  return 1
 }
 
 detached_launch() {
@@ -134,14 +165,37 @@ launch_window() {
       detached_launch /usr/bin/gnome-terminal
       ;;
     notes)
-      detached_launch \
-        "${JARVIS_STANDARD_NOTES:-$HOME/Apps/standard-notes-3.202.0-linux-x86_64.AppImage}"
+      if [[ -n "${JARVIS_STANDARD_NOTES:-}" && -x "$JARVIS_STANDARD_NOTES" ]]; then
+        detached_launch "$JARVIS_STANDARD_NOTES"
+      else
+        standard_notes_candidates=(
+          "$HOME"/Apps/standard-notes-*-linux-x86_64.AppImage
+        )
+        standard_notes="${standard_notes_candidates[${#standard_notes_candidates[@]}-1]}"
+        [[ -x "$standard_notes" ]] || return 1
+        detached_launch "$standard_notes"
+      fi
       ;;
     claude)
-      detached_launch /usr/bin/gtk-launch com.anthropic.Claude
+      if [[ -x /usr/bin/claude-desktop ]]; then
+        detached_launch \
+          /usr/bin/claude-desktop \
+          --force-renderer-accessibility
+      else
+        detached_launch /usr/bin/gtk-launch com.anthropic.Claude
+      fi
+      ;;
+    chatgpt)
+      if [[ -x /usr/bin/chatgpt ]]; then
+        detached_launch /usr/bin/chatgpt
+      elif detached_launch /usr/bin/gtk-launch com.openai.ChatGPT; then
+        :
+      else
+        detached_launch /usr/bin/gtk-launch chatgpt
+      fi
       ;;
     hermes)
-      detached_launch /usr/bin/gtk-launch hermes
+      detached_launch "$HOME/.local/bin/hermes-secure-launch"
       ;;
     mail)
       detached_launch /usr/bin/proton-mail
@@ -211,6 +265,17 @@ case "$action" in
     xdotool windowminimize "$window_id"
     ;;
 
+  maximize)
+    window_id="$(find_window)"
+
+    if [[ -z "$window_id" ]]; then
+      echo "$title is not open" >&2
+      exit 1
+    fi
+
+    wmctrl -ir "$window_id" -b add,maximized_vert,maximized_horz
+    ;;
+
   close)
     window_id="$(find_window)"
 
@@ -224,7 +289,7 @@ case "$action" in
 
   *)
     echo \
-      "Usage: jarvis-app-window {open|focus|minimize|close} APPLICATION" \
+      "Usage: jarvis-app-window {open|focus|minimize|maximize|close} APPLICATION" \
       >&2
     exit 2
     ;;

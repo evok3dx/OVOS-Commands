@@ -1,0 +1,6 @@
+[Unit]
+Description=Restore the secure Hermes desktop launcher
+
+[Service]
+Type=oneshot
+ExecStart=@TARGET_BIN@/hermes-launcher-repair

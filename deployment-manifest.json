@@ -1,0 +1,78 @@
+{
+  "schema_version": 2,
+  "release_version": "2.2.0",
+  "package_modules": [
+    "__init__.py",
+    "agents.py",
+    "browser.py",
+    "capabilities.py",
+    "conversation.py",
+    "custom_commands.py",
+    "desktop.py",
+    "dictation.py",
+    "helpers.py",
+    "profile.py",
+    "system_audio.py",
+    "system_controls.py",
+    "text_editing.py",
+    "vocabulary.py",
+    "wakeword.py"
+  ],
+  "integration_modules": [
+    "__init__.py",
+    "claude_desktop.py",
+    "hermes_desktop.py",
+    "proton_mail.py",
+    "standard_notes.py",
+    "zoom.py"
+  ],
+  "runtime_helpers": [
+    "hermes-launcher-repair",
+    "hermes-secure-launch",
+    "jarvis-app-window",
+    "jarvis-default-app",
+    "jarvis-focused-window",
+    "jarvis-health-check",
+    "jarvis-report",
+    "jarvis-read-visible-text",
+    "jarvis-setup",
+    "jarvis-system-microphone",
+    "jarvis-update"
+  ],
+  "profiles": [
+    "brain.json",
+    "default.json",
+    "portable-desktop.json",
+    "personal.example.json"
+  ],
+  "systemd_templates": [
+    "systemd/hermes-launcher-repair.service.in",
+    "systemd/hermes-launcher-repair.path.in",
+    "systemd/jarvis-health-check.service.in",
+    "systemd/jarvis-health-check.timer",
+    "systemd/jarvis-update-check.service.in",
+    "systemd/jarvis-update-check.timer"
+  ],
+  "optional_components": {
+    "command_editor": [
+      "command_editor/jarvis-command-editor"
+    ],
+    "tray": [
+      "tray/ovos-tray.py",
+      "tray/ovos-failed.svg",
+      "tray/ovos-failed-update.svg",
+      "tray/ovos-ready.svg",
+      "tray/ovos-ready-update.svg",
+      "tray/ovos-starting.svg",
+      "tray/ovos-starting-update.svg",
+      "tray/ovos-stopped.svg",
+      "tray/ovos-stopped-update.svg"
+    ],
+    "microphone_indicator": [
+      "mic/jarvis-mic-indicator",
+      "mic/jarvis-mic-toggle",
+      "mic/mic-active.svg",
+      "mic/mic-muted.svg"
+    ]
+  }
+}

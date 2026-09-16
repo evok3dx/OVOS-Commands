@@ -29,7 +29,8 @@ APPLICATION_INTEGRATIONS = {
     "standard_notes": {
         "display_name": "Notes",
         "aliases": [
-            "standard notes", "standard note", "standard node",
+            "standard notes", "standard note",
+            "standard nodes", "standard node",
             "notes app", "notes", "nodes", "a note", "note",
         ],
     },
@@ -44,13 +45,24 @@ APPLICATION_INTEGRATIONS = {
             "clawed app", "claude", "clawed",
         ],
     },
+    "chatgpt_desktop": {
+        "display_name": "ChatGPT",
+        "aliases": [
+            "chat g p t", "chatgpt desktop", "chatgpt app",
+            "chatgpt", "g p t", "gpt", "chat",
+        ],
+    },
     "hermes_desktop": {
         "display_name": "Hermes",
         "aliases": ["hermes desktop", "hermes app", "hermes"],
     },
+    "default_mail": {
+        "display_name": "Mail",
+        "aliases": ["default mail", "email app", "mail app", "email", "mail"],
+    },
     "proton_mail": {
         "display_name": "Proton Mail",
-        "aliases": ["proton mail", "email app", "mail app", "email", "mail"],
+        "aliases": ["proton mail app", "proton email", "proton mail"],
     },
     "proton_calendar": {
         "display_name": "Proton Calendar",
@@ -62,7 +74,8 @@ APPLICATION_INTEGRATIONS = {
 
 APPLICATION_CATEGORIES = {
     "brave", "firefox", "signal", "zoom", "terminal", "notes",
-    "office", "claude", "hermes", "mail", "calendar",
+    "office", "claude", "chatgpt", "hermes", "mail", "proton_mail",
+    "calendar",
 }
 
 # Keep each generic command category constrained to compatible integrations.
@@ -77,8 +90,10 @@ CATEGORY_INTEGRATIONS = {
     "notes": {"standard_notes"},
     "office": {"onlyoffice"},
     "claude": {"claude_desktop"},
+    "chatgpt": {"chatgpt_desktop"},
     "hermes": {"hermes_desktop"},
-    "mail": {"proton_mail"},
+    "mail": {"default_mail", "proton_mail"},
+    "proton_mail": {"proton_mail"},
     "calendar": {"proton_calendar"},
 }
 
@@ -95,10 +110,21 @@ BRAIN_COMPATIBILITY_PROFILE = {
         "notes": "standard_notes",
         "office": "onlyoffice",
         "claude": "claude_desktop",
+        "chatgpt": "chatgpt_desktop",
         "hermes": "hermes_desktop",
-        "mail": "proton_mail",
+        "mail": "default_mail",
+        "proton_mail": "proton_mail",
         "calendar": "proton_calendar",
     },
+    "private_extensions": {"agents": True},
+}
+
+SAFE_DEFAULT_PROFILE = {
+    "name": "jarvis-safe-default",
+    "conversation": False,
+    "wake_phrase": "hey_jarvis",
+    "applications": {},
+    "private_extensions": {"agents": False},
 }
 
 
@@ -109,8 +135,8 @@ def resolve_profile(raw_profile):
         raise ValueError("Profile must be a JSON object")
 
     applications = raw_profile.get("applications")
-    if not isinstance(applications, dict) or not applications:
-        raise ValueError("Profile applications must be a non-empty object")
+    if not isinstance(applications, dict):
+        raise ValueError("Profile applications must be an object")
 
     unknown_categories = set(applications) - APPLICATION_CATEGORIES
     if unknown_categories:
@@ -139,22 +165,34 @@ def resolve_profile(raw_profile):
     if not isinstance(wake_phrase, str) or not wake_phrase.strip():
         raise ValueError("wake_phrase must be a non-empty string")
 
+    private_extensions = raw_profile.get("private_extensions", {})
+    if not isinstance(private_extensions, dict):
+        raise ValueError("private_extensions must be an object")
+
     return {
         "name": str(raw_profile.get("name", "unnamed")),
         "conversation": bool(raw_profile.get("conversation", False)),
         "wake_phrase": wake_phrase.strip(),
         "applications": resolved,
+        "private_extensions": {
+            "agents": private_extensions.get("agents") is True,
+        },
     }
 
 
 def load_profile(path=None, logger=None):
     """Load the user profile, falling back to current Brain behaviour."""
 
-    profile_path = path or Path.home() / ".config/jarvis/profile.json"
-    profile_path = Path(profile_path)
+    if path is None:
+        capabilities = Path.home() / ".config/jarvis/capabilities.json"
+        profile_path = capabilities if capabilities.is_file() else (
+            Path.home() / ".config/jarvis/profile.json"
+        )
+    else:
+        profile_path = Path(path)
 
     if not profile_path.is_file():
-        return resolve_profile(BRAIN_COMPATIBILITY_PROFILE)
+        return resolve_profile(SAFE_DEFAULT_PROFILE)
 
     try:
         raw_profile = json.loads(profile_path.read_text(encoding="utf-8"))
@@ -163,6 +201,6 @@ def load_profile(path=None, logger=None):
         if logger:
             logger.error(
                 f"Invalid Jarvis profile at {profile_path}; "
-                f"using compatibility defaults: {error}"
+                f"using safe defaults: {error}"
             )
-        return resolve_profile(BRAIN_COMPATIBILITY_PROFILE)
+        return resolve_profile(SAFE_DEFAULT_PROFILE)

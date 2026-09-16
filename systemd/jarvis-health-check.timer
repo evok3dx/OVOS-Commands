@@ -1,0 +1,11 @@
+[Unit]
+Description=Run the Jarvis compatibility check weekly
+
+[Timer]
+OnBootSec=10m
+OnUnitActiveSec=7d
+Persistent=true
+RandomizedDelaySec=30m
+
+[Install]
+WantedBy=timers.target

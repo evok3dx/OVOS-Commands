@@ -1,9 +1,0 @@
-[Unit]
-Description=Watch for completed Codex responses
-
-[Path]
-PathChanged=/var/spool/jarvis-responses/codex/latest.json
-Unit=jarvis-codex-response.service
-
-[Install]
-WantedBy=default.target

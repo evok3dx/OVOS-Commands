@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "release_version": "2.2.0",
+  "validated_on": "2026-09-16",
+  "support": {
+    "operating_system": "Linux",
+    "validated_distributions": ["linuxmint"],
+    "compatible_families": ["ubuntu", "debian"],
+    "desktop_session": "x11",
+    "architectures": ["x86_64"],
+    "python": ">=3.10"
+  },
+  "ovos": {
+    "deployment_method": "virtualenv",
+    "python_candidates": ["~/.venvs/ovos/bin/python"],
+    "config_path": "~/.config/mycroft/mycroft.conf",
+    "entry_point_group": "opm.skill",
+    "entry_point_name": "ovos-skill-jarvis-dispatcher.openvoiceos",
+    "validated_package_versions": {
+      "ovos-workshop": "8.0.0",
+      "ovos-plugin-manager": "2.2.0"
+    },
+    "required_api": [
+      "ovos_workshop.decorators.intent_handler",
+      "ovos_workshop.intents.IntentBuilder",
+      "ovos_workshop.skills.converse.ConversationalSkill"
+    ],
+    "services": [
+      "ovos.service",
+      "ovos-messagebus.service",
+      "ovos-core.service",
+      "ovos-listener.service",
+      "ovos-audio.service",
+      "ovos-phal.service"
+    ]
+  },
+  "updates": {
+    "repository": "evok3dx/OVOS-Commands",
+    "channel": "stable",
+    "policy": "check automatically; install only after user approval"
+  },
+  "upstream": {
+    "installer_repository": "https://github.com/OpenVoiceOS/ovos-installer.git",
+    "installer_reference_commit": "bf18be8cbd5126e958d88c12457a2e878005cd95",
+    "installer_channel": "testing",
+    "installer_profile": "ovos",
+    "workshop_repository": "https://github.com/OpenVoiceOS/ovos-workshop.git",
+    "workshop_reference_commit": "a008a49a1092cce69f79d9d445e52e8978a86b9b",
+    "config_repository": "https://github.com/OpenVoiceOS/ovos-config.git",
+    "config_reference_commit": "804b84a1eae92a2139af7ffa10b2be152e515417",
+    "core_repository": "https://github.com/OpenVoiceOS/ovos-core.git",
+    "core_reference_commit": "4a095d879468f2a0a03f19a31a479b7d5a414e27",
+    "plugin_manager_repository": "https://github.com/OpenVoiceOS/ovos-plugin-manager.git",
+    "plugin_manager_reference_commit": "df5f673b31e0cc1c41b83d27801ef84271564bae"
+  }
+}

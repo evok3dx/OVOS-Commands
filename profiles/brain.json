@@ -11,8 +11,11 @@
     "notes": "standard_notes",
     "office": "onlyoffice",
     "claude": "claude_desktop",
+    "chatgpt": "chatgpt_desktop",
     "hermes": "hermes_desktop",
-    "mail": "proton_mail",
+    "mail": "default_mail",
+    "proton_mail": "proton_mail",
     "calendar": "proton_calendar"
-  }
+  },
+  "private_extensions": {"agents": true}
 }

@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+hermes_root="${HERMES_HOME:-$HOME/.hermes}"
+desktop_dir="$hermes_root/hermes-agent/apps/desktop"
+hermes_binary="$desktop_dir/release/linux-unpacked/Hermes"
+podman_socket="/run/user/$(id -u)/podman/podman.sock"
+
+if [[ ! -x "$hermes_binary" ]]; then
+  echo "Hermes Desktop is not built: $hermes_binary" >&2
+  echo "Run: hermes desktop --force-build" >&2
+  exit 1
+fi
+
+if command -v systemctl >/dev/null 2>&1; then
+  systemctl --user start podman.socket >/dev/null 2>&1 || true
+fi
+
+export DOCKER_HOST="unix://$podman_socket"
+export HERMES_DOCKER_BINARY="/usr/bin/podman"
+
+cd "$desktop_dir"
+exec "$hermes_binary" \
+  --disable-setuid-sandbox \
+  --force-renderer-accessibility \
+  "$@"

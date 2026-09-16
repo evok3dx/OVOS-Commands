@@ -1,0 +1,7 @@
+[Unit]
+Description=Check for a published Jarvis update
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=@TARGET_BIN@/jarvis-update check --quiet

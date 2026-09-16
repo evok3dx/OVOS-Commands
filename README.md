@@ -1,247 +1,222 @@
 # OVOS Commands
 
-Private OVOS Jarvis voice-control system.
+> [!WARNING]
+> **Experimental software.** This project is tested for a small, known group
+> of Linux Mint workstations. Review the limitations and run the preflight
+> check before installing it on another machine.
 
-This repository preserves the tested voice-command dispatcher, allowlisted
-desktop helpers, status indicators, recovery material, configuration examples,
-runtime patches, validation tools and implementation history.
+Allowlisted voice control for the Linux Mint Jarvis workstation. Routine
+commands run locally and do not require a language model.
 
-Supported wake phrase: `Hey Jarvis`.
+Repository: [evok3dx/OVOS-Commands](https://github.com/evok3dx/OVOS-Commands)
 
-## What it does
+The repository may be private between announced update windows. Existing
+installations continue to work while it is private, but anonymous update
+checks and downloads are available only while it is public.
 
-Jarvis provides local voice control for:
+## Quick start
 
-- Brave and Firefox search, navigation and page reading
-- YouTube search and Shorts navigation without automatic result selection
-- Desktop application and focused-window control
-- Focused text editing, clipboard actions and field navigation
-- Standard Notes, Proton Mail and Zoom-specific integrations
-- Speech Note dictation, typing and read-back
-- Codex and Claude agent windows, plus guarded Claude and Hermes Desktop messaging
-- System microphone, full-system-audio and Jarvis-listener mute controls
-- Universal Enter, state-aware Caps Lock and Cinnamon/MPRIS media control
-- A small tray editor for safe personal command phrases
-- Voice-system status, microphone control and safe restart operations
+Download the `ovos-commands-2.2.0.tar.gz` archive and matching `.sha256` file
+from the [latest GitHub release](https://github.com/evok3dx/OVOS-Commands/releases/latest),
+then verify and install it:
 
-See the [Jarvis command reference](docs/command-reference.md) for practical
-examples and links to each command module.
+```bash
+sha256sum --check ovos-commands-2.2.0.tar.gz.sha256
+tar -xzf ovos-commands-2.2.0.tar.gz
+cd ovos-commands-2.2.0
+bash scripts/install.sh --check
+bash scripts/install.sh
+```
 
-## System architecture
-
-The system is divided into independent layers so an optional component can
-fail without taking down direct voice control:
-
-| Layer | Implementation | Language model required |
-|---|---|---|
-| Wake phrase | OpenWakeWord | No |
-| Speech recognition | Faster Whisper | No |
-| Spoken output | Kokoro through Phoonnx | No |
-| Commands | Modular Jarvis dispatcher | No |
-| General conversation | OVOS Persona and Ollama | Optional |
-
-The dispatcher module named `conversation.py` handles controlled command
-follow-ups such as asking what to search for. It remains part of the core
-command system and is unrelated to optional Qwen conversation.
-
-For command-only configuration, optional conversation setup and model guidance
-for different hardware, see the
-[Optional local conversation add-on](docs/conversation-addon.md).
-
-## Repository layout
-
-| Path | Purpose |
-|---|---|
-| `ovos_skill_jarvis_dispatcher/` | Modular OVOS command skill |
-| `ovos_skill_jarvis_dispatcher/integrations/` | Contained application-specific actions |
-| `command_editor/` | GTK editor for personal phrases mapped to approved actions |
-| `profiles/` | Validated machine profiles and app mappings |
-| `system_helpers/` | Allowlists and focused desktop automation |
-| `tray/` | Independent OVOS status indicator |
-| `mic/` | Independent microphone indicator and toggle |
-| `scripts/` | Validation, deployment and configuration tools |
-| `recovery/` | Runtime patches, service templates, hooks and recovery assets |
-| `docs/` | Command reference, tests and implementation decisions |
-
-## Validation and deployment
-
-Validate the dispatcher before deployment:
+From a trusted Git checkout, the equivalent development flow is:
 
 ```bash
 python3 scripts/validate_refactor.py
+bash scripts/install.sh --check
+bash scripts/install.sh
 ```
 
-Deploy the modular dispatcher to the current user's OVOS source installation:
+The installer validates the complete inventory before touching the live
+system, backs up every replaced component under
+`~/.local/state/jarvis/backups/`, deploys one coherent version and restarts
+Jarvis once. A failed transaction restores the previous deployment. It works
+from a Git checkout or an extracted release archive and does not require root.
+
+First setup offers one simple choice:
+
+1. all detected supported applications;
+2. core voice controls only;
+3. a custom selection from detected supported applications.
+
+Jarvis never installs or recommends desktop applications. Reopen the same
+selection later from the tray or with `jarvis-setup`. Legacy `--profile`
+support exists only to migrate an older deployment.
+
+Restore the most recent deployment with:
 
 ```bash
-bash scripts/deploy-modular-refactor.sh
+bash scripts/rollback.sh
 ```
 
-Install the tray command editor separately when required:
+The former `scripts/deploy-modular-refactor.sh` entry point remains as a thin
+compatibility wrapper. New documentation and automation use `scripts/install.sh`.
+
+## Capabilities
+
+- Brave and Firefox search, navigation and semantic page reading
+- YouTube search and Shorts navigation without unstable result auto-selection
+- Open, focus, minimise, maximise and close controls across enabled apps
+- Clipboard, text editing, Enter, Tab and Shift+Tab controls
+- OS-default Mail, explicit Proton Mail and copied-link Zoom integrations
+- Claude Desktop, ChatGPT Desktop and Hermes Desktop controls
+- Explicit Claude and ChatGPT website commands using the default browser
+- Speech Note dictation and local text-to-speech
+- System microphone, speaker, Jarvis-listener and media controls
+- State-aware Caps Lock
+- Safe personal phrase editor with no arbitrary command execution
+
+See the [command reference](docs/command-reference.md) for spoken forms.
+
+## Universal reading
+
+`Read page`, `Read full page`, `Read window`, `Read app`, `Read screen` and
+`Read content` all use the same local reader. Claude and Hermes are never asked
+to interpret the screen.
+
+- Brave and Firefox prefer semantic main-content extraction.
+- GTK, Qt and Electron apps use AT-SPI accessibility first.
+- Claude and Hermes launch with renderer accessibility enabled.
+- Clipboard copying is a compatibility fallback.
+- Terminal uses terminal-safe copy shortcuts.
+- Menus, toolbars, buttons and status UI are excluded where accessibility
+  metadata permits.
+
+Speech Note performs local playback. OVOS listening is muted during playback
+to prevent self-triggering and restored when reading ends or is interrupted.
+
+## Architecture
+
+| Layer | Responsibility |
+|---|---|
+| Standard modules | Portable browser, window, text, reading and system actions |
+| Integrations | Guarded product-specific behaviour |
+| Capabilities | Detected and user-approved application mappings |
+| Personal phrases | Alternative wording for existing approved actions |
+| Helpers | Fixed, allowlisted local automation |
+
+Core modules live in `ovos_skill_jarvis_dispatcher/`. Product-specific actions
+live in `ovos_skill_jarvis_dispatcher/integrations/`. Desktop automation is
+restricted to reviewed helpers in `system_helpers/`.
+
+`deployment-manifest.json` is the canonical file inventory shared by
+installation and validation. Intent names and vocabulary totals remain
+explicit regression tripwires in `scripts/validate_refactor.py`.
+
+Hermes launches through `hermes-secure-launch`, uses the rootless Podman socket
+and retains the configured `/srv/agent-inbox/hermes:/workspace:rw` boundary.
+The launcher watcher restores the secure desktop entry if a Hermes update
+regenerates it.
+
+## Desktop controls
+
+The canonical installer adds the Jarvis tray automatically when GTK 3 is
+already available. It provides Setup, health check, support report, update
+check, safe restarts, start/stop and logs. No package installation is attempted
+if GTK is unavailable; all functions remain accessible from the terminal.
+
+The command editor and microphone indicator remain optional:
 
 ```bash
 bash scripts/install-command-editor.sh
+bash scripts/install-jarvis-mic-indicator.sh
 ```
 
-The installer preserves existing personal phrases and creates a precise
-rollback for every file it changes. Use
-`bash scripts/uninstall-command-editor.sh` to restore those files.
+The command editor maps personal wording only to approved actions. The OVOS
+tray controls service status and safe restarts. The microphone indicator
+controls only `ovos-listener.service`.
 
-For users who speak immediately after the wake-word beep, the reversible
-listener tuning helper can retain the earliest command audio:
+Wake-word capture tuning remains independent and reversible:
 
 ```bash
 bash scripts/set-instant-listen.sh enable
 jarvis-restart --full
 ```
 
-Use `status` to inspect the setting or `disable` to restore delayed capture.
-Every change creates a timestamped configuration backup.
-
-Install the independent indicators when required:
+## Development and releases
 
 ```bash
-bash scripts/install-ovos-tray.sh
-bash scripts/install-jarvis-mic-indicator.sh
+python3 scripts/validate_refactor.py
+bash scripts/test-deployment.sh
+bash scripts/build-release.sh
 ```
 
-Deployment scripts create rollback copies before replacing live files. Runtime
-package patches are not automatically applied by dispatcher deployment.
+CI validates Python 3.10 through 3.13, checks every shell entry point and
+builds a clean release archive. Archives exclude Git metadata, caches, logs,
+local configuration and previous builds. Each archive has a `.sha256` sidecar
+for corruption detection; that checksum is not a publisher signature.
 
-## Standard commands, integrations and personal customisation
+A silent monthly timer checks the configured GitHub release source without
+changing the workstation. There are no automatic popups. When a newer release
+is found, the tray gains a small red badge and its menu reports the version.
+Installation remains manual through `jarvis-update install`, verifies SHA-256,
+uses the transactional installer and retains rollback. Checks fail quietly
+while the repository is private or the laptop is offline. A separate GitHub
+workflow checks current OVOS APIs without changing any workstation.
 
-The project deliberately separates three concepts:
+During an announced public update window, users can select **Check for
+updates** in the tray. After detection, the same menu entry changes to the
+available version; selecting it opens the supervised installer and confirmation
+prompt.
 
-| Layer | Purpose | Examples |
-|---|---|---|
-| Standard commands | Reusable behaviour across applications | Tab, Shift+Tab, copy, paste, save, search this page |
-| Integrations | Allowlisted behaviour tied to one application | Standard Notes new/search, Proton Mail compose/search, copied-link Zoom join |
-| Profiles | Personal machine mappings without arbitrary commands | `notes` → `standard_notes`, `mail` → `proton_mail` |
-| Personal phrases | User-added wording for an existing approved action | `show my notes` → Open Notes |
+Publishing ordinary commits never updates clients. A client sees an update
+only after a higher semantic version is published as a GitHub Release with the
+matching versioned archive and checksum assets. Releases are prepared as
+drafts, checked, and then published under GitHub release immutability. After
+the small user group has updated, the repository may be made private again.
 
-Generic behaviour belongs in modules such as `text_editing.py`, `browser.py`
-and `desktop.py`. Product-specific behaviour belongs in an independently
-guarded module under `integrations/`. Personal app choices belong in JSON under
-`profiles/`. This keeps reusable commands portable while preventing one optional
-integration from disabling the rest of the dispatcher.
+See the [maintenance guide](docs/maintenance.md) before changing inventory or
+deployment, and the [repository audit](docs/repository-audit.md) for the v21
+cleanup decisions. Earlier implementation reports are retained under
+[`docs/history/`](docs/history/README.md) as historical records only.
+The [security and update policy](docs/security-and-updates.md) defines the
+supported platform, privilege boundary, checksum limits and supervised OVOS
+update procedure.
 
-Personal phrases are edited from **Commands…** in the OVOS tray and stored in
-`~/.config/jarvis/custom-commands.json` with private permissions. Built-in
-phrases are visible but read-only. The editor rejects built-in collisions,
-reserved conversation words, unknown actions and arbitrary executable or shell
-content. Adding genuinely new behaviour still requires reviewed code.
+## AI-assisted diagnosis
 
-Current integrations:
-
-- `standard_notes.py`: new note, current-note search and all-notes search
-- `proton_mail.py`: new message and mailbox search
-- `zoom.py`: locally validates a copied Zoom invitation and launches the
-  registered `zoommtg` handler without browser redirection
-- `claude_desktop.py`: routes ordinary Claude window and message commands to
-  Claude Desktop while keeping explicit `Claude agent` commands isolated
-- `hermes_desktop.py`: verifies the Hermes window before sending approved
-  composer, model, queue, reference and cancellation shortcuts; direct
-  message commands clear and reuse the verified composer before pressing Enter
-
-## Microphone controls
-
-- `Mute mic` and `Mute microphone` mute the system input through an allowlisted
-  `wpctl` or `pactl` helper.
-- `Mute system` and `Mute everything` mute both the default speaker and default
-  microphone after a spoken warning.
-- `Mute Jarvis` and `Stop Jarvis listening` stop only `ovos-listener` through
-  the existing microphone toggle.
-
-System microphone and full-system mute deliberately have no voice unmute
-command because Jarvis cannot hear one after the input is muted. They are
-restored from the keyboard or Cinnamon sound settings. Jarvis-listener mute is
-reversed from the microphone indicator. These are separate controls and are
-not installed twice.
-
-## Keyboard, media and focused application controls
-
-`Press Enter`, `Press Return` and `Press Send` send Return only to the current
-focused window. Caps Lock commands first read the X11 lock state and change it
-only when required. Lock keys bypass the normal modifier-clearing helper because
-restoring cleared modifiers would immediately undo the requested Caps Lock
-state.
-
-Media commands use state-specific `playerctl` operations for the active MPRIS
-player. Bare `play`, `pause` and `stop` are intentionally not registered because
-they collide with existing conversation, dictation and speech controls. Install
-`playerctl` before deploying these commands:
+Create a privacy-first handoff that a coding AI can inspect without a custom
+prompt:
 
 ```bash
-sudo apt install playerctl
+jarvis-report --issue "Describe what failed"
 ```
 
-YouTube search reuses the currently visible YouTube tab. If another site or
-application is active, it opens YouTube in the preferred supported browser,
-focuses the visible search field, asks for the query and submits it. Commands to
-play the first or second result were tested conceptually and deliberately
-removed because search result order and focus are not stable enough.
+The resulting archive contains a safe source snapshot, versions, validation,
+service state, integrity hashes and its own AI instructions. It excludes raw
+logs, audio, transcripts, clipboard contents and messages by default, and it is
+never uploaded automatically. See [AI-assisted maintenance](docs/ai-maintenance.md).
 
-The Brain profile is an example deployment, not a universal default. Exact
-executables, app choices, secrets and local paths should remain in profiles or
-allowlisted helpers rather than being mixed into generic command logic.
+## Repository map
 
-## Browser reading
+| Path | Purpose |
+|---|---|
+| `ovos_skill_jarvis_dispatcher/` | Modular OVOS skill |
+| `system_helpers/` | Allowlisted local automation |
+| `profiles/` | Legacy migration mappings |
+| `command_editor/` | Safe GTK personal-phrase editor |
+| `tray/` and `mic/` | Independent status controls |
+| `scripts/` | Install, rollback, validation, packaging and optional setup |
+| `docs/` | Current guides and archived implementation records |
 
-`Read the page` extracts the main `<main>`, `<article>` or
-`[role=main]` content supplied by Firefox or Brave. If semantic extraction is
-not available, it safely falls back to copied page text.
+## Validated baseline
 
-`Read the full page` deliberately reads everything, while
-`Read selected text` reads only the current selection.
+- 21 Python modules
+- 90 intents
+- 1,701 Brain-compatibility vocabulary registrations
+- 4 deployment profiles
+- 11 runtime helpers
+- 6 managed user-systemd units
 
-## Runtime resilience
-
-Multi-turn command failures are contained inside `ConversationMixin`. An
-unexpected exception clears temporary conversation state and leaves unrelated
-browser, desktop, dictation and agent commands available.
-
-Optional changes to installed OVOS packages are stored as separate,
-version-checked patches. The patch tool tests each patch independently, skips
-incompatible changes and creates a rollback copy before applying anything.
-
-See [Recovery infrastructure](recovery/README.md) for the preserved service
-layout, security boundaries, configuration fragments, agent hooks and runtime
-patch procedure.
-
-Desktop applications are started through detached transient user services.
-This prevents an OVOS command restart from terminating an application merely
-because Jarvis originally launched it. The application helper also selects the
-Brain's regular Flatpak Brave installation (`com.brave.Browser`), avoiding the
-separate profile created by the concurrently installed DEB executable.
-
-## Status indicators
-
-The OVOS tray shield is green when the required services and dispatcher are
-ready, amber while starting, red on failure and grey when stopped. Its menu
-provides the command editor, command restart, full voice-system restart, start,
-stop and recent-log actions.
-
-The separate microphone icon is green while `ovos-listener` is active and red
-while stopped. Clicking it toggles only the listener without stopping the rest
-of OVOS. Their installers replace the current indicator process before starting
-one instance of the updated version.
-
-## Documentation
-
-- [Command reference](docs/command-reference.md)
-- [Voice-system optimisation and stabilisation](docs/ovos-voice-system-optimisation-and-stabilisation.md)
-- [Modular refactor runtime tests](docs/modular-refactor-runtime-tests.md)
-- [Optional local conversation add-on](docs/conversation-addon.md)
-- [Profiles and application integrations](docs/profiles-and-integrations.md)
-- [Focused commands, integrations and runtime isolation](docs/focused-commands-integrations-and-runtime-isolation.md)
-- [Final local controls and command editor](docs/final-local-controls-and-command-editor.md)
-- [Final Hermes, media and system controls](docs/final-hermes-media-and-system-controls.md)
-- [Command editor guide](COMMAND-EDITOR.md)
-- [Recovery infrastructure](recovery/README.md)
-
-## Known-good baseline
-
-The initial commit preserves the tested monolithic dispatcher before its
-behaviour-preserving modular refactor. The current modular validation baseline
-is maintained by `scripts/validate_refactor.py`: 20 Python modules, 88 intents,
-1,259 built-in vocabulary registrations and three validated profiles.
+Normal capability files omit private agent vocabulary, so their registration
+count is intentionally smaller. The larger compatibility inventory protects an
+existing customised Brain installation during migration.

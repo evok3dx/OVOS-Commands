@@ -74,6 +74,127 @@ focused_window_class() {
       tr '[:upper:]' '[:lower:]'
 }
 
+copy_accessible_content() {
+    local window_id
+    local window_pid
+
+    window_id="$(xdotool getactivewindow 2>/dev/null)" || return 1
+    window_pid="$(xprop -id "$window_id" _NET_WM_PID 2>/dev/null |
+      awk -F' = ' 'NF == 2 { print $2; exit }')"
+
+    [[ "$window_pid" =~ ^[0-9]+$ ]] || return 1
+
+    /usr/bin/python3 - "$window_pid" "$captured_text" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+import gi
+
+gi.require_version("Atspi", "2.0")
+from gi.repository import Atspi
+
+wanted_pid = int(sys.argv[1])
+target = Path(sys.argv[2])
+desktop = Atspi.get_desktop(0)
+
+included_roles = {
+    "article", "document frame", "document text", "document web",
+    "entry", "heading", "label", "list item", "paragraph",
+    "section", "static", "table cell", "text",
+}
+excluded_roles = {
+    "alert", "check box", "combo box", "dialog", "frame", "icon",
+    "menu", "menu bar", "menu item", "page tab", "push button",
+    "scroll bar", "separator", "status bar", "toggle button", "tool bar",
+}
+
+def children(node):
+    try:
+        return [node.get_child_at_index(index)
+                for index in range(node.get_child_count())]
+    except Exception:
+        return []
+
+def process_id(node):
+    try:
+        return node.get_process_id()
+    except Exception:
+        return -1
+
+application = None
+for candidate in children(desktop):
+    if process_id(candidate) == wanted_pid:
+        application = candidate
+        break
+
+def contains_focus(node, depth=0):
+    if depth > 40:
+        return False
+    try:
+        if node.get_state_set().contains(Atspi.StateType.FOCUSED):
+            return True
+    except Exception:
+        pass
+    return any(contains_focus(child, depth + 1) for child in children(node))
+
+if application is None:
+    for candidate in children(desktop):
+        if contains_focus(candidate):
+            application = candidate
+            break
+
+if application is None:
+    raise SystemExit(1)
+
+blocks = []
+seen = set()
+
+def add(value):
+    value = re.sub(r"[ \t]+", " ", value or "")
+    value = re.sub(r"\n{3,}", "\n\n", value).strip()
+    if len(value) < 2 or value in seen:
+        return
+    seen.add(value)
+    blocks.append(value)
+
+def walk(node, depth=0):
+    if depth > 80 or len(blocks) > 4000:
+        return
+    try:
+        role = (node.get_role_name() or "").lower()
+    except Exception:
+        role = ""
+
+    if role in excluded_roles:
+        return
+
+    if role in included_roles:
+        try:
+            text = node.get_text_iface()
+            if text is not None:
+                add(text.get_text(0, -1))
+        except Exception:
+            pass
+
+        if role not in {"entry", "text"}:
+            try:
+                add(node.get_name() or "")
+            except Exception:
+                pass
+
+    for child in children(node):
+        walk(child, depth + 1)
+
+walk(application)
+result = "\n\n".join(blocks).strip()
+if len(result) < 20:
+    raise SystemExit(1)
+
+target.write_text(result[:100000] + "\n", encoding="utf-8")
+PY
+}
+
 copy_with_shortcut() {
     local select_keys="$1"
     local copy_keys="$2"
@@ -118,9 +239,10 @@ copy_focused_content() {
         copy_with_shortcut ctrl+shift+a ctrl+shift+c
         ;;
       *)
-        # Standard Notes, ONLYOFFICE, mail clients and most GTK/Electron apps
-        # expose the active editor/document through the normal copy shortcut.
-        copy_with_shortcut ctrl+a ctrl+c
+        # Read GTK, Qt and Electron content without moving focus or selecting
+        # an app's composer. Fall back to copying only when accessibility is
+        # unavailable or the application exposes too little useful text.
+        copy_accessible_content || copy_with_shortcut ctrl+a ctrl+c
         ;;
     esac
 }
@@ -137,7 +259,7 @@ extract_main_content() {
         return 0
     fi
 
-    if ! "$HOME/.venvs/ovos/bin/python" \
+    if ! "${OVOS_PYTHON:-$HOME/.venvs/ovos/bin/python}" \
          - "$captured_html" "$main_text" <<'PY'
 import re
 import sys

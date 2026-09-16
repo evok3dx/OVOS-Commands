@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+jarvis_home="${JARVIS_HOME:-$HOME}"
+doctor="$jarvis_home/.local/src/ovos-skill-jarvis-dispatcher/scripts/doctor.py"
+state_dir="$jarvis_home/.local/state/jarvis/health"
+
+[[ -f "$doctor" ]] || {
+  echo "Jarvis doctor not found: $doctor" >&2
+  exit 1
+}
+
+mkdir -p "$state_dir"
+temporary="$(mktemp "$state_dir/latest.json.XXXXXX")"
+cleanup() {
+  rm -f -- "$temporary"
+}
+trap cleanup EXIT
+
+status=0
+python3 "$doctor" --json > "$temporary" || status=$?
+chmod 0600 "$temporary"
+mv -f -- "$temporary" "$state_dir/latest.json"
+trap - EXIT
+exit "$status"

@@ -10,8 +10,9 @@ corrections are maintained centrally in
 ## Desktop applications
 
 Supported applications include Brave, Firefox, Signal, Zoom, Terminal,
-Standard Notes, ONLYOFFICE, Claude Desktop, Hermes Desktop, Proton Mail and
-Proton Calendar.
+Standard Notes, ONLYOFFICE, Claude Desktop, ChatGPT Desktop, Hermes Desktop,
+the default Mail application, Proton Mail and Proton Calendar when detected
+and enabled.
 
 Examples:
 
@@ -19,14 +20,15 @@ Examples:
 - `Show Standard Notes`
 - `Focus Proton Mail`
 - `Minimise Zoom`
+- `Maximise ChatGPT`
 - `Close Signal`
 
-Open, launch, start, focus, show, switch, minimise, hide, close, quit and exit
-variants are supported where applicable.
+Open, launch, start, focus, show, switch, minimise, maximise, hide, close, quit
+and exit variants are supported where applicable.
 
 ### Standard Notes
 
-When the active profile maps `notes` to Standard Notes:
+When the active capabilities map `notes` to Standard Notes:
 
 - `New note`
 - `Create a new note`
@@ -42,6 +44,9 @@ window, and only then sends `Alt+Shift+N`.
 - `Search this node` is retained as an STT-tolerant pronunciation variant.
 
 ### Proton Mail
+
+`Open mail` opens the operating system's default mail application. Branded
+commands such as `Open Proton Mail` explicitly select Proton Mail.
 
 - `New email`
 - `Compose an email`
@@ -61,9 +66,9 @@ number and encoded password locally, and passes a `zoommtg` URI to the locally
 registered Zoom handler. Meeting links and passwords are not spoken or
 deliberately logged.
 
-### Claude Desktop and Claude agent
+### Claude Desktop and ChatGPT Desktop
 
-Ordinary Claude wording controls the graphical Claude Desktop application:
+Claude wording controls the ordinary graphical chat application:
 
 - `Open Claude`
 - `Focus Claude`
@@ -72,26 +77,28 @@ Ordinary Claude wording controls the graphical Claude Desktop application:
 `Message Claude` focuses or opens Claude Desktop, verifies that its window owns
 focus, then asks what to send and types the response into its chat.
 
-The isolated terminal agent remains explicit:
-
-- `Open Claude agent`
-- `Focus Claude agent`
-- `Message Claude agent`
-
-This prevents an ordinary request for Claude from being routed to the local
-coding and task agent.
-
-Additional explicit Claude workflows include:
-
 - `New Claude chat`: open a fresh Claude Desktop conversation.
-- `New Claude agent`: start a new isolated Claude Code session.
-- `Create Claude subagent`: prepare the local Claude agent's subagent command.
-- `Show Claude agents`: open the Claude Code agent manager.
-- `Resume Claude agent`: return to the isolated Claude agent window.
+- `Open Claude website` or `Open Claude online`: open `claude.ai` in the
+  operating system's default browser.
+
+ChatGPT accepts the same application verbs with `ChatGPT`, `GPT`, `Chat G P T`
+or `chat`:
+
+- `Open ChatGPT`
+- `Focus GPT`
+- `Minimise chat`
+- `Maximise ChatGPT`
+- `Close GPT`
+
+Website wording remains explicit:
+
+- `Open the ChatGPT website`
+- `Open GPT website`
+- `Open ChatGPT online`
 
 Recognition-tolerant `cloud`, `clawed` and `called` forms are registered for
-Claude. The word `agent` remains the boundary between Claude Desktop and the
-isolated Claude Code account.
+Claude. Jarvis does not open or operate Claude Code, Cowork, ChatGPT Codex or
+Work. Custom agent infrastructure is not part of normal setup or vocabulary.
 
 ## Browser search and navigation
 
@@ -189,21 +196,6 @@ for, verifies the original window still owns focus and enters the response.
 Terminal uses its compatible copy, select and search shortcuts; unsafe editing
 operations are refused there.
 
-## Codex and Claude agents
-
-Examples:
-
-- `Open Codex agent`
-- `Focus Claude agent`
-- `Minimise Codex`
-- `Close Claude`
-- `Message Codex`
-- `Talk to Claude`
-- `Search the web`
-
-Agent messages pass through an allowlisted helper. It validates the target,
-message size and expected tmux process before sending anything.
-
 ## Other commands
 
 Examples:
@@ -277,7 +269,6 @@ split across:
 - [Browser commands](../ovos_skill_jarvis_dispatcher/browser.py)
 - [Desktop commands](../ovos_skill_jarvis_dispatcher/desktop.py)
 - [Dictation commands](../ovos_skill_jarvis_dispatcher/dictation.py)
-- [Agent commands](../ovos_skill_jarvis_dispatcher/agents.py)
 - [Controlled follow-ups](../ovos_skill_jarvis_dispatcher/conversation.py)
 - [Personal phrase validation](../ovos_skill_jarvis_dispatcher/custom_commands.py)
 - [System microphone control](../ovos_skill_jarvis_dispatcher/system_audio.py)

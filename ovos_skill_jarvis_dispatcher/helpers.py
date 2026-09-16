@@ -16,6 +16,12 @@ class DispatcherHelpersMixin:
         else:
             failure = "I could not read content from that window."
 
+        # Speech Note plays through the same speakers heard by the microphone.
+        # Mute only the OVOS listener before playback starts so that page text
+        # cannot be mistaken for the wake word. The physical microphone and
+        # desktop audio remain unchanged.
+        self._mute_listener_for_speech_note()
+
         try:
             subprocess.run(
                 [str(helper), mode],
@@ -24,7 +30,10 @@ class DispatcherHelpersMixin:
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL
             )
+            self._speech_note_reading = True
+            self._watch_speech_note_reading()
         except Exception:
+            self._restore_listener_after_speech_note()
             self.log.exception(
                 f"Visible text reading failed: {mode}"
             )

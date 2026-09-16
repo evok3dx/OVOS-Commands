@@ -1,4 +1,3 @@
-import re
 import subprocess
 import time
 
@@ -7,27 +6,14 @@ class ClaudeDesktopIntegrationMixin:
     """Route ordinary Claude requests to the verified desktop application."""
 
     @staticmethod
-    def _explicit_claude_agent(message):
-        utterance = str(message.data.get("utterance", "")).lower()
-        return bool(re.search(r"\bagent\b", utterance))
-
-    @staticmethod
     def _is_claude_desktop_window(window_class):
         value = str(window_class or "").lower()
         return "com.anthropic.claude" in value
 
     def _route_claude_window_action(self, message, action):
-        if self._explicit_claude_agent(message):
-            self._window_action(action, "claude")
-            return
-
         self._run_desktop_app_action("claude", action)
 
     def _route_claude_message(self, message):
-        if self._explicit_claude_agent(message):
-            self._message_agent("claude")
-            return
-
         self._message_claude_desktop()
 
     def _open_claude_desktop_new_chat(self):

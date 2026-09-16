@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+jarvis_home="${JARVIS_HOME:-$HOME}"
+setup="$jarvis_home/.local/src/ovos-skill-jarvis-dispatcher/scripts/setup.py"
+
+[[ -f "$setup" ]] || {
+  echo "Jarvis setup was not found: $setup" >&2
+  exit 1
+}
+
+exec python3 "$setup" "$@"

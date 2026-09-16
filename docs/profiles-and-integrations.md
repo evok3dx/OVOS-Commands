@@ -1,39 +1,43 @@
-# Profiles and application integrations
+# Capabilities and application integrations
 
-Profiles separate reusable voice commands from the choices made on a specific
-machine. A command category such as `notes` is stable; the selected profile
-maps it to an allowlisted integration such as `standard_notes`.
+The private `~/.config/jarvis/capabilities.json` file separates reusable voice
+commands from applications detected and approved on one machine. A category
+such as `notes` maps only to a reviewed integration such as `standard_notes`.
 
-The profile cannot provide an arbitrary shell command. It may only select an
+The file cannot provide an arbitrary shell command. It may only select an
 integration compiled into `profile.py`, and each category accepts only
 explicitly compatible integrations.
 
-## Included profiles
+## Setup choices
 
-- `default.json`: command-only browser and terminal baseline.
-- `brain.json`: the existing Brain mappings and optional conversation enabled.
-- `personal.example.json`: example command-only personal mapping.
+- `All detected`: enables every reviewed integration found locally.
+- `Core only`: enables universal system, media, reading and focused-window controls.
+- `Custom`: shows only detected reviewed applications for selection.
 
-The deployment script installs `brain.json` unless `JARVIS_PROFILE` selects a
-different file:
+The installer and `jarvis-setup` never install applications. The tray opens the
+same setup window later. Non-interactive deployment can select explicitly:
 
 ```bash
-JARVIS_PROFILE=default bash scripts/deploy-modular-refactor.sh
+bash scripts/install.sh --mode all
+bash scripts/install.sh --mode core
+bash scripts/install.sh --mode custom --apps firefox,hermes_desktop
 ```
 
 The installed profile is stored at:
 
 ```text
-~/.config/jarvis/profile.json
+~/.config/jarvis/capabilities.json
 ```
 
-If it is absent or invalid, the dispatcher logs the error and uses the
-previous Brain mappings. This makes the migration behaviour-preserving.
+If it is absent or invalid, the dispatcher fails closed to core controls. Older
+`profile.json` files are migrated once. An existing named Brain profile may
+preserve its already-provisioned private agent extension, but normal setup can
+never enable or provision agents, users, sudo rules or privileged helpers.
 
 ## Application-specific actions
 
 Application-specific behaviour belongs in `integrations/`, not in the generic
-desktop controller. Generic commands remain portable; profiles select only
+desktop controller. Generic commands remain portable; capabilities select only
 compatible, compiled integrations and cannot supply arbitrary shell commands.
 
 ### Standard Notes
@@ -47,7 +51,7 @@ make new note
 ```
 
 It focuses or opens the configured Notes application, verifies that the
-profile maps Notes to Standard Notes, verifies that Standard Notes owns the
+capability file maps Notes to Standard Notes, verifies that Standard Notes owns the
 active window, then invokes the known `Alt+Shift+N` shortcut. Failures are
 caught inside that action and do not affect other commands.
 
@@ -56,7 +60,12 @@ Standard Notes also supports two deliberately distinct searches:
 - `search this note` uses `Ctrl+F` in the focused note;
 - `search notes` opens the universal palette with `Ctrl+Shift+Colon`.
 
-### Proton Mail
+### Default Mail and Proton Mail
+
+`Open mail` follows the operating system's registered `mailto` application.
+`Open Proton Mail` targets Proton explicitly. Jarvis validates the desktop
+association and launches it through the desktop entry without executing a
+profile-supplied command.
 
 The Proton Mail integration uses documented shortcuts after focusing and
 verifying the configured application:
@@ -82,10 +91,8 @@ would produce the opposite result.
 
 ## Custom and personal mappings
 
-Machine-specific choices belong in `profiles/*.json`. For example, the Brain
-maps `notes` to `standard_notes`, `mail` to `proton_mail` and `calendar` to
-`proton_calendar`. Another machine can choose a smaller command-only profile
-without editing the reusable vocabulary or desktop controller.
+Machine-specific choices belong in `capabilities.json`. `profiles/*.json` are
+retained only for tested migration of older releases.
 
 Executable paths remain in allowlisted helpers. They are not accepted from a
 spoken command or arbitrary profile value.

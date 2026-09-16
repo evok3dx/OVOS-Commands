@@ -4,9 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ovos-skill-jarvis-dispatcher"
-version = "0.1.0"
-description = "Allowlisted Jarvis desktop and agent controls"
+version = "2.2.0"
+description = "Allowlisted Jarvis voice and desktop controls"
 requires-python = ">=3.10"
+dependencies = ["ovos-workshop"]
 
 [project.entry-points."opm.skill"]
 "ovos-skill-jarvis-dispatcher.openvoiceos" = "ovos_skill_jarvis_dispatcher:JarvisDispatcherSkill"
@@ -16,6 +17,3 @@ packages = [
   "ovos_skill_jarvis_dispatcher",
   "ovos_skill_jarvis_dispatcher.integrations",
 ]
-
-[tool.setuptools.package-data]
-ovos_skill_jarvis_dispatcher = ["locale/en-US/vocab/*.voc"]

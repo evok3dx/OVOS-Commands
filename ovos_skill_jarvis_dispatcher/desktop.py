@@ -50,12 +50,15 @@ class DesktopActionsMixin:
             message.data.get("utterance", "")
         ).lower()
 
-        # Keep Claude Agent separate from Claude Desktop.
-        if "agent" in utterance and (
-            "claude" in utterance or "clawed" in utterance
-        ):
-            self._window_action(action, "claude")
-            return
+        if action == "open" and ("website" in utterance or "online" in utterance):
+            if any(name in utterance for name in (
+                "chatgpt", "gpt", "chat g p t", "chat website", "chat online"
+            )):
+                self._open_fixed_website("ChatGPT", "https://chatgpt.com/")
+                return
+            if any(name in utterance for name in ("claude", "cloud", "clawed")):
+                self._open_fixed_website("Claude", "https://claude.ai/")
+                return
 
         app = self._desktop_app_from_message(message)
 
@@ -73,6 +76,7 @@ class DesktopActionsMixin:
             app.replace("_", " ").title(),
         )
         integration = self._desktop_app_integrations.get(app, app)
+        timeout = 40 if integration == "hermes_desktop" else 15
 
         try:
             subprocess.run(
@@ -85,7 +89,7 @@ class DesktopActionsMixin:
                     integration
                 ],
                 check=True,
-                timeout=15,
+                timeout=timeout,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL
             )
@@ -96,7 +100,7 @@ class DesktopActionsMixin:
             )
 
             if announce:
-                if action in ("minimize", "close"):
+                if action in ("minimize", "maximize", "close"):
                     self.speak(f"{display_name} is not open.")
                 else:
                     self.speak(f"I could not open {display_name}.")

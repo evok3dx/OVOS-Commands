@@ -1,0 +1,9 @@
+[Unit]
+Description=Watch for Hermes launcher regeneration
+
+[Path]
+PathChanged=@LAUNCHER@
+Unit=hermes-launcher-repair.service
+
+[Install]
+WantedBy=default.target

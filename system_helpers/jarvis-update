@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+jarvis_home="${JARVIS_HOME:-$HOME}"
+updater="$jarvis_home/.local/src/ovos-skill-jarvis-dispatcher/scripts/update.py"
+
+[[ -f "$updater" ]] || {
+  echo "Jarvis updater was not found: $updater" >&2
+  exit 1
+}
+
+exec python3 "$updater" "$@"

@@ -27,12 +27,15 @@ class ProtonMailIntegrationMixin:
 
     def _prepare_proton_mail(self):
         applications = self._jarvis_profile.get("applications", {})
-        mail = applications.get("mail", {})
+        mail = applications.get("proton_mail", {})
+        if not mail and applications.get("mail", {}).get("integration") == "proton_mail":
+            mail = applications["mail"]
         if mail.get("integration") != "proton_mail":
             self.speak("A Proton Mail action is not configured.")
             return False
 
-        if not self._run_desktop_app_action("mail", "focus", announce=False):
+        category = "proton_mail" if "proton_mail" in applications else "mail"
+        if not self._run_desktop_app_action(category, "focus", announce=False):
             self.speak("I could not open Proton Mail.")
             return False
 

@@ -1,6 +1,0 @@
-[Unit]
-Description=Jar Claude completion notification
-
-[Service]
-Type=oneshot
-ExecStart=%h/.local/bin/jarvis-agent-complete claude

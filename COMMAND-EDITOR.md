@@ -20,7 +20,11 @@ Install:
 
 ```bash
 bash scripts/install-command-editor.sh
+jarvis-command-editor
 ```
+
+Install `scripts/install-ovos-tray.sh` as well to open the editor from the
+tray's **Commands…** item.
 
 Rollback:
 

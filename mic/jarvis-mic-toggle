@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -u
 
-if systemctl --user is-active --quiet ovos-listener; then
-    systemctl --user stop ovos-listener
+if systemctl --user is-active --quiet ovos-listener.service; then
+    systemctl --user stop ovos-listener.service
 
-    if systemctl --user is-active --quiet ovos-listener; then
+    if systemctl --user is-active --quiet ovos-listener.service; then
         notify-send -u critical \
             "Jarvis mute failed" \
             "The microphone may still be active."
@@ -16,9 +16,9 @@ if systemctl --user is-active --quiet ovos-listener; then
         "Jarvis microphone MUTED" \
         "Wake word and push-to-command are disabled."
 else
-    systemctl --user start ovos-listener
+    systemctl --user start ovos-listener.service
 
-    if systemctl --user is-active --quiet ovos-listener; then
+    if systemctl --user is-active --quiet ovos-listener.service; then
         notify-send -u normal -t 4000 \
             -i audio-input-microphone-symbolic \
             "Jarvis microphone active" \

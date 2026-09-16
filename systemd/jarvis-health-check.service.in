@@ -1,0 +1,7 @@
+[Unit]
+Description=Check Jarvis and OVOS compatibility
+After=ovos.service
+
+[Service]
+Type=oneshot
+ExecStart=@TARGET_BIN@/jarvis-health-check

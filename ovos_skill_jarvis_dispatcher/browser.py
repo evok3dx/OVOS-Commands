@@ -8,17 +8,28 @@ from urllib.parse import quote_plus
 class BrowserActionsMixin:
     """Allowlisted browser discovery, focus, navigation and search actions."""
 
-    def _active_browser(self):
-        """Return the supported browser owning the active window."""
+    @staticmethod
+    def _active_window_id():
+        """Return the active X11 window ID, or an empty string."""
 
         try:
-            window_id = subprocess.run(
+            return subprocess.run(
                 ["/usr/bin/xdotool", "getactivewindow"],
                 capture_output=True,
                 text=True,
                 check=True,
                 timeout=5
             ).stdout.strip()
+        except Exception:
+            return ""
+
+    def _active_browser(self):
+        """Return the supported browser owning the active window."""
+
+        try:
+            window_id = self._active_window_id()
+            if not window_id:
+                return None
 
             window_class = subprocess.run(
                 [
@@ -116,7 +127,18 @@ class BrowserActionsMixin:
             stderr=subprocess.DEVNULL
         )
 
-        return browser_was_open
+        # wmctrl may return before Cinnamon has actually transferred focus.
+        # Do not send a shortcut until the requested browser owns the active
+        # window, otherwise it can land in the application underneath it.
+        deadline = time.monotonic() + 4
+        while time.monotonic() < deadline:
+            if self._active_browser() == browser:
+                return browser_was_open
+            time.sleep(0.1)
+
+        raise RuntimeError(
+            f"{browser} did not become the active browser"
+        )
 
     def _run_browser_action(
         self,
@@ -396,7 +418,43 @@ class BrowserActionsMixin:
             )
 
     def _prompt_browser_search(self, message, browser):
-        """Capture a browser query in dedicated response mode."""
+        """Expose browser search first, then capture and submit a query."""
+
+        try:
+            browser_was_open = self._focus_browser(browser)
+
+            if browser_was_open:
+                subprocess.run(
+                    [
+                        "/usr/bin/xdotool", "key",
+                        "--clearmodifiers", "ctrl+t"
+                    ],
+                    check=True,
+                    timeout=5,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL
+                )
+
+            subprocess.run(
+                [
+                    "/usr/bin/xdotool", "key",
+                    "--clearmodifiers", "ctrl+l"
+                ],
+                check=True,
+                timeout=5,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+
+            target_window = self._active_window_id()
+            if not target_window or self._active_browser() != browser:
+                raise RuntimeError("Browser search target was not verified")
+        except Exception:
+            self.log.exception("Could not prepare browser search")
+            self.speak(
+                f"I could not prepare {str(browser).capitalize()} search."
+            )
+            return
 
         query = self.get_response(
             "What should I search for?",
@@ -420,11 +478,58 @@ class BrowserActionsMixin:
             self.speak("Cancelled.")
             return
 
-        self._run_browser_action(
-            "search",
-            query,
-            browser=browser
+        # Do not type into a different application if focus changed while the
+        # response was being captured.
+        if (
+            self._active_window_id() != target_window
+            or self._active_browser() != browser
+        ):
+            self.speak("The focused window changed, so I cancelled.")
+            return
+
+        if len(query) > 500:
+            self.speak("That search is too long.")
+            return
+
+        url = (
+            "https://search.brave.com/search?q="
+            + quote_plus(query.strip(" ."))
         )
+
+        try:
+            subprocess.run(
+                [
+                    "/usr/bin/xdotool", "key",
+                    "--clearmodifiers", "ctrl+a"
+                ],
+                check=True,
+                timeout=5,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+            subprocess.run(
+                [
+                    "/usr/bin/xdotool", "type",
+                    "--clearmodifiers", "--delay", "10", "--", url
+                ],
+                check=True,
+                timeout=15,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+            subprocess.run(
+                [
+                    "/usr/bin/xdotool", "key",
+                    "--clearmodifiers", "Return"
+                ],
+                check=True,
+                timeout=5,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+        except Exception:
+            self.log.exception("Browser search submission failed")
+            self.speak("I could not submit that search.")
 
     def _open_browser_url(self, url, browser=None):
         """Open an allowlisted URL in a new tab of the chosen browser."""
@@ -578,3 +683,14 @@ class BrowserActionsMixin:
         except Exception:
             self.log.exception("Could not open YouTube Shorts")
             self.speak("I could not open YouTube Shorts.")
+    def _open_fixed_website(self, name, url):
+        """Open one reviewed URL with the operating system's default browser."""
+        try:
+            subprocess.run(
+                ["/usr/bin/xdg-open", url], check=True, timeout=10,
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            )
+            self.speak(f"Opening {name} in your browser.")
+        except Exception:
+            self.log.exception("Could not open fixed website: %s", name)
+            self.speak(f"I could not open the {name} website.")

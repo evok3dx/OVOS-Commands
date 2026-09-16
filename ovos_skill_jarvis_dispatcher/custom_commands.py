@@ -32,7 +32,6 @@ ENTITY_ACTIONS = {
     "ReadLastTypedTextCommand": "reading.last_typed",
     "ReadSelectedTextCommand": "reading.selection",
     "ReadVisiblePageCommand": "reading.page",
-    "ReadFullPageCommand": "reading.page",
     "SelectAllTextCommand": "text.select_all",
     "DeleteSelectedTextCommand": "text.delete",
     "ClearFocusedTextCommand": "text.clear",
@@ -76,6 +75,7 @@ DESKTOP_ENTITY_OPERATIONS = {
     "FocusDesktopAppCommand": "focus",
     "MinimizeDesktopAppCommand": "minimize",
     "CloseDesktopAppCommand": "close",
+    "MaximizeDesktopAppCommand": "maximize",
 }
 
 
@@ -276,6 +276,16 @@ def normalize_phrase(value):
 def action_catalog(profile=None):
     """Return friendly actions, including profile-approved applications."""
     catalog = dict(BASE_ACTIONS)
+    agents_enabled = bool(
+        (profile or {}).get("private_extensions", {}).get("agents", False)
+    )
+    if not agents_enabled:
+        catalog = {
+            action_id: definition
+            for action_id, definition in catalog.items()
+            if not action_id.startswith(("codex.", "claude_agent."))
+            and action_id != "response.read_latest"
+        }
     applications = (profile or {}).get("applications", {})
     for app_id, definition in applications.items():
         display = definition.get("display_name", app_id.replace("_", " ").title())
@@ -284,6 +294,7 @@ def action_catalog(profile=None):
             ("open", "Open"),
             ("focus", "Focus"),
             ("minimize", "Minimize"),
+            ("maximize", "Maximize"),
             ("close", "Close"),
         ):
             catalog[f"application.{operation}.{app_id}"] = _action(

@@ -1,70 +1,55 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SOURCE_PACKAGE="$REPO_ROOT/ovos_skill_jarvis_dispatcher"
-TARGET_PACKAGE="$HOME/.local/src/ovos-skill-jarvis-dispatcher/ovos_skill_jarvis_dispatcher"
-BIN_DIR="$HOME/.local/bin"
-CONFIG_DIR="$HOME/.config/jarvis"
-STATE_ROOT="$HOME/.local/state/jarvis-command-editor"
-STAMP="$(date +%Y%m%d-%H%M%S)"
-BACKUP_DIR="$STATE_ROOT/backups/$STAMP"
-OVOS_PYTHON="$HOME/.venvs/ovos/bin/python"
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+jarvis_home="${JARVIS_HOME:-$HOME}"
+target_package="$jarvis_home/.local/src/ovos-skill-jarvis-dispatcher/ovos_skill_jarvis_dispatcher"
+bin_dir="$jarvis_home/.local/bin"
+config_dir="$jarvis_home/.config/jarvis"
+state_root="$jarvis_home/.local/state/jarvis-command-editor"
+stamp="$(date +%Y%m%d-%H%M%S-%N)"
+backup_dir="$state_root/backups/$stamp"
+ovos_python="${OVOS_PYTHON:-$jarvis_home/.venvs/ovos/bin/python}"
 
-if [[ ! -d "$TARGET_PACKAGE" ]]; then
-    echo "Jarvis dispatcher not found: $TARGET_PACKAGE" >&2
-    exit 1
-fi
-if [[ ! -x "$OVOS_PYTHON" ]]; then
-    echo "OVOS Python not found: $OVOS_PYTHON" >&2
-    exit 1
-fi
-if ! python3 -c 'import gi; gi.require_version("Gtk", "3.0")' 2>/dev/null; then
-    echo "GTK 3 support is missing." >&2
-    echo "Install: sudo apt install python3-gi gir1.2-gtk-3.0" >&2
-    exit 1
-fi
-
-python3 "$REPO_ROOT/scripts/validate_refactor.py"
-python3 -m py_compile \
-    "$REPO_ROOT/command_editor/jarvis-command-editor" \
-    "$REPO_ROOT/tray/ovos-tray.py"
-
-mkdir -p "$BACKUP_DIR" "$BIN_DIR" "$CONFIG_DIR"
-
-backup_file() {
-    local source="$1"
-    local label="$2"
-    if [[ -e "$source" ]]; then
-        cp -a "$source" "$BACKUP_DIR/$label"
-    else
-        : > "$BACKUP_DIR/$label.missing"
-    fi
+[[ -d "$target_package" ]] || {
+  echo "Jarvis dispatcher not found: $target_package" >&2
+  exit 1
 }
+[[ -x "$ovos_python" ]] || {
+  echo "OVOS Python not found: $ovos_python" >&2
+  exit 1
+}
+if [[ "${JARVIS_TEST_MODE:-0}" != 1 ]] &&
+   ! python3 -c 'import gi; gi.require_version("Gtk", "3.0")' 2>/dev/null; then
+  echo "GTK 3 support is missing." >&2
+  echo "Install: sudo apt install python3-gi gir1.2-gtk-3.0" >&2
+  exit 1
+fi
 
-backup_file "$TARGET_PACKAGE/__init__.py" package-init.py
-backup_file "$TARGET_PACKAGE/vocabulary.py" vocabulary.py
-backup_file "$TARGET_PACKAGE/custom_commands.py" custom_commands.py
-backup_file "$TARGET_PACKAGE/integrations/claude_desktop.py" claude_desktop.py
-backup_file "$BIN_DIR/ovos-tray" ovos-tray
-backup_file "$BIN_DIR/jarvis-command-editor" jarvis-command-editor
-backup_file "$CONFIG_DIR/builtin-command-phrases.json" builtin-command-phrases.json
-printf '%s\n' "$BACKUP_DIR" > "$STATE_ROOT/latest-backup"
+python3 "$repo_root/scripts/validate_refactor.py"
+python3 -m py_compile "$repo_root/command_editor/jarvis-command-editor"
 
-install -m 0644 "$SOURCE_PACKAGE/__init__.py" "$TARGET_PACKAGE/__init__.py"
-install -m 0644 "$SOURCE_PACKAGE/vocabulary.py" "$TARGET_PACKAGE/vocabulary.py"
-install -m 0644 "$SOURCE_PACKAGE/custom_commands.py" "$TARGET_PACKAGE/custom_commands.py"
-install -m 0644 \
-    "$SOURCE_PACKAGE/integrations/claude_desktop.py" \
-    "$TARGET_PACKAGE/integrations/claude_desktop.py"
+mkdir -p "$backup_dir" "$bin_dir" "$config_dir"
+for name in jarvis-command-editor builtin-command-phrases.json; do
+  case "$name" in
+    jarvis-command-editor) target="$bin_dir/$name" ;;
+    *) target="$config_dir/$name" ;;
+  esac
+  if [[ -e "$target" ]]; then
+    cp -a "$target" "$backup_dir/$name"
+  else
+    : > "$backup_dir/$name.missing"
+  fi
+done
+printf '%s\n' "$backup_dir" > "$state_root/latest-backup"
+
 install -m 0755 \
-    "$REPO_ROOT/command_editor/jarvis-command-editor" \
-    "$BIN_DIR/jarvis-command-editor"
-install -m 0755 "$REPO_ROOT/tray/ovos-tray.py" "$BIN_DIR/ovos-tray"
+  "$repo_root/command_editor/jarvis-command-editor" \
+  "$bin_dir/jarvis-command-editor"
 
-PYTHONPATH="${TARGET_PACKAGE%/*}" \
-JARVIS_BUILTINS_PATH="$CONFIG_DIR/builtin-command-phrases.json" \
-"$OVOS_PYTHON" <<'PY'
+PYTHONPATH="${target_package%/*}" \
+JARVIS_BUILTINS_PATH="$config_dir/builtin-command-phrases.json" \
+"$ovos_python" <<'PY'
 import json
 import os
 import tempfile
@@ -99,10 +84,7 @@ if not DEFAULT_CONFIG_PATH.exists():
     write_mapping({}, profile=profile, builtin_phrases=phrases)
 PY
 
-pkill -f "$BIN_DIR/ovos-tray" 2>/dev/null || true
-nohup "$BIN_DIR/ovos-tray" > "$HOME/.local/state/ovos-tray.log" 2>&1 &
-"$BIN_DIR/jarvis-restart"
-
-echo "Command editor installed."
-echo "Open the tray icon and choose Commands…"
-echo "Rollback: bash scripts/uninstall-command-editor.sh"
+printf '%s\n' \
+  "Command editor installed: $bin_dir/jarvis-command-editor" \
+  "Install the optional tray to open it from the status menu." \
+  "Rollback: bash scripts/uninstall-command-editor.sh"

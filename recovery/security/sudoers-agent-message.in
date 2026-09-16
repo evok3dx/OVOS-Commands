@@ -1,6 +1,0 @@
-# Render this template during installation. Do not install it unchanged.
-@DESKTOP_USER@ ALL=(root) NOPASSWD: /usr/local/sbin/jarvis-agent-message codex
-@DESKTOP_USER@ ALL=(root) NOPASSWD: /usr/local/sbin/jarvis-agent-message claude
-
-@DESKTOP_USER@ ALL=(@CODEX_USER@) NOPASSWD: /usr/bin/tmux new-session -A -s work -c /home/@CODEX_USER@/workspace
-@DESKTOP_USER@ ALL=(@CLAUDE_USER@) NOPASSWD: /usr/bin/tmux new-session -A -s work -c /home/@CLAUDE_USER@/workspace
