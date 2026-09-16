@@ -1,0 +1,42 @@
+name: OVOS upstream compatibility
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 7 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  current-ovos:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Report upstream movement
+        continue-on-error: true
+        run: python3 scripts/check_upstream.py
+      - name: Install current OVOS APIs and this skill
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install ovos-workshop ovos-plugin-manager
+          python -m pip install --no-deps .
+      - name: Verify the OVOS skill entry point loads
+        run: |
+          python - <<'PY'
+          from importlib.metadata import entry_points
+
+          matches = [
+              entry for entry in entry_points(group="opm.skill")
+              if entry.name == "ovos-skill-jarvis-dispatcher.openvoiceos"
+          ]
+          assert len(matches) == 1, matches
+          skill_class = matches[0].load()
+          assert skill_class.__name__ == "JarvisDispatcherSkill"
+          PY
+      - run: python3 scripts/validate_refactor.py
+      - run: bash scripts/test-deployment.sh
