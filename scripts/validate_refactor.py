@@ -93,7 +93,12 @@ for required_bootstrap_fragment in (
     'installer_archive_url="${installer_repository%.git}/archive/${installer_commit}.tar.gz"',
     "hashlib.sha256()",
     "if actual != expected:",
-    'tar -xzf "$installer_archive" --strip-components=1',
+    'workspace="$(mktemp -d /var/tmp/jarvis-ovos-root.XXXXXX)"',
+    '/var/tmp/jarvis-ovos-root.*) rm -rf -- "$workspace"',
+    'actual_sha256="$(sha256sum "$archive"',
+    'tar -xzf "$archive" --strip-components=1 -C "$installer_root"',
+    'TMPDIR="$installer_tmp" bash setup.sh',
+    'cleanup_ovos_download "$installer_parent"',
     "sudo apt-get install --no-install-recommends git",
     "No desktop applications are being installed.",
     "share_telemetry: false",
@@ -105,6 +110,24 @@ for required_bootstrap_fragment in (
         f"Installer bootstrap safety check is missing: {required_bootstrap_fragment}"
     )
 assert 'for command in git sudo bash' not in installer_source
+assert "sudo -n rm -rf" not in installer_source
+assert '(cd "$installer_root" && sudo bash setup.sh)' not in installer_source
+speechnote_setup = (ROOT / "system_helpers/jarvis-speechnote-setup").read_text(
+    encoding="utf-8"
+)
+for required_speechnote_fragment in (
+    "flatpak remote-add --user --if-not-exists flathub",
+    'flatpak install --user --noninteractive flathub "$app_id"',
+    "never invokes sudo",
+    "never changes existing Speech Note settings",
+):
+    assert required_speechnote_fragment in speechnote_setup, (
+        "Speech Note user-space safety check is missing: "
+        f"{required_speechnote_fragment}"
+    )
+assert not any(
+    line.strip().startswith("sudo ") for line in speechnote_setup.splitlines()
+)
 EXPECTED_INTENTS = {
     "CustomCommandIntent",
     "CloseFocusedWindowIntent", "MinimizeFocusedWindowIntent",

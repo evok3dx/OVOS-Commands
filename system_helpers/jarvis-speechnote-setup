@@ -1,0 +1,151 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+app_id="net.mkiol.SpeechNote"
+action="interactive"
+assume_yes=false
+
+usage() {
+  cat >&2 <<'EOF'
+Usage: jarvis-speechnote-setup [--install|--open|--status] [--yes]
+
+Manage the optional Speech Note Flatpak for the current user. This command
+never invokes sudo and never changes existing Speech Note settings.
+EOF
+}
+
+while (($#)); do
+  case "$1" in
+    --install|--open|--status)
+      [[ "$action" == interactive ]] || { usage; exit 2; }
+      action="${1#--}"
+      shift
+      ;;
+    --yes)
+      assume_yes=true
+      shift
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      usage
+      exit 2
+      ;;
+  esac
+done
+
+have_speechnote() {
+  command -v flatpak >/dev/null 2>&1 && \
+    flatpak info "$app_id" >/dev/null 2>&1
+}
+
+confirm_install() {
+  local answer
+  "$assume_yes" && return 0
+  [[ -t 0 && -t 1 ]] || return 1
+  read -r -p "Install Speech Note for this user? [y/N] " answer
+  case "${answer,,}" in
+    y|yes) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+install_speechnote() {
+  command -v flatpak >/dev/null 2>&1 || {
+    printf '%s\n' \
+      "Flatpak is not installed. Jarvis will not install it or request administrator access." \
+      "Install Flatpak through your operating system first, then run this setup again." >&2
+    return 1
+  }
+  have_speechnote && return 0
+  confirm_install || {
+    echo "Speech Note installation skipped."
+    return 2
+  }
+  if ! flatpak remotes --user --columns=name 2>/dev/null | grep -Fxq flathub; then
+    flatpak remote-add --user --if-not-exists flathub \
+      https://flathub.org/repo/flathub.flatpakrepo
+  fi
+  flatpak install --user --noninteractive flathub "$app_id"
+}
+
+active_model() {
+  local role="$1"
+  local output
+  output="$(timeout 15 flatpak run "$app_id" --print-active-model "$role" 2>/dev/null || true)"
+  if [[ -n "$output" ]]; then
+    printf 'Active %s model: %s\n' "${role^^}" "$output"
+  else
+    printf 'Active %s model: not reported (choose one in Speech Note)\n' "${role^^}"
+  fi
+}
+
+show_status() {
+  if ! have_speechnote; then
+    echo "Speech Note is not installed."
+    return 1
+  fi
+  local version
+  version="$(flatpak info --show-version "$app_id" 2>/dev/null || true)"
+  echo "Speech Note ${version:-installed}"
+  active_model stt
+  active_model tts
+  printf '%s\n' \
+    "Jarvis connects through Speech Note's supported local D-Bus/CLI actions." \
+    "Existing Speech Note settings are preserved."
+}
+
+show_installation() {
+  local version
+  version="$(flatpak info --show-version "$app_id" 2>/dev/null || true)"
+  echo "Speech Note ${version:-installed}"
+  printf '%s\n' \
+    "Jarvis will connect through Speech Note's supported local D-Bus/CLI actions." \
+    "Existing Speech Note settings are preserved."
+}
+
+open_speechnote() {
+  have_speechnote || {
+    echo "Speech Note is not installed." >&2
+    return 1
+  }
+  nohup flatpak run "$app_id" >/dev/null 2>&1 &
+  printf '%s\n' \
+    "Speech Note opened." \
+    "For a new setup, download an English STT model and a TTS voice in Models." \
+    "A Whisper model and a Kokoro or Piper voice are good local starting points." \
+    "On X11, insertion into the focused window works without extra permissions." \
+    "Choose acceleration inside Speech Note only after it detects your hardware."
+}
+
+case "$action" in
+  install)
+    install_speechnote
+    show_installation
+    ;;
+  open)
+    open_speechnote
+    ;;
+  status)
+    show_status
+    ;;
+  interactive)
+    if ! have_speechnote; then
+      printf '%s\n' \
+        "Speech Note is an optional local dictation and reading add-on." \
+        "It is a sizeable download; language and voice models are downloaded separately." \
+        "Installation is per-user and does not require sudo."
+      install_speechnote || exit $?
+    fi
+    show_installation
+    if [[ -t 0 && -t 1 ]]; then
+      read -r -p "Open Speech Note to review models and settings? [Y/n] " answer
+      case "${answer,,}" in
+        n|no) ;;
+        *) open_speechnote ;;
+      esac
+    fi
+    ;;
+esac

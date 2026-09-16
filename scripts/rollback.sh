@@ -126,7 +126,11 @@ done
 validate_restore_entry "$backup_root/hermes.desktop"
 validate_restore_entry "$backup_root/tray/ovos-tray"
 validate_restore_entry "$backup_root/tray/ovos-tray.desktop"
-for icon in ovos-ready.svg ovos-starting.svg ovos-stopped.svg ovos-failed.svg; do
+for icon in \
+  ovos-ready.svg ovos-ready-update.svg \
+  ovos-starting.svg ovos-starting-update.svg \
+  ovos-stopped.svg ovos-stopped-update.svg \
+  ovos-failed.svg ovos-failed-update.svg; do
   validate_restore_entry "$backup_root/tray/$icon"
 done
 
@@ -161,7 +165,11 @@ done
 restore_file "$backup_root/hermes.desktop" "$launcher" 0644
 restore_file "$backup_root/tray/ovos-tray" "$target_bin/ovos-tray" 0755
 restore_file "$backup_root/tray/ovos-tray.desktop" "$tray_autostart" 0644
-for icon in ovos-ready.svg ovos-starting.svg ovos-stopped.svg ovos-failed.svg; do
+for icon in \
+  ovos-ready.svg ovos-ready-update.svg \
+  ovos-starting.svg ovos-starting-update.svg \
+  ovos-stopped.svg ovos-stopped-update.svg \
+  ovos-failed.svg ovos-failed-update.svg; do
   restore_file "$backup_root/tray/$icon" "$tray_icon_dir/$icon" 0644
 done
 

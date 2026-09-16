@@ -188,6 +188,9 @@ class OvosTray:
             start_new_session=True,
         )
 
+    def _speechnote(self, _item=None):
+        self._terminal_command("jarvis-speechnote-setup")
+
     @staticmethod
     def _terminal_command(command):
         terminal = "x-terminal-emulator"
@@ -252,6 +255,7 @@ class OvosTray:
         menu = Gtk.Menu()
         entries = [
             ("Setup…", self._setup),
+            ("Speech Note setup…", self._speechnote),
             ("Health check", self._health),
             ("Create AI support report", self._report),
             ("Check for updates", self._updates),

@@ -27,6 +27,7 @@ When adding a capability:
 | `bash scripts/build-release.sh` | Validated release archive |
 | `bash scripts/test-deployment.sh` | Isolated install/rollback regression |
 | `python3 scripts/setup.py` | Detect and select reviewed applications |
+| `jarvis-speechnote-setup` | Manage the optional per-user Speech Note add-on |
 | `python3 scripts/update.py` | Check, verify, install or roll back a release |
 | `python3 scripts/check_upstream.py` | Read-only OVOS upstream drift report |
 | `python3 scripts/doctor.py` | Host, API and deployment compatibility checks |

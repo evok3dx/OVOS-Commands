@@ -81,7 +81,9 @@ def locate_ovos_python(home: Path, explicit: str | None) -> Path | None:
         candidates.append(Path(candidate.replace("~", str(home), 1)))
     for candidate in candidates:
         if candidate.is_file() and os.access(candidate, os.X_OK):
-            return candidate.resolve()
+            # Keep the virtualenv launcher path. Resolving its symlink to the
+            # uv-managed base interpreter discards the venv's site-packages.
+            return candidate
     return None
 
 

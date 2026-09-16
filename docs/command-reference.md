@@ -165,6 +165,11 @@ Examples:
 Speech Note performs dictation and reading while the dispatcher controls its
 allowlisted actions.
 
+Speech Note is optional. Run `jarvis-speechnote-setup` or select **Speech Note
+setup** in the Jarvis tray to install it for the current user, inspect its
+active models, or open its model browser. Existing Speech Note settings are
+never overwritten.
+
 ## Window control
 
 Examples:

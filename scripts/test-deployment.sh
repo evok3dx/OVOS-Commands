@@ -33,6 +33,31 @@ JARVIS_HOME="$fresh_home" JARVIS_TEST_MODE=1 \
   bash "$repo_root/scripts/install.sh" --check
 test ! -e "$fresh_home/.local/src/ovos-skill-jarvis-dispatcher"
 
+# The doctor must retain a virtualenv launcher path even when it is a symlink
+# to a uv-managed base interpreter; resolving it would lose venv site-packages.
+python3 - "$repo_root/scripts/doctor.py" "$test_root" <<'PY'
+import importlib.util
+import os
+import sys
+from pathlib import Path
+
+spec = importlib.util.spec_from_file_location("jarvis_doctor", sys.argv[1])
+module = importlib.util.module_from_spec(spec)
+sys.modules[spec.name] = module
+spec.loader.exec_module(module)
+home = Path(sys.argv[2]) / "doctor-home"
+base = home / ".local/share/uv/python/base-python"
+base.parent.mkdir(parents=True)
+base.write_text("#!/bin/sh\n", encoding="utf-8")
+base.chmod(0o755)
+launcher = home / ".venvs/ovos/bin/python"
+launcher.parent.mkdir(parents=True)
+launcher.symlink_to(base)
+found = module.locate_ovos_python(home, None)
+assert found == launcher, (found, launcher)
+assert found != base.resolve()
+PY
+
 # Fresh installation creates a complete, self-contained source deployment.
 JARVIS_HOME="$fresh_home" JARVIS_TEST_MODE=1 \
   bash "$repo_root/scripts/install.sh" --mode all --no-restart
@@ -74,6 +99,43 @@ custom = json.loads(Path(sys.argv[2]).read_text())
 assert core["applications"] == {}
 assert custom["applications"] == {"firefox": "firefox"}
 PY
+
+# The optional Speech Note add-on uses only a per-user Flatpak installation.
+fake_bin="$test_root/fake-bin"
+fake_state="$test_root/fake-flatpak-state"
+fake_log="$test_root/fake-flatpak.log"
+mkdir -p "$fake_bin"
+FAKE_STATE="$fake_state" FAKE_LOG="$fake_log" python3 - "$fake_bin/flatpak" <<'PY'
+import os
+import stat
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+path.write_text("""#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\\n' \"$*\" >> \"$FAKE_LOG\"
+if [[ \"${1:-}\" == info && \"${2:-}\" == --show-version ]]; then
+  [[ -f \"$FAKE_STATE\" ]] || exit 1
+  echo 4.8.4
+elif [[ \"${1:-}\" == info ]]; then
+  [[ -f \"$FAKE_STATE\" ]]
+elif [[ \"${1:-}\" == remotes ]]; then
+  :
+elif [[ \"${1:-}\" == remote-add ]]; then
+  :
+elif [[ \"${1:-}\" == install ]]; then
+  : > \"$FAKE_STATE\"
+else
+  exit 2
+fi
+""", encoding="utf-8")
+path.chmod(path.stat().st_mode | stat.S_IXUSR)
+PY
+FAKE_STATE="$fake_state" FAKE_LOG="$fake_log" PATH="$fake_bin:$PATH" \
+  "$fresh_home/.local/bin/jarvis-speechnote-setup" --install --yes
+grep -q '^remote-add --user --if-not-exists flathub ' "$fake_log"
+grep -q '^install --user --noninteractive flathub net.mkiol.SpeechNote$' "$fake_log"
 
 # Normal setup cannot enable private agents, while an existing named Brain
 # profile retains its already-customised extension during migration only.

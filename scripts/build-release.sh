@@ -62,6 +62,31 @@ if grep -Eq '(^|/)(\.git|__pycache__|dist)(/|$)|\.pyc$' "$archive_list"; then
   echo "Release contains excluded build artefacts." >&2
   exit 1
 fi
+python3 - "$repo_root/deployment-manifest.json" "$archive_list" "$archive_root" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+manifest = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+archived = set(Path(sys.argv[2]).read_text(encoding="utf-8").splitlines())
+root = sys.argv[3]
+expected = {
+    *(f"ovos_skill_jarvis_dispatcher/{name}" for name in manifest["package_modules"]),
+    *(f"ovos_skill_jarvis_dispatcher/integrations/{name}"
+      for name in manifest["integration_modules"]),
+    *(f"system_helpers/{name}" for name in manifest["runtime_helpers"]),
+    *(f"profiles/{name}" for name in manifest["profiles"]),
+    *manifest["systemd_templates"],
+}
+for files in manifest["optional_components"].values():
+    expected.update(files)
+missing = sorted(f"{root}/{name}" for name in expected if f"{root}/{name}" not in archived)
+if missing:
+    raise SystemExit(
+        "Release is missing manifest-listed files (are they tracked by Git?):\n"
+        + "\n".join(missing)
+    )
+PY
 mv -- "$temporary" "$output"
 
 (cd "$(dirname "$output")" && sha256sum "$(basename "$output")") > "$checksum_temporary"

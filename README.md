@@ -16,14 +16,14 @@ checks and downloads are available only while it is public.
 
 ## Quick start
 
-Download the `ovos-commands-2.2.2.tar.gz` archive and matching `.sha256` file
+Download the `ovos-commands-2.2.3.tar.gz` archive and matching `.sha256` file
 from the [latest GitHub release](https://github.com/evok3dx/OVOS-Commands/releases/latest),
 then verify and install it:
 
 ```bash
-sha256sum --check ovos-commands-2.2.2.tar.gz.sha256
-tar -xzf ovos-commands-2.2.2.tar.gz
-cd ovos-commands-2.2.2
+sha256sum --check ovos-commands-2.2.3.tar.gz.sha256
+tar -xzf ovos-commands-2.2.3.tar.gz
+cd ovos-commands-2.2.3
 bash scripts/install.sh
 ```
 
@@ -57,9 +57,18 @@ First setup offers one simple choice:
 2. core voice controls only;
 3. a custom selection from detected supported applications.
 
-Jarvis never installs or recommends desktop applications. Reopen the same
-selection later from the tray or with `jarvis-setup`. Legacy `--profile`
-support exists only to migrate an older deployment.
+The app-control selection never installs applications; it only enables apps
+that are already present. Reopen the same selection later from the tray or
+with `jarvis-setup`. Legacy `--profile` support exists only to migrate an older
+deployment.
+
+After Jarvis is installed, setup may separately offer **Speech Note** as an
+optional local dictation and reading add-on. It is opt-in, defaults to no, and
+uses Flatpak's per-user installation without `sudo`. If Speech Note is already
+present, Jarvis preserves its models and settings and connects automatically.
+New installations require a one-time model and voice choice in Speech Note;
+those downloads are deliberately not guessed or started automatically. The
+same guided setup remains available from the Jarvis tray.
 
 `bash scripts/install.sh --check` remains a read-only diagnostic for machines
 whose prerequisites already exist. On a clean laptop, run the normal installer
@@ -133,9 +142,10 @@ regenerates it.
 ## Desktop controls
 
 The canonical installer adds the Jarvis tray automatically when GTK 3 is
-already available. It provides Setup, health check, support report, update
-check, safe restarts, start/stop and logs. No package installation is attempted
-if GTK is unavailable; all functions remain accessible from the terminal.
+available. It provides application setup, optional Speech Note setup, health
+check, support report, update check, safe restarts, start/stop and logs. No
+tray package installation is attempted if GTK is unavailable; all functions
+remain accessible from the terminal.
 
 The command editor and microphone indicator remain optional:
 
@@ -227,7 +237,7 @@ never uploaded automatically. See [AI-assisted maintenance](docs/ai-maintenance.
 - 90 intents
 - 1,701 Brain-compatibility vocabulary registrations
 - 4 deployment profiles
-- 11 runtime helpers
+- 12 runtime helpers
 - 6 managed user-systemd units
 
 Normal capability files omit private agent vocabulary, so their registration

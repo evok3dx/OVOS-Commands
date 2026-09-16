@@ -29,6 +29,13 @@ configured for a virtualenv install with telemetry, the LLM fallback and extra
 community skills disabled. After preparation, Jarvis and its normal controls
 remain within the desktop user account.
 
+The official OVOS installer requires elevated execution. Jarvis never runs it
+inside a user-owned source tree: the archive is verified again, extracted into
+a private root workspace under `/var/tmp`, and that workspace is removed by
+the same privileged process on success, failure or interruption. The ordinary
+download directory remains user-owned and is removed without `sudo`, so the
+bootstrap cannot leave root-owned debris in the user's temporary directory.
+
 Claude Desktop and ChatGPT Desktop are launched only into ordinary chat. Jarvis
 does not open Claude Code, Cowork, ChatGPT Codex or Work, approve their prompts,
 or install MCP tools. Hermes remains the intentional local assistant. Private
@@ -50,8 +57,8 @@ created or silently managed by this repository.
 Before installing a downloaded archive:
 
 ```bash
-sha256sum --check ovos-commands-2.2.2.tar.gz.sha256
-tar -tzf ovos-commands-2.2.2.tar.gz
+sha256sum --check ovos-commands-2.2.3.tar.gz.sha256
+tar -tzf ovos-commands-2.2.3.tar.gz
 ```
 
 ## Updating Jarvis and OVOS
