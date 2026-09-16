@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out the repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Verify and publish the tested source archive
         shell: bash
@@ -29,8 +29,8 @@ jobs:
 
           test -f "$source_root/scripts/install.sh"
           test -f "$source_root/compatibility.json"
-          test -f "$source_root/VERSION"
-          test "$(tr -d '[:space:]' < "$source_root/VERSION")" = "2.2.0"
+          test -f "$source_root/pyproject.toml"
+          grep -Fxq 'version = "2.2.0"' "$source_root/pyproject.toml"
 
           find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf -- {} +
           cp -a "$source_root"/. .
