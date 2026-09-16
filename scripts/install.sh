@@ -138,9 +138,10 @@ confirm_default_yes() {
 }
 
 install_official_ovos() {
-  local installer_repository installer_commit installer_root actual_commit
+  local installer_repository installer_commit installer_archive_sha256
+  local installer_archive_url installer_parent installer_archive installer_root
   local scenario_dir scenario_path scenario_backup installer_status
-  for command in git sudo bash; do
+  for command in python3 tar sudo bash; do
     command -v "$command" >/dev/null 2>&1 || {
       echo "Cannot prepare OVOS because '$command' is unavailable." >&2
       return 1
@@ -149,21 +150,83 @@ install_official_ovos() {
 
   installer_repository="$(read_compatibility_value upstream.installer_repository)"
   installer_commit="$(read_compatibility_value upstream.installer_reference_commit)"
-  installer_root="$(mktemp -d "${TMPDIR:-/tmp}/jarvis-ovos-installer.XXXXXX")"
+  installer_archive_sha256="$(read_compatibility_value upstream.installer_archive_sha256)"
+  installer_archive_url="${installer_repository%.git}/archive/${installer_commit}.tar.gz"
+  installer_parent="$(mktemp -d "${TMPDIR:-/tmp}/jarvis-ovos-installer.XXXXXX")"
+  installer_archive="$installer_parent/ovos-installer.tar.gz"
+  installer_root="$installer_parent/source"
   scenario_dir="$jarvis_home/.config/ovos-installer"
   scenario_path="$scenario_dir/scenario.yaml"
-  scenario_backup="$installer_root/scenario.yaml.previous"
+  scenario_backup="$installer_parent/scenario.yaml.previous"
 
-  git -C "$installer_root" init --quiet
-  git -C "$installer_root" remote add origin "$installer_repository"
-  git -C "$installer_root" fetch --quiet --depth 1 origin "$installer_commit"
-  actual_commit="$(git -C "$installer_root" rev-parse FETCH_HEAD)"
-  if [[ "$actual_commit" != "$installer_commit" ]]; then
-    echo "The downloaded OVOS installer did not match the reviewed commit." >&2
-    rm -rf -- "$installer_root"
+  printf 'Downloading the reviewed Open Voice OS installer...\n'
+  if ! python3 - "$installer_archive_url" "$installer_archive" \
+      "$installer_archive_sha256" <<'PY'
+import hashlib
+import sys
+import urllib.request
+from pathlib import Path
+
+url, destination, expected = sys.argv[1:]
+request = urllib.request.Request(url, headers={"User-Agent": "OVOS-Commands/2.2.2"})
+digest = hashlib.sha256()
+try:
+    with urllib.request.urlopen(request, timeout=60) as response, Path(destination).open("wb") as output:
+        while chunk := response.read(1024 * 1024):
+            digest.update(chunk)
+            output.write(chunk)
+except Exception as error:
+    Path(destination).unlink(missing_ok=True)
+    raise SystemExit(f"Could not download the OVOS installer: {error}")
+
+actual = digest.hexdigest()
+if actual != expected:
+    Path(destination).unlink(missing_ok=True)
+    raise SystemExit(
+        "The downloaded OVOS installer failed its pinned SHA-256 check.\n"
+        f"Expected: {expected}\nActual:   {actual}"
+    )
+PY
+  then
+    rm -rf -- "$installer_parent"
     return 1
   fi
-  git -C "$installer_root" checkout --quiet --detach FETCH_HEAD
+  mkdir -p "$installer_root"
+  if ! tar -xzf "$installer_archive" --strip-components=1 -C "$installer_root"; then
+    echo "The verified OVOS installer archive could not be extracted." >&2
+    rm -rf -- "$installer_parent"
+    return 1
+  fi
+  [[ -f "$installer_root/setup.sh" ]] || {
+    echo "The verified OVOS installer archive does not contain setup.sh." >&2
+    rm -rf -- "$installer_parent"
+    return 1
+  }
+
+  # The official installer uses Git for its version label and OVOS intent
+  # cache. Minimal Linux Mint installations do not always include it.
+  if ! command -v git >/dev/null 2>&1; then
+    if ! command -v apt-get >/dev/null 2>&1; then
+      echo "The official OVOS installer requires Git." >&2
+      echo "Automatic Git setup currently supports Linux Mint, Ubuntu and Debian." >&2
+      rm -rf -- "$installer_parent"
+      return 1
+    fi
+    printf '%s\n' \
+      "Installing Git, a command-line prerequisite required by Open Voice OS." \
+      "No desktop applications are being installed."
+    if ! sudo apt-get update || \
+        ! sudo apt-get install --no-install-recommends git; then
+      echo "Git could not be installed, so OVOS setup cannot continue." >&2
+      rm -rf -- "$installer_parent"
+      return 1
+    fi
+    command -v git >/dev/null 2>&1 || {
+      echo "Git installation completed but the git command is still unavailable." >&2
+      rm -rf -- "$installer_parent"
+      return 1
+    }
+  fi
 
   mkdir -p "$scenario_dir"
   if [[ -f "$scenario_path" ]]; then
@@ -195,7 +258,7 @@ EOF
   else
     rm -f -- "$scenario_path"
   fi
-  rm -rf -- "$installer_root"
+  rm -rf -- "$installer_parent"
 
   if ((installer_status != 0)); then
     echo "The official OVOS installer did not complete successfully." >&2

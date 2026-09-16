@@ -16,14 +16,14 @@ checks and downloads are available only while it is public.
 
 ## Quick start
 
-Download the `ovos-commands-2.2.1.tar.gz` archive and matching `.sha256` file
+Download the `ovos-commands-2.2.2.tar.gz` archive and matching `.sha256` file
 from the [latest GitHub release](https://github.com/evok3dx/OVOS-Commands/releases/latest),
 then verify and install it:
 
 ```bash
-sha256sum --check ovos-commands-2.2.1.tar.gz.sha256
-tar -xzf ovos-commands-2.2.1.tar.gz
-cd ovos-commands-2.2.1
+sha256sum --check ovos-commands-2.2.2.tar.gz.sha256
+tar -xzf ovos-commands-2.2.2.tar.gz
+cd ovos-commands-2.2.2
 bash scripts/install.sh
 ```
 
@@ -39,6 +39,8 @@ On a clean Linux Mint laptop, the installer first offers to prepare the
 reviewed official OVOS virtualenv baseline and any missing minimal desktop-
 control prerequisites. That one-time preparation uses administrator access;
 it installs OVOS and command-line dependencies, not desktop applications.
+Minimal systems also receive Git because the official OVOS installer requires
+it for its version label and intent cache.
 OVOS is installed with telemetry, its LLM fallback and extra community skills
 disabled. Existing OVOS installations are left alone.
 

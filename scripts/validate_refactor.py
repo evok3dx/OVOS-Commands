@@ -81,12 +81,21 @@ for project in ("installer", "workshop", "config", "core", "plugin_manager"):
     reference = COMPATIBILITY["upstream"][f"{project}_reference_commit"]
     assert repository.startswith("https://github.com/OpenVoiceOS/")
     assert re.fullmatch(r"[0-9a-f]{40}", reference)
+assert re.fullmatch(
+    r"[0-9a-f]{64}",
+    COMPATIBILITY["upstream"]["installer_archive_sha256"],
+)
 installer_source = (ROOT / "scripts/install.sh").read_text(encoding="utf-8")
 for required_bootstrap_fragment in (
     "read_compatibility_value upstream.installer_repository",
     "read_compatibility_value upstream.installer_reference_commit",
-    'git -C "$installer_root" fetch --quiet --depth 1 origin "$installer_commit"',
-    'if [[ "$actual_commit" != "$installer_commit" ]]',
+    "read_compatibility_value upstream.installer_archive_sha256",
+    'installer_archive_url="${installer_repository%.git}/archive/${installer_commit}.tar.gz"',
+    "hashlib.sha256()",
+    "if actual != expected:",
+    'tar -xzf "$installer_archive" --strip-components=1',
+    "sudo apt-get install --no-install-recommends git",
+    "No desktop applications are being installed.",
     "share_telemetry: false",
     "share_usage_telemetry: false",
     "extra_skills: false",
@@ -95,6 +104,7 @@ for required_bootstrap_fragment in (
     assert required_bootstrap_fragment in installer_source, (
         f"Installer bootstrap safety check is missing: {required_bootstrap_fragment}"
     )
+assert 'for command in git sudo bash' not in installer_source
 EXPECTED_INTENTS = {
     "CustomCommandIntent",
     "CloseFocusedWindowIntent", "MinimizeFocusedWindowIntent",
