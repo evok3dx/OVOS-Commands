@@ -133,7 +133,7 @@ tray = module.OvosTray.__new__(module.OvosTray)
 status = Path.home() / ".local/state/jarvis/updates/latest.json"
 status.parent.mkdir(parents=True, exist_ok=True)
 status.write_text(json.dumps({
-    "installed": "2.2.0", "latest": "2.3.0", "update_available": True,
+    "installed": "2.2.1", "latest": "2.3.0", "update_available": True,
 }), encoding="utf-8")
 assert tray._available_update() == "2.3.0"
 commands = []
@@ -142,7 +142,7 @@ tray.update_release = "2.3.0"
 tray._updates()
 assert commands == ["jarvis-update install"]
 status.write_text(json.dumps({
-    "installed": "2.1.0", "latest": "2.2.0", "update_available": True,
+    "installed": "2.2.0", "latest": "2.2.1", "update_available": True,
 }), encoding="utf-8")
 assert tray._available_update() is None
 commands.clear()

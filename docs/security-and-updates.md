@@ -16,10 +16,18 @@ the default interactive Jarvis host.
 
 ## Privilege boundary
 
-Jarvis, OVOS, setup, updates, health checks and support reports run as the
-desktop user. The installer does not install applications, create users, edit
-sudo rules or request root. Operating-system and OVOS prerequisites must be
-prepared separately by the machine owner or administrator.
+Jarvis, its setup, updates, health checks and support reports run as the
+desktop user. On a clean laptop, the installer can invoke the reviewed official
+OVOS installer and install missing command-line desktop-control prerequisites.
+That initial preparation requests administrator access because OVOS and the
+operating-system packages require it. It does not install desktop applications,
+create users or edit sudo rules. Existing OVOS installations are not replaced.
+
+The OVOS source is fetched from the official OpenVoiceOS repository at the
+exact commit recorded in `compatibility.json`, verified before execution and
+configured for a virtualenv install with telemetry, the LLM fallback and extra
+community skills disabled. After preparation, Jarvis and its normal controls
+remain within the desktop user account.
 
 Claude Desktop and ChatGPT Desktop are launched only into ordinary chat. Jarvis
 does not open Claude Code, Cowork, ChatGPT Codex or Work, approve their prompts,
@@ -42,8 +50,8 @@ created or silently managed by this repository.
 Before installing a downloaded archive:
 
 ```bash
-sha256sum --check ovos-commands-2.2.0.tar.gz.sha256
-tar -tzf ovos-commands-2.2.0.tar.gz
+sha256sum --check ovos-commands-2.2.1.tar.gz.sha256
+tar -tzf ovos-commands-2.2.1.tar.gz
 ```
 
 ## Updating Jarvis and OVOS

@@ -81,6 +81,20 @@ for project in ("installer", "workshop", "config", "core", "plugin_manager"):
     reference = COMPATIBILITY["upstream"][f"{project}_reference_commit"]
     assert repository.startswith("https://github.com/OpenVoiceOS/")
     assert re.fullmatch(r"[0-9a-f]{40}", reference)
+installer_source = (ROOT / "scripts/install.sh").read_text(encoding="utf-8")
+for required_bootstrap_fragment in (
+    "read_compatibility_value upstream.installer_repository",
+    "read_compatibility_value upstream.installer_reference_commit",
+    'git -C "$installer_root" fetch --quiet --depth 1 origin "$installer_commit"',
+    'if [[ "$actual_commit" != "$installer_commit" ]]',
+    "share_telemetry: false",
+    "share_usage_telemetry: false",
+    "extra_skills: false",
+    "Jarvis remains user-space and no desktop applications are installed.",
+):
+    assert required_bootstrap_fragment in installer_source, (
+        f"Installer bootstrap safety check is missing: {required_bootstrap_fragment}"
+    )
 EXPECTED_INTENTS = {
     "CustomCommandIntent",
     "CloseFocusedWindowIntent", "MinimizeFocusedWindowIntent",

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "release_version": "2.2.0",
+  "release_version": "2.2.1",
   "validated_on": "2026-09-16",
   "support": {
     "operating_system": "Linux",
@@ -41,7 +41,7 @@
   },
   "upstream": {
     "installer_repository": "https://github.com/OpenVoiceOS/ovos-installer.git",
-    "installer_reference_commit": "bf18be8cbd5126e958d88c12457a2e878005cd95",
+    "installer_reference_commit": "8a57aa8b2cf8233d510317d3f0f715f79e99f9be",
     "installer_channel": "testing",
     "installer_profile": "ovos",
     "workshop_repository": "https://github.com/OpenVoiceOS/ovos-workshop.git",

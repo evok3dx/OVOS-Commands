@@ -16,15 +16,14 @@ checks and downloads are available only while it is public.
 
 ## Quick start
 
-Download the `ovos-commands-2.2.0.tar.gz` archive and matching `.sha256` file
+Download the `ovos-commands-2.2.1.tar.gz` archive and matching `.sha256` file
 from the [latest GitHub release](https://github.com/evok3dx/OVOS-Commands/releases/latest),
 then verify and install it:
 
 ```bash
-sha256sum --check ovos-commands-2.2.0.tar.gz.sha256
-tar -xzf ovos-commands-2.2.0.tar.gz
-cd ovos-commands-2.2.0
-bash scripts/install.sh --check
+sha256sum --check ovos-commands-2.2.1.tar.gz.sha256
+tar -xzf ovos-commands-2.2.1.tar.gz
+cd ovos-commands-2.2.1
 bash scripts/install.sh
 ```
 
@@ -36,11 +35,19 @@ bash scripts/install.sh --check
 bash scripts/install.sh
 ```
 
-The installer validates the complete inventory before touching the live
-system, backs up every replaced component under
+On a clean Linux Mint laptop, the installer first offers to prepare the
+reviewed official OVOS virtualenv baseline and any missing minimal desktop-
+control prerequisites. That one-time preparation uses administrator access;
+it installs OVOS and command-line dependencies, not desktop applications.
+OVOS is installed with telemetry, its LLM fallback and extra community skills
+disabled. Existing OVOS installations are left alone.
+
+After preparation, the installer validates the complete inventory, backs up
+every replaced component under
 `~/.local/state/jarvis/backups/`, deploys one coherent version and restarts
 Jarvis once. A failed transaction restores the previous deployment. It works
-from a Git checkout or an extracted release archive and does not require root.
+from a Git checkout or an extracted release archive. Jarvis installation,
+configuration, updates and daily operation remain user-space.
 
 First setup offers one simple choice:
 
@@ -51,6 +58,10 @@ First setup offers one simple choice:
 Jarvis never installs or recommends desktop applications. Reopen the same
 selection later from the tray or with `jarvis-setup`. Legacy `--profile`
 support exists only to migrate an older deployment.
+
+`bash scripts/install.sh --check` remains a read-only diagnostic for machines
+whose prerequisites already exist. On a clean laptop, run the normal installer
+first so it can offer the reviewed setup.
 
 Restore the most recent deployment with:
 

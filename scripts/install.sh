@@ -21,6 +21,7 @@ health_check=true
 profile_name="${JARVIS_PROFILE:-}"
 setup_mode=""
 setup_apps=""
+bootstrap=false
 
 usage() {
   cat >&2 <<'EOF'
@@ -31,6 +32,7 @@ Options:
   --apps LIST          Comma-separated detected app IDs for custom mode
   --profile NAME       Migrate a legacy bundled profile
   --ovos-python PATH   OVOS virtualenv Python (default: ~/.venvs/ovos/bin/python)
+  --bootstrap          Prepare missing OVOS and minimal desktop prerequisites
   --check              Run preflight checks without changing files
   --no-restart         Do not restart OVOS after installation
   --no-health-check    Do not enable periodic read-only health/update timers
@@ -59,6 +61,10 @@ while (($#)); do
       [[ $# -ge 2 ]] || { usage; exit 2; }
       ovos_python="$2"
       shift 2
+      ;;
+    --bootstrap)
+      bootstrap=true
+      shift
       ;;
     --check)
       check_only=true
@@ -100,6 +106,145 @@ PY
 }
 mapfile -t runtime_helpers < <(read_manifest_list runtime_helpers)
 
+read_compatibility_value() {
+  python3 - "$repo_root/compatibility.json" "$1" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+data = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+value = data
+for key in sys.argv[2].split("."):
+    value = value[key]
+print(value)
+PY
+}
+
+confirm_default_yes() {
+  local prompt="$1"
+  local answer
+  if [[ ! -t 0 || ! -t 1 ]]; then
+    return 1
+  fi
+  read -r -p "$prompt [Y/n] " answer
+  case "${answer,,}" in
+    ""|y|yes) return 0 ;;
+    n|no) return 1 ;;
+    *)
+      echo "Please answer yes or no." >&2
+      confirm_default_yes "$prompt"
+      ;;
+  esac
+}
+
+install_official_ovos() {
+  local installer_repository installer_commit installer_root actual_commit
+  local scenario_dir scenario_path scenario_backup installer_status
+  for command in git sudo bash; do
+    command -v "$command" >/dev/null 2>&1 || {
+      echo "Cannot prepare OVOS because '$command' is unavailable." >&2
+      return 1
+    }
+  done
+
+  installer_repository="$(read_compatibility_value upstream.installer_repository)"
+  installer_commit="$(read_compatibility_value upstream.installer_reference_commit)"
+  installer_root="$(mktemp -d "${TMPDIR:-/tmp}/jarvis-ovos-installer.XXXXXX")"
+  scenario_dir="$jarvis_home/.config/ovos-installer"
+  scenario_path="$scenario_dir/scenario.yaml"
+  scenario_backup="$installer_root/scenario.yaml.previous"
+
+  git -C "$installer_root" init --quiet
+  git -C "$installer_root" remote add origin "$installer_repository"
+  git -C "$installer_root" fetch --quiet --depth 1 origin "$installer_commit"
+  actual_commit="$(git -C "$installer_root" rev-parse FETCH_HEAD)"
+  if [[ "$actual_commit" != "$installer_commit" ]]; then
+    echo "The downloaded OVOS installer did not match the reviewed commit." >&2
+    rm -rf -- "$installer_root"
+    return 1
+  fi
+  git -C "$installer_root" checkout --quiet --detach FETCH_HEAD
+
+  mkdir -p "$scenario_dir"
+  if [[ -f "$scenario_path" ]]; then
+    cp -a "$scenario_path" "$scenario_backup"
+  fi
+  install -m 0600 /dev/stdin "$scenario_path" <<'EOF'
+---
+uninstall: false
+method: virtualenv
+channel: testing
+profile: ovos
+features:
+  skills: true
+  extra_skills: false
+  llm: false
+raspberry_pi_tuning: false
+share_telemetry: false
+share_usage_telemetry: false
+EOF
+
+  printf '%s\n' \
+    "Starting the reviewed official Open Voice OS installer." \
+    "It may request your administrator password for system preparation."
+  installer_status=0
+  (cd "$installer_root" && sudo bash setup.sh) || installer_status=$?
+
+  if [[ -f "$scenario_backup" ]]; then
+    install -m 0600 "$scenario_backup" "$scenario_path"
+  else
+    rm -f -- "$scenario_path"
+  fi
+  rm -rf -- "$installer_root"
+
+  if ((installer_status != 0)); then
+    echo "The official OVOS installer did not complete successfully." >&2
+    return "$installer_status"
+  fi
+  [[ -x "$ovos_python" ]] || {
+    echo "OVOS completed but its virtualenv Python was not found: $ovos_python" >&2
+    return 1
+  }
+}
+
+collect_missing_prerequisites() {
+  missing_commands=()
+  prerequisite_packages=()
+  local command package
+  while IFS=':' read -r command package; do
+    if ! command -v "$command" >/dev/null 2>&1; then
+      missing_commands+=("$command")
+      prerequisite_packages+=("$package")
+    fi
+  done <<'EOF'
+xdotool:xdotool
+xprop:x11-utils
+wmctrl:wmctrl
+xclip:xclip
+EOF
+  if ! command -v wpctl >/dev/null 2>&1 && ! command -v pactl >/dev/null 2>&1; then
+    missing_commands+=("wpctl or pactl")
+    prerequisite_packages+=("pulseaudio-utils")
+  fi
+  if ! python3 -c 'import gi; gi.require_version("Gtk", "3.0")' 2>/dev/null; then
+    missing_commands+=("GTK 3 Python bindings")
+    prerequisite_packages+=("python3-gi" "gir1.2-gtk-3.0")
+  fi
+}
+
+install_desktop_prerequisites() {
+  command -v apt-get >/dev/null 2>&1 || {
+    echo "Automatic prerequisite setup currently supports Linux Mint, Ubuntu and Debian." >&2
+    return 1
+  }
+  command -v sudo >/dev/null 2>&1 || {
+    echo "sudo is required to prepare the missing desktop-control prerequisites." >&2
+    return 1
+  }
+  sudo apt-get update
+  sudo apt-get install --no-install-recommends "${prerequisite_packages[@]}"
+}
+
 python3 "$repo_root/scripts/validate_refactor.py"
 
 if [[ -n "$profile_name" ]]; then
@@ -122,22 +267,46 @@ PY
 fi
 
 if [[ "${JARVIS_TEST_MODE:-0}" != 1 ]]; then
-  [[ -x "$ovos_python" ]] || {
-    echo "OVOS virtualenv Python not found: $ovos_python" >&2
-    echo "Prepare OVOS separately with its official virtualenv method, then run this command again." >&2
-    exit 1
-  }
-  for path in /usr/bin/xdotool /usr/bin/xprop /usr/bin/wmctrl /usr/bin/xclip; do
-    [[ -x "$path" ]] || {
-      echo "Missing required desktop command: $path" >&2
-      echo "Ask the machine administrator to provide the required desktop-control prerequisites." >&2
+  if [[ ! -x "$ovos_python" ]]; then
+    if "$check_only"; then
+      echo "OVOS virtualenv Python not found: $ovos_python" >&2
+      echo "Run without --check to be offered the reviewed OVOS setup." >&2
       exit 1
-    }
-  done
-  if ! command -v wpctl >/dev/null 2>&1 && ! command -v pactl >/dev/null 2>&1; then
-    echo "Missing required audio control: wpctl or pactl" >&2
-    echo "Ask the machine administrator to provide the required audio-control prerequisite." >&2
-    exit 1
+    fi
+    printf '%s\n' \
+      "Open Voice OS is not installed at $ovos_python." \
+      "Jarvis can prepare the reviewed official OVOS virtualenv baseline." \
+      "This uses administrator access once for OVOS system preparation." \
+      "Jarvis remains user-space and no desktop applications are installed."
+    if "$bootstrap" || confirm_default_yes "Set up Open Voice OS now?"; then
+      install_official_ovos
+    else
+      echo "OVOS setup was declined; no Jarvis files were installed." >&2
+      exit 1
+    fi
+  fi
+
+  collect_missing_prerequisites
+  if ((${#missing_commands[@]})); then
+    if "$check_only"; then
+      echo "Missing desktop-control prerequisites: ${missing_commands[*]}" >&2
+      echo "Run without --check to be offered minimal prerequisite setup." >&2
+      exit 1
+    fi
+    printf '%s\n' \
+      "Jarvis needs these small desktop-control prerequisites: ${missing_commands[*]}." \
+      "They are command-line controls and GTK bindings, not desktop applications."
+    if "$bootstrap" || confirm_default_yes "Install the missing prerequisites now?"; then
+      install_desktop_prerequisites
+      collect_missing_prerequisites
+      ((${#missing_commands[@]} == 0)) || {
+        echo "Prerequisites are still missing: ${missing_commands[*]}" >&2
+        exit 1
+      }
+    else
+      echo "Prerequisite setup was declined; no Jarvis files were installed." >&2
+      exit 1
+    fi
   fi
   command -v systemctl >/dev/null 2>&1 || {
     echo "systemctl is required for the supported Linux desktop deployment." >&2

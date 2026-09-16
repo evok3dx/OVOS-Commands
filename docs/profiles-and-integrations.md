@@ -14,8 +14,10 @@ explicitly compatible integrations.
 - `Core only`: enables universal system, media, reading and focused-window controls.
 - `Custom`: shows only detected reviewed applications for selection.
 
-The installer and `jarvis-setup` never install applications. The tray opens the
-same setup window later. Non-interactive deployment can select explicitly:
+The OVOS bootstrap may install OVOS and minimal command-line system
+prerequisites, but the installer and `jarvis-setup` never install desktop
+applications. The tray opens the same setup window later. Non-interactive
+deployment can select explicitly:
 
 ```bash
 bash scripts/install.sh --mode all
