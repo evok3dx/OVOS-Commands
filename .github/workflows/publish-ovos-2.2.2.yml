@@ -1,0 +1,44 @@
+name: Publish OVOS Commands 2.2.2 source
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7
+
+      - name: Verify and publish the tested source archive
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          archive="ovos-commands-2.2.2.tar.gz"
+          expected="063b6784721e7984242823b6dba1c747473e4028e577b9edb423a7943318b6ea"
+          actual="$(sha256sum "$archive" | cut -d ' ' -f 1)"
+          test "$actual" = "$expected"
+
+          staging="$(mktemp -d)"
+          tar -xzf "$archive" -C "$staging"
+          source_root="$staging/ovos-commands-2.2.2"
+
+          test -f "$source_root/scripts/install.sh"
+          test -f "$source_root/compatibility.json"
+          test -f "$source_root/pyproject.toml"
+          grep -Fxq 'version = "2.2.2"' "$source_root/pyproject.toml"
+
+          python3 "$source_root/scripts/validate_refactor.py"
+
+          find . -mindepth 1 -maxdepth 1 ! -name .git ! -name .github -exec rm -rf -- {} +
+          tar --directory "$source_root" --exclude='./.github' -cf - . | tar -xf -
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Fix OVOS bootstrap on systems without Git"
+          git push origin HEAD:main
