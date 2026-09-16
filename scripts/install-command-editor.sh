@@ -10,6 +10,7 @@ state_root="$jarvis_home/.local/state/jarvis-command-editor"
 stamp="$(date +%Y%m%d-%H%M%S-%N)"
 backup_dir="$state_root/backups/$stamp"
 ovos_python="${OVOS_PYTHON:-$jarvis_home/.venvs/ovos/bin/python}"
+desktop_python="${JARVIS_DESKTOP_PYTHON:-/usr/bin/python3}"
 
 [[ -d "$target_package" ]] || {
   echo "Jarvis dispatcher not found: $target_package" >&2
@@ -20,14 +21,14 @@ ovos_python="${OVOS_PYTHON:-$jarvis_home/.venvs/ovos/bin/python}"
   exit 1
 }
 if [[ "${JARVIS_TEST_MODE:-0}" != 1 ]] &&
-   ! python3 -c 'import gi; gi.require_version("Gtk", "3.0")' 2>/dev/null; then
+   ! "$desktop_python" -c 'import gi; gi.require_version("Gtk", "3.0")' 2>/dev/null; then
   echo "GTK 3 support is missing." >&2
   echo "Install: sudo apt install python3-gi gir1.2-gtk-3.0" >&2
   exit 1
 fi
 
 python3 "$repo_root/scripts/validate_refactor.py"
-python3 -m py_compile "$repo_root/command_editor/jarvis-command-editor"
+"$desktop_python" -m py_compile "$repo_root/command_editor/jarvis-command-editor"
 
 mkdir -p "$backup_dir" "$bin_dir" "$config_dir"
 for name in jarvis-command-editor builtin-command-phrases.json; do

@@ -255,6 +255,21 @@ def main():
         "Runtime entry points must be executable"
     )
 
+    # GTK belongs to the distribution Python, not the isolated OVOS
+    # virtualenv. Keep desktop entry points deterministic even when a user
+    # starts installation or setup from an activated virtualenv.
+    for path in (
+        ROOT / "tray/ovos-tray.py",
+        ROOT / "command_editor/jarvis-command-editor",
+        ROOT / "mic/jarvis-mic-indicator",
+    ):
+        assert path.read_text(encoding="utf-8").splitlines()[0] == "#!/usr/bin/python3"
+    setup_helper = (ROOT / "system_helpers/jarvis-setup").read_text(encoding="utf-8")
+    assert 'exec /usr/bin/python3 "$setup" "$@"' in setup_helper
+    installer = (ROOT / "scripts/install.sh").read_text(encoding="utf-8")
+    assert 'desktop_python="${JARVIS_DESKTOP_PYTHON:-/usr/bin/python3}"' in installer
+    assert '"$desktop_python" -c \'import gi;' in installer
+
     tree = ast.parse((PACKAGE / "__init__.py").read_text())
     intents = {
         node.args[0].value

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 """Small Cinnamon tray controller for the local OVOS services."""
 
 import json

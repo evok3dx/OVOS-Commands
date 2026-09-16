@@ -15,6 +15,7 @@ tray_icon_dir="$jarvis_home/.local/share/icons/ovos-tray"
 tray_autostart="$jarvis_home/.config/autostart/ovos-tray.desktop"
 state_root="$jarvis_home/.local/state/jarvis"
 ovos_python="${OVOS_PYTHON:-$jarvis_home/.venvs/ovos/bin/python}"
+desktop_python="${JARVIS_DESKTOP_PYTHON:-/usr/bin/python3}"
 restart=true
 check_only=false
 health_check=true
@@ -249,7 +250,7 @@ import urllib.request
 from pathlib import Path
 
 url, destination, expected = sys.argv[1:]
-request = urllib.request.Request(url, headers={"User-Agent": "OVOS-Commands/2.2.3"})
+request = urllib.request.Request(url, headers={"User-Agent": "OVOS-Commands/2.2.4"})
 digest = hashlib.sha256()
 try:
     with urllib.request.urlopen(request, timeout=60) as response, Path(destination).open("wb") as output:
@@ -361,7 +362,7 @@ EOF
     missing_commands+=("wpctl or pactl")
     prerequisite_packages+=("pulseaudio-utils")
   fi
-  if ! python3 -c 'import gi; gi.require_version("Gtk", "3.0")' 2>/dev/null; then
+  if ! "$desktop_python" -c 'import gi; gi.require_version("Gtk", "3.0")' 2>/dev/null; then
     missing_commands+=("GTK 3 Python bindings")
     prerequisite_packages+=("python3-gi" "gir1.2-gtk-3.0")
   fi
@@ -378,6 +379,11 @@ install_desktop_prerequisites() {
   }
   sudo apt-get update
   sudo apt-get install --no-install-recommends "${prerequisite_packages[@]}"
+}
+
+[[ -x "$desktop_python" ]] || {
+  echo "System desktop Python not found: $desktop_python" >&2
+  exit 1
 }
 
 python3 "$repo_root/scripts/validate_refactor.py"
@@ -509,10 +515,10 @@ mkdir -p \
 if [[ -f "$target_capabilities" ]]; then
   cp -a "$target_capabilities" "$configuration_source"
 elif [[ -n "$source_profile" ]]; then
-  JARVIS_HOME="$jarvis_home" python3 "$repo_root/scripts/setup.py" \
+  JARVIS_HOME="$jarvis_home" "$desktop_python" "$repo_root/scripts/setup.py" \
     --migrate-profile "$source_profile" --output "$configuration_source" --no-restart
 elif [[ -f "$target_profile" ]]; then
-  JARVIS_HOME="$jarvis_home" python3 "$repo_root/scripts/setup.py" \
+  JARVIS_HOME="$jarvis_home" "$desktop_python" "$repo_root/scripts/setup.py" \
     --migrate-profile "$target_profile" --output "$configuration_source" --no-restart
 else
   setup_arguments=(--output "$configuration_source" --no-restart)
@@ -522,7 +528,7 @@ else
   if [[ -n "$setup_apps" ]]; then
     setup_arguments+=(--apps "$setup_apps")
   fi
-  JARVIS_HOME="$jarvis_home" python3 "$repo_root/scripts/setup.py" "${setup_arguments[@]}"
+  JARVIS_HOME="$jarvis_home" "$desktop_python" "$repo_root/scripts/setup.py" "${setup_arguments[@]}"
 fi
 
 # Copy only reviewed release roots. This avoids deploying unrelated files from
@@ -637,10 +643,10 @@ fi
 
 tray_installed=false
 if [[ "${JARVIS_TEST_MODE:-0}" == 1 ]] || \
-   python3 -c 'import gi; gi.require_version("Gtk", "3.0")' 2>/dev/null; then
+   "$desktop_python" -c 'import gi; gi.require_version("Gtk", "3.0")' 2>/dev/null; then
   install -m 0755 "$target_root/tray/ovos-tray.py" "$target_bin/ovos-tray"
   install -m 0644 "$target_root/tray/"*.svg "$tray_icon_dir/"
-  TRAY_EXEC="$target_bin/ovos-tray" python3 - "$tray_autostart" <<'PY'
+  TRAY_EXEC="$target_bin/ovos-tray" "$desktop_python" - "$tray_autostart" <<'PY'
 import os
 import sys
 from pathlib import Path

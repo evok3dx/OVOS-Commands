@@ -16,14 +16,14 @@ checks and downloads are available only while it is public.
 
 ## Quick start
 
-Download the `ovos-commands-2.2.3.tar.gz` archive and matching `.sha256` file
+Download the `ovos-commands-2.2.4.tar.gz` archive and matching `.sha256` file
 from the [latest GitHub release](https://github.com/evok3dx/OVOS-Commands/releases/latest),
 then verify and install it:
 
 ```bash
-sha256sum --check ovos-commands-2.2.3.tar.gz.sha256
-tar -xzf ovos-commands-2.2.3.tar.gz
-cd ovos-commands-2.2.3
+sha256sum --check ovos-commands-2.2.4.tar.gz.sha256
+tar -xzf ovos-commands-2.2.4.tar.gz
+cd ovos-commands-2.2.4
 bash scripts/install.sh
 ```
 
@@ -50,6 +50,8 @@ every replaced component under
 Jarvis once. A failed transaction restores the previous deployment. It works
 from a Git checkout or an extracted release archive. Jarvis installation,
 configuration, updates and daily operation remain user-space.
+Desktop GTK tools always use Mint's `/usr/bin/python3`, so installation and
+tray setup remain reliable even when the OVOS virtual environment is active.
 
 First setup offers one simple choice:
 

@@ -9,4 +9,4 @@ setup="$jarvis_home/.local/src/ovos-skill-jarvis-dispatcher/scripts/setup.py"
   exit 1
 }
 
-exec python3 "$setup" "$@"
+exec /usr/bin/python3 "$setup" "$@"

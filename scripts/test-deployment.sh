@@ -82,6 +82,29 @@ assert data["private_extensions"] == {"agents": False}
 assert stat.S_IMODE(path.stat().st_mode) == 0o600
 PY
 
+# An activated virtualenv must not capture GTK desktop helpers. This fake
+# python3 records accidental PATH-based use; jarvis-setup must bypass it.
+fake_venv="$test_root/activated-venv/bin"
+fake_python_log="$test_root/activated-venv-python.log"
+mkdir -p "$fake_venv"
+FAKE_PYTHON_LOG="$fake_python_log" python3 - "$fake_venv/python3" <<'PY'
+import stat
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+path.write_text("""#!/usr/bin/env bash
+printf '%s\\n' invoked >> "$FAKE_PYTHON_LOG"
+exec /usr/bin/python3 "$@"
+""", encoding="utf-8")
+path.chmod(path.stat().st_mode | stat.S_IXUSR)
+PY
+PATH="$fake_venv:$PATH" FAKE_PYTHON_LOG="$fake_python_log" \
+  JARVIS_HOME="$fresh_home" \
+  "$fresh_home/.local/bin/jarvis-setup" --mode core \
+  --output "$test_root/venv-safe-core.json" --no-restart
+test ! -e "$fake_python_log"
+
 # Setup supports one-step core mode and a reviewed custom selection.
 JARVIS_HOME="$fresh_home" JARVIS_TEST_MODE=1 \
   python3 "$fresh_target/scripts/setup.py" --mode core \

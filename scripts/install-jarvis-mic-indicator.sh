@@ -9,6 +9,7 @@ icon_dir="$jarvis_home/.local/share/jarvis"
 autostart_dir="$jarvis_home/.config/autostart"
 state_dir="$jarvis_home/.local/state/jarvis-ui"
 desktop_file="$autostart_dir/jarvis-mic-indicator.desktop"
+desktop_python="${JARVIS_DESKTOP_PYTHON:-/usr/bin/python3}"
 
 if [[ "${JARVIS_TEST_MODE:-0}" != 1 ]]; then
   for command in systemctl notify-send; do
@@ -17,17 +18,17 @@ if [[ "${JARVIS_TEST_MODE:-0}" != 1 ]]; then
       exit 1
     }
   done
-  if ! python3 -c 'import gi; gi.require_version("Gtk", "3.0")' 2>/dev/null; then
+  if ! "$desktop_python" -c 'import gi; gi.require_version("Gtk", "3.0")' 2>/dev/null; then
     echo "Missing python3-gi / GTK 3 support." >&2
     echo "Install: sudo apt install python3-gi gir1.2-gtk-3.0" >&2
     exit 1
   fi
 fi
 
-python3 -m py_compile "$source_dir/jarvis-mic-indicator"
+"$desktop_python" -m py_compile "$source_dir/jarvis-mic-indicator"
 bash -n "$source_dir/jarvis-mic-toggle"
 
-SOURCE_DIR="$source_dir" python3 <<'PY'
+SOURCE_DIR="$source_dir" "$desktop_python" <<'PY'
 import os
 from pathlib import Path
 from xml.etree import ElementTree
