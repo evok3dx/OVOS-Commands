@@ -13,12 +13,14 @@ Supported wake phrase: `Hey Jarvis`.
 Jarvis provides local voice control for:
 
 - Brave and Firefox search, navigation and page reading
+- YouTube search and Shorts navigation without automatic result selection
 - Desktop application and focused-window control
 - Focused text editing, clipboard actions and field navigation
 - Standard Notes, Proton Mail and Zoom-specific integrations
 - Speech Note dictation, typing and read-back
-- Codex and Claude agent windows, plus guarded Claude Desktop messaging
-- System microphone mute and Jarvis-listener mute
+- Codex and Claude agent windows, plus guarded Claude and Hermes Desktop messaging
+- System microphone, full-system-audio and Jarvis-listener mute controls
+- Universal Enter, state-aware Caps Lock and Cinnamon/MPRIS media control
 - A small tray editor for safe personal command phrases
 - Voice-system status, microphone control and safe restart operations
 
@@ -137,17 +139,47 @@ Current integrations:
   registered `zoommtg` handler without browser redirection
 - `claude_desktop.py`: routes ordinary Claude window and message commands to
   Claude Desktop while keeping explicit `Claude agent` commands isolated
+- `hermes_desktop.py`: verifies the Hermes window before sending approved
+  composer, model, queue, reference and cancellation shortcuts; direct
+  message commands clear and reuse the verified composer before pressing Enter
 
 ## Microphone controls
 
 - `Mute mic` and `Mute microphone` mute the system input through an allowlisted
   `wpctl` or `pactl` helper.
+- `Mute system` and `Mute everything` mute both the default speaker and default
+  microphone after a spoken warning.
 - `Mute Jarvis` and `Stop Jarvis listening` stop only `ovos-listener` through
   the existing microphone toggle.
 
-System microphone mute deliberately has no voice unmute command because the
-microphone cannot hear it. Jarvis-listener mute is reversed from the microphone
-indicator. These are separate controls and are not installed twice.
+System microphone and full-system mute deliberately have no voice unmute
+command because Jarvis cannot hear one after the input is muted. They are
+restored from the keyboard or Cinnamon sound settings. Jarvis-listener mute is
+reversed from the microphone indicator. These are separate controls and are
+not installed twice.
+
+## Keyboard, media and focused application controls
+
+`Press Enter`, `Press Return` and `Press Send` send Return only to the current
+focused window. Caps Lock commands first read the X11 lock state and change it
+only when required. Lock keys bypass the normal modifier-clearing helper because
+restoring cleared modifiers would immediately undo the requested Caps Lock
+state.
+
+Media commands use state-specific `playerctl` operations for the active MPRIS
+player. Bare `play`, `pause` and `stop` are intentionally not registered because
+they collide with existing conversation, dictation and speech controls. Install
+`playerctl` before deploying these commands:
+
+```bash
+sudo apt install playerctl
+```
+
+YouTube search reuses the currently visible YouTube tab. If another site or
+application is active, it opens YouTube in the preferred supported browser,
+focuses the visible search field, asks for the query and submits it. Commands to
+play the first or second result were tested conceptually and deliberately
+removed because search result order and focus are not stable enough.
 
 The Brain profile is an example deployment, not a universal default. Exact
 executables, app choices, secrets and local paths should remain in profiles or
@@ -203,6 +235,7 @@ one instance of the updated version.
 - [Profiles and application integrations](docs/profiles-and-integrations.md)
 - [Focused commands, integrations and runtime isolation](docs/focused-commands-integrations-and-runtime-isolation.md)
 - [Final local controls and command editor](docs/final-local-controls-and-command-editor.md)
+- [Final Hermes, media and system controls](docs/final-hermes-media-and-system-controls.md)
 - [Command editor guide](COMMAND-EDITOR.md)
 - [Recovery infrastructure](recovery/README.md)
 
@@ -210,5 +243,5 @@ one instance of the updated version.
 
 The initial commit preserves the tested monolithic dispatcher before its
 behaviour-preserving modular refactor. The current modular validation baseline
-is maintained by `scripts/validate_refactor.py`: 18 Python modules, 66 intents,
-998 built-in vocabulary registrations and three validated profiles.
+is maintained by `scripts/validate_refactor.py`: 20 Python modules, 88 intents,
+1,259 built-in vocabulary registrations and three validated profiles.

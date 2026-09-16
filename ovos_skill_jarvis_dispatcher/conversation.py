@@ -162,6 +162,8 @@ class ConversationMixin:
 
         send_payload = None
         browser_payload = None
+        claude_payload = None
+        hermes_payload = None
         typing_payload = None
 
         with self._message_lock:
@@ -306,7 +308,9 @@ class ConversationMixin:
             if stage in {
                 "browser_address",
                 "browser_search",
-                "browser_search_firefox"
+                "browser_search_firefox",
+                "claude_message",
+                "hermes_message",
             }:
                 if not re.search(r"[A-Za-z0-9]", utterance):
                     if self._message_retries > 0:
@@ -327,7 +331,18 @@ class ConversationMixin:
                     self.speak("That entry is too long.")
                     return True
 
-                browser_payload = (stage, utterance)
+                if stage == "claude_message":
+                    claude_payload = (
+                        utterance,
+                        self._pending_window_id,
+                    )
+                elif stage == "hermes_message":
+                    hermes_payload = (
+                        utterance,
+                        self._pending_window_id,
+                    )
+                else:
+                    browser_payload = (stage, utterance)
                 self._clear_message_state()
 
             if stage in {"message", "search"}:
@@ -392,8 +407,7 @@ class ConversationMixin:
                 self._message_stage = "confirmation"
 
                 self.speak(
-                    confirmation
-                    + "Say send it to confirm, or cancel.",
+                    confirmation + "Say send it to confirm, or cancel.",
                     expect_response=True,
                     wait=True
                 )
@@ -454,6 +468,22 @@ class ConversationMixin:
                     browser_text
                 )
 
+            return True
+
+        if claude_payload:
+            claude_text, window_id = claude_payload
+            self._send_claude_desktop_message(
+                claude_text,
+                window_id,
+            )
+            return True
+
+        if hermes_payload:
+            hermes_text, window_id = hermes_payload
+            self._send_hermes_desktop_message(
+                hermes_text,
+                window_id,
+            )
             return True
 
         if send_payload:

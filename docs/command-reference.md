@@ -10,7 +10,8 @@ corrections are maintained centrally in
 ## Desktop applications
 
 Supported applications include Brave, Firefox, Signal, Zoom, Terminal,
-Standard Notes, ONLYOFFICE, Claude Desktop, Proton Mail and Proton Calendar.
+Standard Notes, ONLYOFFICE, Claude Desktop, Hermes Desktop, Proton Mail and
+Proton Calendar.
 
 Examples:
 
@@ -80,6 +81,18 @@ The isolated terminal agent remains explicit:
 This prevents an ordinary request for Claude from being routed to the local
 coding and task agent.
 
+Additional explicit Claude workflows include:
+
+- `New Claude chat`: open a fresh Claude Desktop conversation.
+- `New Claude agent`: start a new isolated Claude Code session.
+- `Create Claude subagent`: prepare the local Claude agent's subagent command.
+- `Show Claude agents`: open the Claude Code agent manager.
+- `Resume Claude agent`: return to the isolated Claude agent window.
+
+Recognition-tolerant `cloud`, `clawed` and `called` forms are registered for
+Claude. The word `agent` remains the boundary between Claude Desktop and the
+isolated Claude Code account.
+
 ## Browser search and navigation
 
 Examples:
@@ -97,6 +110,22 @@ Examples:
 - `Focus the address bar`
 
 Search commands ask a controlled follow-up question for the search terms.
+
+### YouTube
+
+- `Search YouTube`
+- `YouTube search`
+- `Open YouTube Shorts`
+- `Go to YouTube reels`
+
+If the visible browser tab is already YouTube, search focuses that tab's search
+field instead of opening another page. Otherwise Jarvis opens YouTube in the
+preferred supported browser. With several YouTube tabs open, Jarvis uses only
+the currently visible tab and does not guess which background tab is intended.
+
+Commands to play the first or second result are deliberately excluded. Search
+results and keyboard focus can change, so automatic selection would not be
+reliable enough for the allowlisted command layer.
 
 ## Reading
 
@@ -181,9 +210,53 @@ Examples:
 
 - `Read today's date`
 - `Mute mic` / `Mute microphone`
+- `Mute system` / `Mute everything`
 - `Mute Jarvis` / `Stop Jarvis listening`
 - `Stop`
 - `Hey Jarvis` while speech is playing to interrupt and begin another command
+
+## Keyboard, media and Hermes
+
+Universal focused-app controls:
+
+- `Press Enter` / `Press Return` / `Press Send`
+- `Caps Lock on` / `Caps Lock off`
+
+Caps Lock is state-aware: saying the requested state twice does not toggle it
+back. Full-system mute affects both speaker and microphone and must be reversed
+from the keyboard or Cinnamon sound settings.
+
+Cinnamon media controls:
+
+- `Play media` / `Resume playback`
+- `Pause media` / `Pause playback`
+- `Stop media` / `Stop playback`
+- `Next track` / `Skip track`
+- `Previous track` / `Back track`
+
+Hermes Desktop controls:
+
+- `Open Hermes` / `Focus Hermes` / `Minimise Hermes` / `Close Hermes`
+
+- `Focus Hermes composer`
+- `Open Hermes model picker`
+- `New line in Hermes`
+- `Queue Hermes message`
+- `Send next Hermes message`
+- `Open Hermes commands`
+- `Reference file in Hermes`
+- `Cancel Hermes run`
+- `Message Hermes` / `Ask Hermes` / `Tell Hermes`
+- `Write to Hermes` / `Type into Hermes` / `Talk to Hermes`
+
+Hermes is focused and verified before its shortcut is sent. Direct message
+commands focus the composer, clear any existing text, ask what to send, verify
+that the same Hermes window still owns focus, type the response and press Enter.
+They do not repeat the dictated content or require a second confirmation.
+Recognition-tolerant `Hermas` and `Omos` forms are included because they were
+observed in Whisper output; the broad phrase `from me` is deliberately not an
+alias. Media uses state-specific `playerctl` actions; bare `play`, `pause` and
+`stop` are not registered because they would collide with other voice flows.
 
 ## Personal command phrases
 
@@ -208,6 +281,7 @@ split across:
 - [Controlled follow-ups](../ovos_skill_jarvis_dispatcher/conversation.py)
 - [Personal phrase validation](../ovos_skill_jarvis_dispatcher/custom_commands.py)
 - [System microphone control](../ovos_skill_jarvis_dispatcher/system_audio.py)
+- [Keyboard and media controls](../ovos_skill_jarvis_dispatcher/system_controls.py)
 - [Wake-word interruption](../ovos_skill_jarvis_dispatcher/wakeword.py)
 - [Focused editing and navigation](../ovos_skill_jarvis_dispatcher/text_editing.py)
 - [Application integrations](../ovos_skill_jarvis_dispatcher/integrations/)

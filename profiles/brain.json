@@ -11,6 +11,7 @@
     "notes": "standard_notes",
     "office": "onlyoffice",
     "claude": "claude_desktop",
+    "hermes": "hermes_desktop",
     "mail": "proton_mail",
     "calendar": "proton_calendar"
   }

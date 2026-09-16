@@ -23,6 +23,7 @@ EXPECTED_ROOT_MODULES = {
     "helpers.py",
     "profile.py",
     "system_audio.py",
+    "system_controls.py",
     "text_editing.py",
     "vocabulary.py",
     "wakeword.py",
@@ -33,6 +34,7 @@ EXPECTED_INTEGRATION_MODULES = {
     "standard_notes.py",
     "zoom.py",
     "claude_desktop.py",
+    "hermes_desktop.py",
 }
 EXPECTED_INTENTS = {
     "CustomCommandIntent",
@@ -49,11 +51,18 @@ EXPECTED_INTENTS = {
     "NewEmailIntent", "SearchMailIntent",
     "JoinZoomMeetingIntent",
     "MuteSystemMicrophoneIntent",
+    "MuteSystemAudioIntent",
     "MuteJarvisIntent",
+    "PressEnterIntent",
+    "PlayMediaIntent", "PauseMediaIntent", "StopMediaIntent",
+    "NextMediaIntent", "PreviousMediaIntent",
+    "CapsLockOnIntent", "CapsLockOffIntent",
+    "HermesComposerIntent",
     "StartSpeechNoteDictationIntent", "PauseSpeechNoteDictationIntent",
     "ResumeSpeechNoteDictationIntent", "StopSpeechNoteDictationIntent",
     "WriteFocusedTextIntent", "BraveSearchPromptIntent",
-    "FirefoxSearchPromptIntent", "BrowserNavigationIntent",
+    "FirefoxSearchPromptIntent", "YouTubeSearchPromptIntent",
+    "YouTubeShortsIntent", "BrowserNavigationIntent",
     "OpenDesktopAppIntent", "FocusDesktopAppIntent",
     "MinimizeDesktopAppIntent", "CloseDesktopAppIntent",
     "OpenCodexCommandIntent", "FocusCodexCommandIntent",
@@ -61,12 +70,17 @@ EXPECTED_INTENTS = {
     "ReadClaudeResponseIntent", "ReadLatestResponseIntent",
     "OpenClaudeAliasIntent", "NaturalDateIntent", "OpenCodexIntent",
     "OpenClaudeIntent", "FocusCodexIntent", "FocusClaudeIntent",
+    "NewClaudeChatIntent",
+    "NewClaudeAgentIntent", "CreateClaudeSubagentIntent",
+    "ShowClaudeAgentsIntent", "ResumeClaudeAgentIntent",
     "MinimizeCodexIntent", "MinimizeClaudeIntent",
     "CloseCodexWindowIntent", "CloseClaudeWindowIntent",
     "MessageCodexIntent", "MessageClaudeIntent", "WriteCodexIntent",
     "WriteClaudeIntent", "TypeCodexIntent", "TypeClaudeIntent",
     "SpeakCodexIntent", "SpeakClaudeIntent", "TalkCodexIntent",
     "TalkClaudeIntent",
+    "MessageHermesIntent", "WriteHermesIntent", "TypeHermesIntent",
+    "SpeakHermesIntent", "TalkHermesIntent",
 }
 
 
@@ -152,17 +166,86 @@ def main():
     fake = FakeSkill()
     fake._jarvis_profile = brain_profile
     namespace["register_skill_vocabulary"](fake, include_custom=False)
-    assert len(fake.registrations) == 998
+    assert len(fake.registrations) == 1259
+    for phrase in ("claude", "cloud", "clawed", "called"):
+        assert (
+            phrase,
+            "ClaudeKeyword",
+        ) in fake.registrations
+    for phrase in (
+        "hermes", "hermas", "omos",
+        "hermes desktop", "hermes app",
+    ):
+        assert (phrase, "HermesKeyword") in fake.registrations
+    assert (
+        "message",
+        "MessageKeyword",
+    ) in fake.registrations
+    for phrase in (
+        "new claude chat",
+        "new cloud chat",
+        "a new cloud chat",
+        "open a new clawed chat",
+        "start a new chat with called",
+    ):
+        assert (phrase, "NewClaudeChatCommand") in fake.registrations
+    for phrase, entity in (
+        ("new claude agent", "NewClaudeAgentCommand"),
+        ("start a new cloud agent", "NewClaudeAgentCommand"),
+        ("create a clawed subagent", "CreateClaudeSubagentCommand"),
+        ("show called agents", "ShowClaudeAgentsCommand"),
+        ("resume cloud agent", "ResumeClaudeAgentCommand"),
+    ):
+        assert (phrase, entity) in fake.registrations
+    for phrase, entity in (
+        ("write", "WriteKeyword"),
+        ("type", "TypeKeyword"),
+        ("speak", "SpeakKeyword"),
+        ("talk", "TalkKeyword"),
+    ):
+        assert (phrase, entity) in fake.registrations
     for phrase in ("mute mic", "mute microphone"):
         assert (
             phrase,
             "MuteSystemMicrophoneCommand",
+        ) in fake.registrations
+    for phrase in ("mute system", "mute everything"):
+        assert (
+            phrase,
+            "MuteSystemAudioCommand",
         ) in fake.registrations
     for phrase in ("mute jarvis", "stop jarvis listening"):
         assert (
             phrase,
             "MuteJarvisCommand",
         ) in fake.registrations
+    for phrase in (
+        "press enter", "press return", "press send", "hit enter", "hit return",
+    ):
+        assert (phrase, "PressEnterCommand") in fake.registrations
+    media_commands = {
+        "PlayMediaCommand": ("play media", "resume playback", "play music"),
+        "PauseMediaCommand": ("pause media", "pause playback", "pause music"),
+        "StopMediaCommand": ("stop media", "stop playback", "stop playing"),
+        "NextMediaCommand": ("next track", "next song", "skip track"),
+        "PreviousMediaCommand": (
+            "previous track", "previous song", "back track",
+        ),
+    }
+    for entity, phrases in media_commands.items():
+        for phrase in phrases:
+            assert (phrase, entity) in fake.registrations
+    for phrase in ("caps lock on", "enable caps lock"):
+        assert (phrase, "CapsLockOnCommand") in fake.registrations
+    for phrase in ("caps lock off", "disable caps lock"):
+        assert (phrase, "CapsLockOffCommand") in fake.registrations
+    for phrase in (
+        "focus hermes composer", "open hermes model picker",
+        "new line in hermes", "queue hermes message",
+        "send next hermes message", "open hermes commands",
+        "reference file in hermes", "cancel hermes run",
+    ):
+        assert (phrase, "HermesComposerCommand") in fake.registrations
     for phrase in (
         "read window",
         "read this window",
@@ -227,10 +310,21 @@ def main():
         "join copied zoom meeting",
     ):
         assert (phrase, "JoinZoomMeetingCommand") in fake.registrations
+    for phrase in (
+        "search youtube", "search you tube", "search on youtube",
+        "search in youtube", "youtube search", "you tube search",
+    ):
+        assert (phrase, "YouTubeSearchPromptCommand") in fake.registrations
+    for phrase in (
+        "go to youtube shorts", "open youtube shorts", "youtube shorts",
+        "show youtube shorts", "go to youtube reels",
+        "open youtube reels", "youtube reels", "show youtube reels",
+    ):
+        assert (phrase, "YouTubeShortsCommand") in fake.registrations
     assert len(fake._browser_navigation_actions) == 68
     assert set(fake._desktop_app_aliases) == {
         "brave", "firefox", "signal", "zoom", "terminal", "notes",
-        "office", "claude", "mail", "calendar",
+        "office", "claude", "hermes", "mail", "calendar",
     }
 
     profiles = sorted((ROOT / "profiles").glob("*.json"))
@@ -283,7 +377,23 @@ def main():
         "compose email", "compose an email", "write a new email",
         "write an email",
     }
-
+    assert set(inventory["browser.search_youtube"]) == {
+        "search youtube", "search you tube", "search on youtube",
+        "search in youtube", "youtube search", "you tube search",
+    }
+    assert set(inventory["browser.youtube_shorts"]) == {
+        "go to youtube shorts", "open youtube shorts", "youtube shorts",
+        "show youtube shorts", "go to youtube reels",
+        "open youtube reels", "youtube reels", "show youtube reels",
+    }
+    assert set(inventory["hermes.focus_composer"]) == {
+        "focus hermes composer", "go to hermes composer",
+        "focus the hermes composer", "focus composer in hermes",
+    }
+    assert set(inventory["hermes.command_palette"]) == {
+        "open hermes commands", "show hermes commands",
+        "open hermes slash commands", "show hermes command palette",
+    }
     with tempfile.TemporaryDirectory() as directory:
         custom_path = Path(directory) / "custom-commands.json"
         written = write_mapping(
@@ -300,8 +410,8 @@ def main():
         assert stat.S_IMODE(custom_path.stat().st_mode) == 0o600
 
     print(f"PASS: {len(python_files)} Python modules compile")
-    print("PASS: 66 intents match the expected inventory")
-    print("PASS: 998 vocabulary registrations are present")
+    print("PASS: 88 intents match the expected inventory")
+    print("PASS: 1259 vocabulary registrations are present")
     print("PASS: personal phrase validation rejects built-in collisions")
     print("PASS: personal phrases save atomically with private permissions")
     print("PASS: built-in phrases are grouped by editor action")

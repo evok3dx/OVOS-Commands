@@ -44,6 +44,10 @@ APPLICATION_INTEGRATIONS = {
             "clawed app", "claude", "clawed",
         ],
     },
+    "hermes_desktop": {
+        "display_name": "Hermes",
+        "aliases": ["hermes desktop", "hermes app", "hermes"],
+    },
     "proton_mail": {
         "display_name": "Proton Mail",
         "aliases": ["proton mail", "email app", "mail app", "email", "mail"],
@@ -58,7 +62,7 @@ APPLICATION_INTEGRATIONS = {
 
 APPLICATION_CATEGORIES = {
     "brave", "firefox", "signal", "zoom", "terminal", "notes",
-    "office", "claude", "mail", "calendar",
+    "office", "claude", "hermes", "mail", "calendar",
 }
 
 # Keep each generic command category constrained to compatible integrations.
@@ -73,6 +77,7 @@ CATEGORY_INTEGRATIONS = {
     "notes": {"standard_notes"},
     "office": {"onlyoffice"},
     "claude": {"claude_desktop"},
+    "hermes": {"hermes_desktop"},
     "mail": {"proton_mail"},
     "calendar": {"proton_calendar"},
 }
@@ -90,6 +95,7 @@ BRAIN_COMPATIBILITY_PROFILE = {
         "notes": "standard_notes",
         "office": "onlyoffice",
         "claude": "claude_desktop",
+        "hermes": "hermes_desktop",
         "mail": "proton_mail",
         "calendar": "proton_calendar",
     },

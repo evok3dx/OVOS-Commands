@@ -1,4 +1,6 @@
 import re
+import subprocess
+import time
 
 
 class ClaudeDesktopIntegrationMixin:
@@ -28,31 +30,56 @@ class ClaudeDesktopIntegrationMixin:
 
         self._message_claude_desktop()
 
+    def _open_claude_desktop_new_chat(self):
+        """Open and verify a clean Claude Desktop chat."""
+
+        try:
+            subprocess.run(
+                [
+                    "/usr/bin/xdg-open",
+                    "claude://claude.ai/new",
+                ],
+                check=True,
+                timeout=10,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        except Exception:
+            self.log.exception("Could not open a new Claude chat")
+            self.speak("I could not open Claude.")
+            return None
+
+        window_id = None
+        window_class = None
+        for _ in range(40):
+            try:
+                time.sleep(0.1)
+                window_id, window_class = self._focused_window_details()
+            except Exception:
+                continue
+            if self._is_claude_desktop_window(window_class):
+                break
+
+        if not window_id or not self._is_claude_desktop_window(window_class):
+            self.speak("I could not verify Claude.")
+            return None
+
+        return window_id
+
     def _message_claude_desktop(self):
-        """Focus Claude Desktop and begin its guarded message flow."""
+        """Open a clean Claude composer and begin a direct message flow."""
 
         with self._message_lock:
             if self._message_stage:
                 self.speak("Please finish or cancel the current message.")
                 return
 
-        if not self._run_desktop_app_action("claude", "focus", announce=False):
-            self.speak("I could not open Claude Desktop.")
-            return
-
-        try:
-            window_id, window_class = self._focused_window_details()
-        except Exception:
-            self.log.exception("Could not identify the Claude Desktop window")
-            self.speak("I could not verify Claude Desktop.")
-            return
-
-        if not self._is_claude_desktop_window(window_class):
-            self.speak("Claude Desktop did not receive focus, so I cancelled.")
+        window_id = self._open_claude_desktop_new_chat()
+        if not window_id:
             return
 
         with self._message_lock:
-            self._message_stage = "message"
+            self._message_stage = "claude_message"
             self._pending_agent = "claude_desktop"
             self._pending_message = None
             self._pending_window_id = window_id
@@ -61,23 +88,60 @@ class ClaudeDesktopIntegrationMixin:
 
         self.activate(duration_minutes=1)
         self.speak(
-            "What should I send to Claude Desktop?",
+            "What should I send to Claude?",
             expect_response=True,
             wait=True,
         )
         self._arm_message_timeout(20)
 
     def _send_claude_desktop_message(self, prompt, window_id):
+        """Clear, type and send in the verified fresh Claude composer."""
+
         try:
             current_window, current_class = self._focused_window_details()
-            if current_window != str(window_id):
+            if str(current_window) != str(window_id):
                 self.speak("The focused window changed, so I cancelled.")
                 return
             if not self._is_claude_desktop_window(current_class):
-                self.speak("Claude Desktop is not focused, so I cancelled.")
+                self.speak("Claude is not focused, so I cancelled.")
                 return
 
-            self._type_into_window(window_id, prompt, press_enter=True)
+            subprocess.run(
+                [
+                    "/usr/bin/xdotool",
+                    "key",
+                    "--clearmodifiers",
+                    "ctrl+a",
+                    "BackSpace",
+                ],
+                check=True,
+                timeout=5,
+            )
+
+            subprocess.run(
+                [
+                    "/usr/bin/xdotool",
+                    "type",
+                    "--clearmodifiers",
+                    "--delay",
+                    "15",
+                    "--",
+                    str(prompt),
+                ],
+                check=True,
+                timeout=30,
+            )
+
+            subprocess.run(
+                [
+                    "/usr/bin/xdotool",
+                    "key",
+                    "--clearmodifiers",
+                    "Return",
+                ],
+                check=True,
+                timeout=5,
+            )
         except Exception:
-            self.log.exception("Claude Desktop message failed")
-            self.speak("I could not message Claude Desktop.")
+            self.log.exception("Claude message failed")
+            self.speak("I could not send the Claude message.")
