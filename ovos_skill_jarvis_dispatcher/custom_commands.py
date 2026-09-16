@@ -15,7 +15,16 @@ RESERVED_PHRASES = {"cancel", "never mind", "nevermind", "stop", "wait"}
 
 ENTITY_ACTIONS = {
     "MuteSystemMicrophoneCommand": "system.mute_microphone",
+    "MuteSystemAudioCommand": "system.mute_all_audio",
     "MuteJarvisCommand": "system.mute_jarvis",
+    "PressEnterCommand": "system.press_enter",
+    "PlayMediaCommand": "media.play",
+    "PauseMediaCommand": "media.pause",
+    "StopMediaCommand": "media.stop",
+    "NextMediaCommand": "media.next",
+    "PreviousMediaCommand": "media.previous",
+    "CapsLockOnCommand": "system.caps_lock_on",
+    "CapsLockOffCommand": "system.caps_lock_off",
     "CloseFocusedWindowCommand": "window.close",
     "MinimizeFocusedWindowCommand": "window.minimize",
     "MaximizeFocusedWindowCommand": "window.maximize",
@@ -43,6 +52,8 @@ ENTITY_ACTIONS = {
     "StopSpeechNoteDictationCommand": "dictation.stop",
     "BraveSearchPromptCommand": "browser.search_brave",
     "FirefoxSearchPromptCommand": "browser.search_firefox",
+    "YouTubeSearchPromptCommand": "browser.search_youtube",
+    "YouTubeShortsCommand": "browser.youtube_shorts",
     "NewNoteCommand": "notes.new",
     "SearchNotesCommand": "notes.search",
     "NewEmailCommand": "mail.new",
@@ -52,6 +63,11 @@ ENTITY_ACTIONS = {
     "ReadCodexResponseCommand": "codex.read",
     "ReadClaudeResponseCommand": "claude_agent.read",
     "ReadLatestResponseCommand": "response.read_latest",
+    "NewClaudeChatCommand": "claude_desktop.new_chat",
+    "NewClaudeAgentCommand": "claude_agent.new",
+    "CreateClaudeSubagentCommand": "claude_agent.create_subagent",
+    "ShowClaudeAgentsCommand": "claude_agent.show_agents",
+    "ResumeClaudeAgentCommand": "claude_agent.resume",
     "NaturalDateCommand": "date.today",
 }
 
@@ -75,8 +91,56 @@ BASE_ACTIONS = {
     "system.mute_microphone": _action(
         "System", "Mute the system microphone", "mute microphone"
     ),
+    "system.mute_all_audio": _action(
+        "System", "Mute all system audio", "mute system", "mute everything"
+    ),
     "system.mute_jarvis": _action(
         "System", "Mute Jarvis listening", "mute Jarvis"
+    ),
+    "system.press_enter": _action(
+        "System", "Press Enter in the focused app", "press Enter"
+    ),
+    "system.caps_lock_on": _action(
+        "System", "Turn Caps Lock on", "caps lock on"
+    ),
+    "system.caps_lock_off": _action(
+        "System", "Turn Caps Lock off", "caps lock off"
+    ),
+    "media.play": _action("Media", "Play media", "play media"),
+    "media.pause": _action("Media", "Pause media", "pause media"),
+    "media.stop": _action("Media", "Stop media", "stop media"),
+    "media.next": _action("Media", "Play next track", "next track"),
+    "media.previous": _action(
+        "Media", "Play previous track", "previous track"
+    ),
+    "hermes.focus_composer": _action(
+        "Hermes", "Focus the composer", "focus Hermes composer"
+    ),
+    "hermes.message": _action(
+        "Hermes", "Message Hermes",
+        "message Hermes", "ask Hermes", "tell Hermes",
+        "write to Hermes", "type into Hermes", "talk to Hermes"
+    ),
+    "hermes.model_picker": _action(
+        "Hermes", "Open the model picker", "open Hermes model picker"
+    ),
+    "hermes.insert_newline": _action(
+        "Hermes", "Insert a new line", "new line in Hermes"
+    ),
+    "hermes.queue_message": _action(
+        "Hermes", "Queue the current message", "queue Hermes message"
+    ),
+    "hermes.send_queued": _action(
+        "Hermes", "Send the next queued turn", "send next Hermes message"
+    ),
+    "hermes.command_palette": _action(
+        "Hermes", "Open slash commands", "open Hermes commands"
+    ),
+    "hermes.reference": _action(
+        "Hermes", "Reference a file or folder", "reference file in Hermes"
+    ),
+    "hermes.cancel": _action(
+        "Hermes", "Cancel the run or close a popup", "cancel Hermes run"
     ),
     "window.close": _action("Windows", "Close focused window", "close window"),
     "window.minimize": _action(
@@ -138,6 +202,12 @@ BASE_ACTIONS = {
     "browser.search_firefox": _action(
         "Browser", "Search with Firefox", "search Firefox"
     ),
+    "browser.search_youtube": _action(
+        "Browser", "Search YouTube", "search YouTube"
+    ),
+    "browser.youtube_shorts": _action(
+        "Browser", "Open YouTube Shorts", "open YouTube Shorts"
+    ),
     "notes.new": _action("Notes", "Create a new note", "new note"),
     "notes.search": _action("Notes", "Search notes", "search notes"),
     "mail.new": _action("Mail", "Create a new email", "new email"),
@@ -170,8 +240,23 @@ BASE_ACTIONS = {
     "claude_agent.read": _action(
         "AI", "Read Claude agent response", "read Claude response"
     ),
+    "claude_agent.new": _action(
+        "AI", "Start a new Claude agent session", "new Claude agent"
+    ),
+    "claude_agent.create_subagent": _action(
+        "AI", "Create a Claude subagent", "create a Claude subagent"
+    ),
+    "claude_agent.show_agents": _action(
+        "AI", "Show Claude agents", "show Claude agents"
+    ),
+    "claude_agent.resume": _action(
+        "AI", "Resume Claude agent", "resume Claude agent"
+    ),
     "claude_desktop.message": _action(
-        "AI", "Message Claude Desktop", "message Claude"
+        "AI", "Message Claude", "message Claude"
+    ),
+    "claude_desktop.new_chat": _action(
+        "AI", "Start a new Claude chat", "new Claude chat"
     ),
     "response.read_latest": _action("AI", "Read latest response", "read it to me"),
     "date.today": _action("Information", "Read today's date", "what is today's date"),
@@ -353,6 +438,13 @@ def collect_builtin_inventory(profile):
                 inventory[action_id].add(phrase)
             continue
 
+        if entity == "HermesComposerCommand":
+            hermes_action = collector._hermes_composer_actions.get(phrase)
+            action_id = f"hermes.{hermes_action}"
+            if action_id in inventory:
+                inventory[action_id].add(phrase)
+            continue
+
         operation = DESKTOP_ENTITY_OPERATIONS.get(entity)
         if operation:
             matches = []
@@ -414,8 +506,17 @@ class CustomCommandsMixin:
             return
 
         direct_handlers = {
+            "system.mute_all_audio": "handle_mute_system_audio",
             "system.mute_microphone": "handle_mute_system_microphone",
             "system.mute_jarvis": "handle_mute_jarvis",
+            "system.press_enter": "handle_press_enter",
+            "system.caps_lock_on": "handle_caps_lock_on",
+            "system.caps_lock_off": "handle_caps_lock_off",
+            "media.play": "handle_play_media",
+            "media.pause": "handle_pause_media",
+            "media.stop": "handle_stop_media",
+            "media.next": "handle_next_media",
+            "media.previous": "handle_previous_media",
             "window.close": "handle_close_focused_window",
             "window.minimize": "handle_minimize_focused_window",
             "window.maximize": "handle_maximize_focused_window",
@@ -466,10 +567,22 @@ class CustomCommandsMixin:
                 self._prompt_browser_search(message, "brave")
             elif browser_action == "search_firefox":
                 self._prompt_browser_search(message, "firefox")
+            elif browser_action == "search_youtube":
+                self._prompt_youtube_search(message)
+            elif browser_action == "youtube_shorts":
+                self._open_youtube_shorts()
             elif browser_action == "address":
                 self._custom_address_prompt()
             else:
                 self._run_browser_action(browser_action)
+            return
+
+        if action_id == "hermes.message":
+            self._message_hermes_desktop()
+            return
+
+        if action_id.startswith("hermes."):
+            self._run_hermes_action(action_id.removeprefix("hermes."))
             return
 
         if action_id.startswith("codex."):
@@ -492,10 +605,21 @@ class CustomCommandsMixin:
                 self._message_agent("claude")
             elif operation == "read":
                 self._read_agent_response("claude")
+            elif operation == "new":
+                self._launch_claude_session_control("new")
+            elif operation == "create_subagent":
+                self._create_claude_subagent()
+            elif operation == "show_agents":
+                self._launch_claude_session_control("agents")
+            elif operation == "resume":
+                self._window_action("open", "claude")
             return
 
         if action_id == "claude_desktop.message":
             self._message_claude_desktop()
+            return
+        if action_id == "claude_desktop.new_chat":
+            self._open_claude_desktop_new_chat()
             return
         if action_id == "response.read_latest":
             self._read_agent_response()

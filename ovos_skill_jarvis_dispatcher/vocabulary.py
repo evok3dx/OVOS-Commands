@@ -96,6 +96,57 @@ FIREFOX_SEARCH_PROMPTS = (
     "stage 5 folks",
 )
 
+YOUTUBE_SEARCH_PROMPTS = (
+    "search youtube",
+    "search you tube",
+    "search on youtube",
+    "search in youtube",
+    "youtube search",
+    "you tube search",
+)
+
+YOUTUBE_SHORTS_PROMPTS = (
+    "go to youtube shorts",
+    "open youtube shorts",
+    "youtube shorts",
+    "show youtube shorts",
+    "go to youtube reels",
+    "open youtube reels",
+    "youtube reels",
+    "show youtube reels",
+)
+
+HERMES_COMPOSER_ACTIONS = {
+    "focus hermes composer": "focus_composer",
+    "go to hermes composer": "focus_composer",
+    "focus the hermes composer": "focus_composer",
+    "focus composer in hermes": "focus_composer",
+    "open hermes model picker": "model_picker",
+    "show hermes model picker": "model_picker",
+    "choose hermes model": "model_picker",
+    "change hermes model": "model_picker",
+    "new line in hermes": "insert_newline",
+    "insert new line in hermes": "insert_newline",
+    "insert newline in hermes": "insert_newline",
+    "add a new line in hermes": "insert_newline",
+    "queue hermes message": "queue_message",
+    "queue message in hermes": "queue_message",
+    "add hermes message to queue": "queue_message",
+    "send next hermes message": "send_queued",
+    "send next queued hermes turn": "send_queued",
+    "send hermes queue": "send_queued",
+    "open hermes commands": "command_palette",
+    "show hermes commands": "command_palette",
+    "open hermes slash commands": "command_palette",
+    "show hermes command palette": "command_palette",
+    "reference file in hermes": "reference",
+    "reference files in hermes": "reference",
+    "attach file in hermes": "reference",
+    "add file to hermes": "reference",
+    "cancel hermes run": "cancel",
+    "stop hermes run": "cancel",
+    "close hermes popup": "cancel",
+}
 
 def register_skill_vocabulary(self, include_custom=True):
     """Register all dispatcher vocabulary without changing intent behaviour."""
@@ -110,7 +161,18 @@ def register_skill_vocabulary(self, include_custom=True):
             "clod agent",
         ],
         "ClaudeKeyword": [
+            "claude",
+            "cloud",
+            "clawed",
+            "called",
             "clawed agent"
+        ],
+        "HermesKeyword": [
+            "hermes",
+            "hermas",
+            "omos",
+            "hermes desktop",
+            "hermes app",
         ],
         "OpenCodexCommand": [
             "opencodex agent",
@@ -149,6 +211,7 @@ def register_skill_vocabulary(self, include_custom=True):
             "dismiss window"
         ],
         "MessageKeyword": [
+            "message",
             "ask",
             "tell",
             "talk to",
@@ -165,7 +228,11 @@ def register_skill_vocabulary(self, include_custom=True):
             "send this to",
             "send that to",
             "give a task to"
-        ]
+        ],
+        "WriteKeyword": ["write"],
+        "TypeKeyword": ["type"],
+        "SpeakKeyword": ["speak"],
+        "TalkKeyword": ["talk"],
     }
 
     for entity, phrases in aliases.items():
@@ -178,13 +245,64 @@ def register_skill_vocabulary(self, include_custom=True):
             "MuteSystemMicrophoneCommand"
         )
 
+    for phrase in (
+        "mute system",
+        "mute the system",
+        "mute everything",
+        "mute all system audio",
+    ):
+        self.register_vocabulary(
+            phrase,
+            "MuteSystemAudioCommand"
+        )
+
     for phrase in ("mute jarvis", "stop jarvis listening"):
         self.register_vocabulary(
             phrase,
             "MuteJarvisCommand"
         )
 
+    system_controls = {
+        "PressEnterCommand": [
+            "press enter", "press return", "press send",
+            "hit enter", "hit return",
+        ],
+        "PlayMediaCommand": [
+            "play media", "play the media", "resume playback",
+            "resume media", "play music", "play the music",
+        ],
+        "PauseMediaCommand": [
+            "pause media", "pause the media", "pause playback",
+            "pause music", "pause the music",
+        ],
+        "StopMediaCommand": [
+            "stop media", "stop the media", "stop playback",
+            "stop the music", "stop playing",
+        ],
+        "NextMediaCommand": [
+            "next track", "next song", "skip track", "skip this track",
+            "skip song", "play next track", "play next song",
+        ],
+        "PreviousMediaCommand": [
+            "previous track", "previous song", "back track", "back a track",
+            "go back a track", "play previous track", "play previous song",
+        ],
+        "CapsLockOnCommand": [
+            "caps lock on", "turn caps lock on",
+            "enable caps lock", "switch caps lock on",
+        ],
+        "CapsLockOffCommand": [
+            "caps lock off", "turn caps lock off",
+            "disable caps lock", "switch caps lock off",
+        ],
+    }
+    for entity, phrases in system_controls.items():
+        for phrase in phrases:
+            self.register_vocabulary(phrase, entity)
 
+    self._hermes_composer_actions = HERMES_COMPOSER_ACTIONS
+    for phrase in self._hermes_composer_actions:
+        self.register_vocabulary(phrase, "HermesComposerCommand")
 
     # Natural desktop application controls resolved by the active profile.
     profile = getattr(self, "_jarvis_profile", None)
@@ -255,8 +373,17 @@ def register_skill_vocabulary(self, include_custom=True):
             "FirefoxSearchPromptCommand"
         )
 
+    for phrase in YOUTUBE_SEARCH_PROMPTS:
+        self.register_vocabulary(
+            phrase,
+            "YouTubeSearchPromptCommand"
+        )
 
-
+    for phrase in YOUTUBE_SHORTS_PROMPTS:
+        self.register_vocabulary(
+            phrase,
+            "YouTubeShortsCommand"
+        )
 
     write_text_commands = [
         "write this",
@@ -333,6 +460,59 @@ def register_skill_vocabulary(self, include_custom=True):
             phrase,
             "OpenClaudeCommand"
         )
+
+    claude_names = ("claude", "cloud", "clawed", "called")
+    claude_new_chat_templates = (
+        "new {name} chat",
+        "a new {name} chat",
+        "open new {name} chat",
+        "open a new {name} chat",
+        "start new {name} chat",
+        "start a new {name} chat",
+        "create new {name} chat",
+        "create a new {name} chat",
+        "new chat with {name}",
+        "start a new chat with {name}",
+        "open a new chat with {name}",
+    )
+    for name in claude_names:
+        for template in claude_new_chat_templates:
+            self.register_vocabulary(
+                template.format(name=name),
+                "NewClaudeChatCommand",
+            )
+
+    claude_agent_command_templates = {
+        "NewClaudeAgentCommand": (
+            "new {name} agent",
+            "start new {name} agent",
+            "start a new {name} agent",
+            "open new {name} agent",
+        ),
+        "CreateClaudeSubagentCommand": (
+            "create {name} subagent",
+            "create a {name} subagent",
+            "make a {name} subagent",
+            "new {name} subagent",
+            "add a {name} subagent",
+        ),
+        "ShowClaudeAgentsCommand": (
+            "show {name} agents",
+            "open {name} agents",
+            "list {name} agents",
+            "manage {name} agents",
+        ),
+        "ResumeClaudeAgentCommand": (
+            "resume {name} agent",
+            "continue {name} agent",
+            "return to {name} agent",
+            "reopen {name} agent",
+        ),
+    }
+    for entity, templates in claude_agent_command_templates.items():
+        for name in claude_names:
+            for template in templates:
+                self.register_vocabulary(template.format(name=name), entity)
 
 
     natural_date_commands = [

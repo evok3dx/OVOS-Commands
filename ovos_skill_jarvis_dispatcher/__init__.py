@@ -16,6 +16,7 @@ from .dictation import DictationActionsMixin
 from .helpers import DispatcherHelpersMixin
 from .profile import load_profile
 from .system_audio import SystemAudioActionsMixin
+from .system_controls import SystemControlsMixin
 from .text_editing import TextEditingActionsMixin
 from .vocabulary import register_skill_vocabulary
 from .wakeword import WakewordActionsMixin
@@ -37,7 +38,7 @@ except Exception as error:
                 f"Claude Desktop integration unavailable: "
                 f"{_claude_desktop_import_error}"
             )
-            self.speak("Claude Desktop control is unavailable.")
+            self.speak("Claude control is unavailable.")
 
         def _route_claude_message(self, message):
             utterance = str(message.data.get("utterance", "")).lower()
@@ -51,7 +52,37 @@ except Exception as error:
                 f"Claude Desktop integration unavailable: "
                 f"{_claude_desktop_import_error}"
             )
-            self.speak("Claude Desktop messaging is unavailable.")
+            self.speak("Claude messaging is unavailable.")
+
+        def _open_claude_desktop_new_chat(self):
+            self.log.error(
+                f"Claude Desktop integration unavailable: "
+                f"{_claude_desktop_import_error}"
+            )
+            self.speak("Claude control is unavailable.")
+            return None
+
+try:
+    from .integrations.hermes_desktop import HermesDesktopIntegrationMixin
+except Exception as error:
+    _hermes_desktop_import_error = str(error)
+
+    class HermesDesktopIntegrationMixin:
+        """Fail-safe replacement for an unavailable optional integration."""
+
+        def _run_hermes_action(self, _action):
+            self.log.error(
+                f"Hermes integration unavailable: "
+                f"{_hermes_desktop_import_error}"
+            )
+            self.speak("Hermes control is unavailable.")
+
+        def _message_hermes_desktop(self):
+            self.log.error(
+                f"Hermes integration unavailable: "
+                f"{_hermes_desktop_import_error}"
+            )
+            self.speak("Hermes messaging is unavailable.")
 
 try:
     from .integrations.zoom import ZoomIntegrationMixin
@@ -118,8 +149,10 @@ class JarvisDispatcherSkill(
     WakewordActionsMixin,
     DictationActionsMixin,
     SystemAudioActionsMixin,
+    SystemControlsMixin,
     TextEditingActionsMixin,
     ClaudeDesktopIntegrationMixin,
+    HermesDesktopIntegrationMixin,
     ZoomIntegrationMixin,
     ProtonMailIntegrationMixin,
     StandardNotesIntegrationMixin,
@@ -172,11 +205,86 @@ class JarvisDispatcherSkill(
         self._mute_system_microphone()
 
     @intent_handler(
+        IntentBuilder("MuteSystemAudioIntent")
+        .require("MuteSystemAudioCommand")
+    )
+    def handle_mute_system_audio(self, _message):
+        self._mute_all_system_audio()
+
+    @intent_handler(
         IntentBuilder("MuteJarvisIntent")
         .require("MuteJarvisCommand")
     )
     def handle_mute_jarvis(self, _message):
         self._mute_jarvis_listener()
+
+    @intent_handler(
+        IntentBuilder("PressEnterIntent").require("PressEnterCommand")
+    )
+    def handle_press_enter(self, _message):
+        self._press_enter()
+
+    @intent_handler(
+        IntentBuilder("PlayMediaIntent").require("PlayMediaCommand")
+    )
+    def handle_play_media(self, _message):
+        self._run_media_action("play")
+
+    @intent_handler(
+        IntentBuilder("PauseMediaIntent").require("PauseMediaCommand")
+    )
+    def handle_pause_media(self, _message):
+        self._run_media_action("pause")
+
+    @intent_handler(
+        IntentBuilder("StopMediaIntent").require("StopMediaCommand")
+    )
+    def handle_stop_media(self, _message):
+        self._run_media_action("stop")
+
+    @intent_handler(
+        IntentBuilder("NextMediaIntent").require("NextMediaCommand")
+    )
+    def handle_next_media(self, _message):
+        self._run_media_action("next")
+
+    @intent_handler(
+        IntentBuilder("PreviousMediaIntent").require("PreviousMediaCommand")
+    )
+    def handle_previous_media(self, _message):
+        self._run_media_action("previous")
+
+    @intent_handler(
+        IntentBuilder("CapsLockOnIntent").require("CapsLockOnCommand")
+    )
+    def handle_caps_lock_on(self, _message):
+        self._set_caps_lock(True)
+
+    @intent_handler(
+        IntentBuilder("CapsLockOffIntent").require("CapsLockOffCommand")
+    )
+    def handle_caps_lock_off(self, _message):
+        self._set_caps_lock(False)
+
+    @intent_handler(
+        IntentBuilder("HermesComposerIntent")
+        .require("HermesComposerCommand")
+    )
+    def handle_hermes_composer(self, message):
+        phrase = next(
+            (
+                value for key, value in message.data.items()
+                if key.endswith("HermesComposerCommand")
+            ),
+            "",
+        )
+        action = self._hermes_composer_actions.get(
+            " ".join(str(phrase).lower().split()).strip(" .")
+        )
+        if not action:
+            self.speak("I did not recognise that Hermes command.")
+            return
+        self._run_hermes_action(action)
 
 
     @intent_handler(
@@ -447,6 +555,19 @@ class JarvisDispatcherSkill(
             "firefox"
         )
 
+    @intent_handler(
+        IntentBuilder("YouTubeSearchPromptIntent")
+        .require("YouTubeSearchPromptCommand")
+    )
+    def handle_youtube_search_prompt(self, message):
+        self._prompt_youtube_search(message)
+
+    @intent_handler(
+        IntentBuilder("YouTubeShortsIntent")
+        .require("YouTubeShortsCommand")
+    )
+    def handle_youtube_shorts(self, _message):
+        self._open_youtube_shorts()
 
     @intent_handler(
         IntentBuilder("BrowserNavigationIntent")
@@ -600,6 +721,41 @@ class JarvisDispatcherSkill(
         self._route_claude_window_action(message, "open")
 
     @intent_handler(
+        IntentBuilder("NewClaudeChatIntent")
+        .require("NewClaudeChatCommand")
+    )
+    def handle_new_claude_chat(self, _message):
+        self._open_claude_desktop_new_chat()
+
+    @intent_handler(
+        IntentBuilder("NewClaudeAgentIntent")
+        .require("NewClaudeAgentCommand")
+    )
+    def handle_new_claude_agent(self, _message):
+        self._launch_claude_session_control("new")
+
+    @intent_handler(
+        IntentBuilder("CreateClaudeSubagentIntent")
+        .require("CreateClaudeSubagentCommand")
+    )
+    def handle_create_claude_subagent(self, _message):
+        self._create_claude_subagent()
+
+    @intent_handler(
+        IntentBuilder("ShowClaudeAgentsIntent")
+        .require("ShowClaudeAgentsCommand")
+    )
+    def handle_show_claude_agents(self, _message):
+        self._launch_claude_session_control("agents")
+
+    @intent_handler(
+        IntentBuilder("ResumeClaudeAgentIntent")
+        .require("ResumeClaudeAgentCommand")
+    )
+    def handle_resume_claude_agent(self, _message):
+        self._window_action("open", "claude")
+
+    @intent_handler(
         IntentBuilder("FocusCodexIntent")
         .require("FocusKeyword")
         .require("CodexKeyword")
@@ -662,7 +818,6 @@ class JarvisDispatcherSkill(
     )
     def handle_message_claude(self, message):
         self._route_claude_message(message)
-
 
     @intent_handler(
         IntentBuilder("WriteCodexIntent")
@@ -727,6 +882,46 @@ class JarvisDispatcherSkill(
     )
     def handle_talk_claude(self, message):
         self._route_claude_message(message)
+
+    @intent_handler(
+        IntentBuilder("MessageHermesIntent")
+        .require("MessageKeyword")
+        .require("HermesKeyword")
+    )
+    def handle_message_hermes(self, _message):
+        self._message_hermes_desktop()
+
+    @intent_handler(
+        IntentBuilder("WriteHermesIntent")
+        .require("WriteKeyword")
+        .require("HermesKeyword")
+    )
+    def handle_write_hermes(self, _message):
+        self._message_hermes_desktop()
+
+    @intent_handler(
+        IntentBuilder("TypeHermesIntent")
+        .require("TypeKeyword")
+        .require("HermesKeyword")
+    )
+    def handle_type_hermes(self, _message):
+        self._message_hermes_desktop()
+
+    @intent_handler(
+        IntentBuilder("SpeakHermesIntent")
+        .require("SpeakKeyword")
+        .require("HermesKeyword")
+    )
+    def handle_speak_hermes(self, _message):
+        self._message_hermes_desktop()
+
+    @intent_handler(
+        IntentBuilder("TalkHermesIntent")
+        .require("TalkKeyword")
+        .require("HermesKeyword")
+    )
+    def handle_talk_hermes(self, _message):
+        self._message_hermes_desktop()
 
 
 

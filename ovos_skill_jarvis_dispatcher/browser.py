@@ -1,5 +1,6 @@
 import re
 import subprocess
+import time
 from pathlib import Path
 from urllib.parse import quote_plus
 
@@ -45,6 +46,38 @@ class BrowserActionsMixin:
             )
 
         return None
+
+    def _active_window_title(self):
+        """Return the active window title without exposing other window data."""
+
+        try:
+            window_id = subprocess.run(
+                ["/usr/bin/xdotool", "getactivewindow"],
+                capture_output=True,
+                text=True,
+                check=True,
+                timeout=5
+            ).stdout.strip()
+            return subprocess.run(
+                [
+                    "/usr/bin/xprop", "-id", window_id,
+                    "_NET_WM_NAME"
+                ],
+                capture_output=True,
+                text=True,
+                check=True,
+                timeout=5
+            ).stdout.lower()
+        except Exception:
+            return ""
+
+    def _active_tab_is_youtube(self):
+        """Return true only when the currently visible browser tab is YouTube."""
+
+        return bool(
+            self._active_browser()
+            and "youtube" in self._active_window_title()
+        )
 
     def _focus_browser(self, browser):
         """Open or focus a supported browser and report prior state."""
@@ -392,3 +425,156 @@ class BrowserActionsMixin:
             query,
             browser=browser
         )
+
+    def _open_browser_url(self, url, browser=None):
+        """Open an allowlisted URL in a new tab of the chosen browser."""
+
+        selected_browser = (
+            browser
+            or self._active_browser()
+            or "brave"
+        )
+        browser_was_open = self._focus_browser(selected_browser)
+
+        if browser_was_open:
+            subprocess.run(
+                [
+                    "/usr/bin/xdotool", "key",
+                    "--clearmodifiers", "ctrl+t"
+                ],
+                check=True,
+                timeout=5,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+
+        subprocess.run(
+            [
+                "/usr/bin/xdotool", "key",
+                "--clearmodifiers", "ctrl+l"
+            ],
+            check=True,
+            timeout=5,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+        subprocess.run(
+            [
+                "/usr/bin/xdotool", "type",
+                "--clearmodifiers", "--delay", "5",
+                "--", url
+            ],
+            check=True,
+            timeout=15,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+        subprocess.run(
+            [
+                "/usr/bin/xdotool", "key",
+                "--clearmodifiers", "Return"
+            ],
+            check=True,
+            timeout=5,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+
+        return selected_browser
+
+    def _prompt_youtube_search(self, message):
+        """Open YouTube, expose its search field, then capture the query."""
+
+        try:
+            if self._active_tab_is_youtube():
+                browser = self._active_browser()
+            else:
+                browser = self._open_browser_url("https://www.youtube.com")
+                time.sleep(2)
+
+            # YouTube's slash shortcut focuses the visible search field.
+            subprocess.run(
+                [
+                    "/usr/bin/xdotool", "key",
+                    "--clearmodifiers", "slash"
+                ],
+                check=True,
+                timeout=5,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+
+            query = self.get_response(
+                "What should I search YouTube for?",
+                message=message,
+                num_retries=1,
+                wait=True
+            )
+            query = str(query or "").strip()
+
+            cancelled = {
+                "cancel", "cancel it", "never mind", "nevermind",
+                "stop", "wait"
+            }
+            if not query or query.lower().strip(" .") in cancelled:
+                self.speak("Cancelled.")
+                return
+
+            if len(query) > 500:
+                self.speak("That search is too long.")
+                return
+
+            self._focus_browser(browser)
+            subprocess.run(
+                [
+                    "/usr/bin/xdotool", "key",
+                    "--clearmodifiers", "slash"
+                ],
+                check=True,
+                timeout=5,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+            subprocess.run(
+                [
+                    "/usr/bin/xdotool", "key",
+                    "--clearmodifiers", "ctrl+a"
+                ],
+                check=True,
+                timeout=5,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+            subprocess.run(
+                [
+                    "/usr/bin/xdotool", "type",
+                    "--clearmodifiers", "--delay", "10",
+                    "--", query
+                ],
+                check=True,
+                timeout=15,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+            subprocess.run(
+                [
+                    "/usr/bin/xdotool", "key",
+                    "--clearmodifiers", "Return"
+                ],
+                check=True,
+                timeout=5,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+        except Exception:
+            self.log.exception("YouTube search failed")
+            self.speak("I could not search YouTube.")
+
+    def _open_youtube_shorts(self):
+        """Open the YouTube Shorts feed in the active supported browser."""
+
+        try:
+            self._open_browser_url("https://www.youtube.com/shorts/")
+        except Exception:
+            self.log.exception("Could not open YouTube Shorts")
+            self.speak("I could not open YouTube Shorts.")

@@ -62,6 +62,7 @@ for module in \
     helpers.py \
     profile.py \
     system_audio.py \
+    system_controls.py \
     text_editing.py \
     vocabulary.py \
     wakeword.py; do
@@ -72,6 +73,7 @@ mkdir -p "$TARGET_PACKAGE/integrations"
 install -m 0644 \
   "$SOURCE_PACKAGE/integrations/__init__.py" \
   "$SOURCE_PACKAGE/integrations/claude_desktop.py" \
+  "$SOURCE_PACKAGE/integrations/hermes_desktop.py" \
   "$SOURCE_PACKAGE/integrations/proton_mail.py" \
   "$SOURCE_PACKAGE/integrations/standard_notes.py" \
   "$SOURCE_PACKAGE/integrations/zoom.py" \

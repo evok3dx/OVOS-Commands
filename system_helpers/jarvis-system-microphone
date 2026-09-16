@@ -6,17 +6,35 @@ action="${1:-}"
 case "$action" in
   mute)
     muted=1
+    scope=source
     ;;
   unmute)
     muted=0
+    scope=source
+    ;;
+  mute-all)
+    muted=1
+    scope=all
+    ;;
+  unmute-all)
+    muted=0
+    scope=all
     ;;
   *)
-    echo "Usage: $0 {mute|unmute}" >&2
+    echo "Usage: $0 {mute|unmute|mute-all|unmute-all}" >&2
     exit 2
     ;;
 esac
 
 if command -v wpctl >/dev/null 2>&1; then
+    if [[ "$scope" == all ]]; then
+        wpctl set-mute @DEFAULT_AUDIO_SINK@ "$muted"
+        if ! wpctl set-mute @DEFAULT_AUDIO_SOURCE@ "$muted"; then
+            wpctl set-mute @DEFAULT_AUDIO_SINK@ 0 || true
+            exit 1
+        fi
+        exit 0
+    fi
     wpctl set-mute @DEFAULT_AUDIO_SOURCE@ "$muted"
     exit 0
 fi
@@ -27,6 +45,19 @@ if command -v pactl >/dev/null 2>&1; then
         echo "No default microphone is configured" >&2
         exit 1
     }
+    if [[ "$scope" == all ]]; then
+        sink_name="$(pactl get-default-sink)"
+        [[ -n "$sink_name" ]] || {
+            echo "No default speaker is configured" >&2
+            exit 1
+        }
+        pactl set-sink-mute "$sink_name" "$muted"
+        if ! pactl set-source-mute "$source_name" "$muted"; then
+            pactl set-sink-mute "$sink_name" 0 || true
+            exit 1
+        fi
+        exit 0
+    fi
     pactl set-source-mute "$source_name" "$muted"
     exit 0
 fi

@@ -10,6 +10,7 @@ case "$app" in
   standard_notes) app="notes" ;;
   onlyoffice) app="office" ;;
   claude_desktop) app="claude" ;;
+  hermes_desktop) app="hermes" ;;
   proton_mail) app="mail" ;;
   proton_calendar) app="calendar" ;;
 esac
@@ -46,6 +47,10 @@ case "$app" in
   claude)
     window_match="com.anthropic.claude.com.anthropic.Claude"
     title="Claude"
+    ;;
+  hermes)
+    window_match="hermes.Hermes"
+    title="Hermes"
     ;;
   mail)
     window_match="proton mail.Proton Mail"
@@ -134,6 +139,9 @@ launch_window() {
       ;;
     claude)
       detached_launch /usr/bin/gtk-launch com.anthropic.Claude
+      ;;
+    hermes)
+      detached_launch /usr/bin/gtk-launch hermes
       ;;
     mail)
       detached_launch /usr/bin/proton-mail
