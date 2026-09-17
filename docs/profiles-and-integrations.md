@@ -36,11 +36,19 @@ If it is absent or invalid, the dispatcher fails closed to core controls. Older
 preserve its already-provisioned private agent extension, but normal setup can
 never enable or provision agents, users, sudo rules or privileged helpers.
 
+When diagnosing a machine, inspect `capabilities.json` first. If it exists, it
+takes precedence over the legacy `profile.json` path.
+
 ## Application-specific actions
 
 Application-specific behaviour belongs in `integrations/`, not in the generic
 desktop controller. Generic commands remain portable; capabilities select only
 compatible, compiled integrations and cannot supply arbitrary shell commands.
+
+Before an integration sends a keyboard shortcut, Jarvis first resolves and
+focuses the reviewed application through `~/.local/bin/jarvis-app-window`.
+Product-specific shortcuts must not be used as a substitute for reliable window
+discovery.
 
 ### Standard Notes
 
@@ -53,14 +61,23 @@ make new note
 ```
 
 It focuses or opens the configured Notes application, verifies that the
-capability file maps Notes to Standard Notes, verifies that Standard Notes owns the
-active window, then invokes the known `Alt+Shift+N` shortcut. Failures are
+capability file maps Notes to Standard Notes, verifies that Standard Notes owns
+the active window, then invokes the known `Alt+Shift+N` shortcut. Failures are
 caught inside that action and do not affect other commands.
 
 Standard Notes also supports two deliberately distinct searches:
 
 - `search this note` uses `Ctrl+F` in the focused note;
 - `search notes` opens the universal palette with `Ctrl+Shift+Colon`.
+
+Standard Notes packaging can expose more than one reviewed X11 class spelling.
+`jarvis-app-window` therefore supports a `|`-separated list of fixed literal
+window signatures and checks each candidate independently. Do not replace that
+logic with one literal comparison against the entire `|`-joined string.
+
+The exact Brain/laptop failure that motivated this rule, plus the validated
+troubleshooting sequence, is documented in
+[`window-focus-and-app-integration.md`](window-focus-and-app-integration.md).
 
 ### Default Mail and Proton Mail
 
@@ -78,6 +95,10 @@ verifying the configured application:
 
 Sending is intentionally not automated. It requires a separate confirmation
 design.
+
+Proton Mail shares the generic app-focus helper with Standard Notes and other
+desktop integrations, but it keeps its own allowlisted window signatures. A
+failure in one application does not prove another application is broken.
 
 ### Zoom
 
