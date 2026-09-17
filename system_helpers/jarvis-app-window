@@ -43,7 +43,10 @@ case "$app" in
     title="Terminal"
     ;;
   notes)
-    window_match="standard notes.Standard Notes"
+    # Standard Notes has used several X11 class spellings across packaging
+    # formats. Alternatives are separated with | and find_window() treats
+    # each member as an independent literal substring.
+    window_match="standard notes.Standard Notes|standard-notes|standardnotes"
     title="Notes"
     ;;
   office)
@@ -84,13 +87,34 @@ case "$app" in
 esac
 
 find_window() {
-  wmctrl -lx |
-    awk -v wanted="$window_match" '
-      index(tolower($0), tolower(wanted)) {
-        print $1
-        exit
-      }
-    '
+  local candidate
+  local window_id
+  local -a candidates
+
+  # window_match is an allowlisted | separated list of literal X11 window
+  # signatures. Do not pass it to a regex engine and do not treat the full
+  # string as one literal. This keeps alternative package/window classes
+  # portable while preserving exact reviewed matches.
+  IFS='|' read -r -a candidates <<< "$window_match"
+
+  for candidate in "${candidates[@]}"; do
+    window_id="$(
+      wmctrl -lx |
+        awk -v wanted="$candidate" '
+          index(tolower($0), tolower(wanted)) {
+            print $1
+            exit
+          }
+        '
+    )"
+
+    if [[ -n "$window_id" ]]; then
+      printf '%s\n' "$window_id"
+      return 0
+    fi
+  done
+
+  return 1
 }
 
 wait_for_window() {
