@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -u
+shopt -s nullglob
 
 action="${1:-}"
 app="${2:-}"
@@ -20,6 +21,7 @@ case "$app" in
 esac
 
 window_wait_attempts=40
+systemd_run="${JARVIS_SYSTEMD_RUN:-/usr/bin/systemd-run}"
 
 case "$app" in
   brave)
@@ -158,7 +160,7 @@ show_window() {
 detached_launch() {
   local unit="jarvis-launch-${app}-$(date +%s%N)"
 
-  /usr/bin/systemd-run \
+  "$systemd_run" \
     --user \
     --quiet \
     --collect \
@@ -191,10 +193,26 @@ launch_window() {
     notes)
       if [[ -n "${JARVIS_STANDARD_NOTES:-}" && -x "$JARVIS_STANDARD_NOTES" ]]; then
         detached_launch "$JARVIS_STANDARD_NOTES"
+      elif standard_notes="$(command -v standard-notes 2>/dev/null)" && \
+           [[ -x "$standard_notes" ]]; then
+        detached_launch "$standard_notes"
+      elif standard_notes="$(command -v standard-notes-desktop 2>/dev/null)" && \
+           [[ -x "$standard_notes" ]]; then
+        detached_launch "$standard_notes"
+      elif /usr/bin/flatpak info org.standardnotes.standardnotes >/dev/null 2>&1; then
+        detached_launch /usr/bin/flatpak run org.standardnotes.standardnotes
       else
         standard_notes_candidates=(
-          "$HOME"/Apps/standard-notes-*-linux-x86_64.AppImage
+          "$HOME"/Apps/standard-notes*.AppImage
+          "$HOME"/Apps/Standard-Notes*.AppImage
+          "$HOME"/Apps/standardnotes*.AppImage
+          "$HOME"/Apps/StandardNotes*.AppImage
+          "$HOME"/Applications/standard-notes*.AppImage
+          "$HOME"/Applications/Standard-Notes*.AppImage
+          "$HOME"/Applications/standardnotes*.AppImage
+          "$HOME"/Applications/StandardNotes*.AppImage
         )
+        ((${#standard_notes_candidates[@]})) || return 1
         standard_notes="${standard_notes_candidates[${#standard_notes_candidates[@]}-1]}"
         [[ -x "$standard_notes" ]] || return 1
         detached_launch "$standard_notes"

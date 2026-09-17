@@ -29,6 +29,12 @@ configured for a virtualenv install with telemetry, the LLM fallback and extra
 community skills disabled. After preparation, Jarvis and its normal controls
 remain within the desktop user account.
 
+The local voice path is reproducible: wake word, VAD, Faster Whisper, PhōnNX,
+Bella and the supporting pronunciation/runtime packages use the versions
+recorded in `compatibility.json`. The installer deliberately omits the Brain's
+unrelated CUDA and agent packages; they are neither required for Bella on CPU
+nor appropriate for a portable desktop installation.
+
 The official OVOS installer requires elevated execution. Jarvis never runs it
 inside a user-owned source tree: the archive is verified again, extracted into
 a private root workspace under `/var/tmp`, and that workspace is removed by
@@ -57,8 +63,8 @@ created or silently managed by this repository.
 Before installing a downloaded archive:
 
 ```bash
-sha256sum --check ovos-commands-2.2.4.tar.gz.sha256
-tar -tzf ovos-commands-2.2.4.tar.gz
+sha256sum --check ovos-commands-2.3.0.tar.gz.sha256
+tar -tzf ovos-commands-2.3.0.tar.gz
 ```
 
 ## Updating Jarvis and OVOS
@@ -94,7 +100,7 @@ OVOS and Jarvis updates are deliberately supervised rather than unattended:
 6. Use `scripts/rollback.sh` if the Jarvis deployment regresses. Restore the
    OVOS configuration backup separately if the upstream update changed it.
 
-The weekly GitHub workflow tests this skill against current OVOS Python APIs.
+The GitHub workflow tests this skill against current OVOS Python APIs.
 It reports upstream movement but never updates a workstation or dependency by
 itself.
 

@@ -15,9 +15,11 @@ explicitly compatible integrations.
 - `Custom`: shows only detected reviewed applications for selection.
 
 The OVOS bootstrap may install OVOS and minimal command-line system
-prerequisites, but the installer and `jarvis-setup` never install desktop
-applications. The tray opens the same setup window later. Non-interactive
-deployment can select explicitly:
+prerequisites, but application selection never installs the selected desktop
+applications. Speech Note is the one separate, explicitly labelled optional
+add-on and is installed per-user only after confirmation. The tray opens the
+same application-selection window later. Non-interactive deployment can select
+explicitly:
 
 ```bash
 bash scripts/install.sh --mode all
@@ -64,6 +66,11 @@ It focuses or opens the configured Notes application, verifies that the
 capability file maps Notes to Standard Notes, verifies that Standard Notes owns
 the active window, then invokes the known `Alt+Shift+N` shortcut. Failures are
 caught inside that action and do not affect other commands.
+
+Detection and launching share the same reviewed forms: the `standard-notes`
+commands, the official Flatpak ID, matching desktop launchers, and Standard
+Notes AppImages in `~/Apps` or `~/Applications`. Profile files still cannot
+provide an arbitrary executable path.
 
 Standard Notes also supports two deliberately distinct searches:
 
@@ -120,18 +127,22 @@ retained only for tested migration of older releases.
 Executable paths remain in allowlisted helpers. They are not accepted from a
 spoken command or arbitrary profile value.
 
-The `conversation` and `wake_phrase` values record installation choices for a
-future bootstrap installer. The dispatcher does not directly reconfigure the
-OVOS Persona or listener services from these values. This prevents deploying
-an application profile from unexpectedly changing the machine's voice stack.
+The `conversation`, `wake_phrase`, `listen_shortcut` and
+`microphone_shortcut` values record the reviewed installation choices. The
+transactional installer applies the wake phrase and both Cinnamon shortcuts;
+the dispatcher itself never rewrites OVOS or desktop settings while handling
+a spoken command. Defaults match the validated Brain: Super+L starts one
+manual command and Shift+Super+L stops or starts wake-word listening.
 
 ## Immediate command capture
 
-If the first word of a command is clipped after the wake phrase, enable OVOS
-`instant_listen` separately from profile deployment:
+The reviewed local stack matches the validated Brain with `instant_listen`
+enabled, a 0.25-second barge-in delay and fake barge-in enabled. If a particular
+microphone produces accidental follow-up capture, disable `instant_listen`
+separately from profile deployment:
 
 ```bash
-bash scripts/set-instant-listen.sh enable
+bash scripts/set-instant-listen.sh disable
 jarvis-restart --full
 ```
 

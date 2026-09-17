@@ -112,6 +112,78 @@ for required_bootstrap_fragment in (
 assert 'for command in git sudo bash' not in installer_source
 assert "sudo -n rm -rf" not in installer_source
 assert '(cd "$installer_root" && sudo bash setup.sh)' not in installer_source
+doctor_source = (ROOT / "scripts/doctor.py").read_text(encoding="utf-8")
+assert "metadata.entry_points(group=group)" in doctor_source
+assert 'entries_for("opm.skill")' in doctor_source
+assert 'entries_for("opm.wake_word")' in doctor_source
+assert 'entries_for("opm.stt")' in doctor_source
+assert 'entries_for("opm.tts")' in doctor_source
+assert 'entries_for("opm.VAD")' in doctor_source
+assert "entry.group for entry in metadata.entry_points()" not in doctor_source
+assert "result.stderr.strip()" in doctor_source
+doctor_tree = ast.parse(doctor_source)
+probe_values = [
+    node.value.value
+    for node in ast.walk(doctor_tree)
+    if isinstance(node, ast.Assign)
+    and any(isinstance(target, ast.Name) and target.id == "probe" for target in node.targets)
+    and isinstance(node.value, ast.Constant)
+    and isinstance(node.value.value, str)
+]
+assert len(probe_values) == 1
+compile(probe_values[0], "doctor-ovos-probe", "exec")
+tray_source = (ROOT / "tray/ovos-tray.py").read_text(encoding="utf-8")
+assert 'Path.home() / ".local/bin" / name' in tray_source
+assert '"Wake phrase…", self._wake_phrase' in tray_source
+assert '"Keyboard shortcuts…", self._listen_shortcut' in tray_source
+assert '"About…", self._about' in tray_source
+assert "def _installed_jarvis_version" in tray_source
+assert "def _ovos_versions" in tray_source
+assert "jarvis-focused-navigation" in EXPECTED_SYSTEM_HELPERS
+assert COMPATIBILITY["ovos"]["wakeword"] == {
+    "phrase": "hey_jarvis",
+    "module": "ovos-ww-plugin-openwakeword",
+    "package": "ovos-ww-plugin-openwakeword",
+    "validated_version": "0.4.5a2",
+    "engine_package": "openwakeword",
+    "engine_version": "0.6.0",
+    "threshold": 0.5,
+}
+assert COMPATIBILITY["ovos"]["custom_wakeword"]["module"] == "ovos-ww-plugin-vosk"
+assert COMPATIBILITY["ovos"]["stt"]["model"] == "small.en"
+assert COMPATIBILITY["ovos"]["tts"]["voice"] == "kokoro/af_bella"
+assert COMPATIBILITY["ovos"]["tts"]["scriptconv_version"] == "0.0.4a23"
+assert COMPATIBILITY["ovos"]["tts"]["spacy_version"] == "3.8.15"
+assert COMPATIBILITY["ovos"]["tts"]["onnxruntime_version"] == "1.29.0"
+assert COMPATIBILITY["ovos"]["tts"]["numpy_version"] == "1.26.4"
+assert COMPATIBILITY["ovos"]["intent_pipeline"] == [
+    "ovos-stop-pipeline-plugin-high",
+    "ovos-converse-pipeline-plugin",
+    "ovos-ocp-pipeline-plugin-high",
+    "ovos-adapt-pipeline-plugin-high",
+    "ovos-persona-pipeline-plugin-high",
+    "ovos-padatious-pipeline-plugin-high",
+    "ovos-fallback-pipeline-plugin-high",
+    "ovos-stop-pipeline-plugin-medium",
+    "ovos-adapt-pipeline-plugin-medium",
+    "ovos-persona-pipeline-plugin-low",
+    "ovos-common-query-pipeline-plugin",
+    "ovos-fallback-pipeline-plugin-medium",
+    "ovos-fallback-pipeline-plugin-low",
+]
+assert re.fullmatch(
+    r"[0-9a-f]{64}", COMPATIBILITY["ovos"]["tts"]["spacy_model_sha256"]
+)
+assert re.fullmatch(
+    r"[0-9a-f]{40}", COMPATIBILITY["ovos"]["tts"]["reference_commit"]
+)
+assert re.fullmatch(
+    r"[0-9a-f]{64}", COMPATIBILITY["ovos"]["tts"]["archive_sha256"]
+)
+assert (ROOT / "voice/jarvis-ready.wav").read_bytes()[:4] == b"RIFF"
+assert "nvidia-" not in installer_source
+assert "torch==" not in installer_source
+assert '_terminal_helper("jarvis-update", action)' in tray_source
 speechnote_setup = (ROOT / "system_helpers/jarvis-speechnote-setup").read_text(
     encoding="utf-8"
 )
@@ -236,6 +308,9 @@ def main():
         compile(path.read_text(encoding="utf-8"), str(path), "exec")
 
     for path in optional_files:
+        if path.suffix == ".wav":
+            assert path.read_bytes()[:4] == b"RIFF"
+            continue
         source = path.read_text(encoding="utf-8")
         first_line = source.splitlines()[0]
         if path.suffix == ".py" or "python" in first_line:
@@ -299,6 +374,11 @@ def main():
 
     namespace = {}
     exec((PACKAGE / "vocabulary.py").read_text(), namespace)
+    browser_navigation = namespace["BROWSER_NAVIGATION_ACTIONS"]
+    assert browser_navigation["roll up"] == "scroll_up"
+    assert browser_navigation["roll down"] == "scroll_down"
+    assert browser_navigation["top of page"] == "top"
+    assert browser_navigation["bottom of page"] == "bottom"
 
     conversation_namespace = {}
     exec((PACKAGE / "conversation.py").read_text(), conversation_namespace)
@@ -314,7 +394,7 @@ def main():
     fake = FakeSkill()
     fake._jarvis_profile = brain_profile
     namespace["register_skill_vocabulary"](fake, include_custom=False)
-    assert len(fake.registrations) == 1701
+    assert len(fake.registrations) == 1705
     assert len(fake.registrations) == len(set(fake.registrations)), (
         "Duplicate vocabulary registrations are present"
     )
@@ -525,7 +605,7 @@ def main():
         "open youtube reels", "youtube reels", "show youtube reels",
     ):
         assert (phrase, "YouTubeShortsCommand") in fake.registrations
-    assert len(fake._browser_navigation_actions) == 68
+    assert len(fake._browser_navigation_actions) == 72
     assert set(fake._desktop_app_aliases) == {
         "brave", "firefox", "signal", "zoom", "terminal", "notes",
         "office", "claude", "chatgpt", "hermes", "mail", "proton_mail",
@@ -657,7 +737,7 @@ def main():
 
     print(f"PASS: {len(python_files)} Python modules compile")
     print("PASS: 90 intents match the expected inventory")
-    print("PASS: 1701 compatibility vocabulary registrations are present")
+    print("PASS: 1705 compatibility vocabulary registrations are present")
     print("PASS: vocabulary registrations and entities are consistent")
     print("PASS: personal phrase validation rejects built-in collisions")
     print("PASS: personal phrases save atomically with private permissions")

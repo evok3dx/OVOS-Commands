@@ -262,7 +262,32 @@ print(json.dumps(sorted(items, key=lambda item: item[0].lower())))
         )
 
     def _speechnote(self, _item=None):
-        self._terminal_command("jarvis-speechnote-setup")
+        self._terminal_helper("jarvis-speechnote-setup")
+
+    @staticmethod
+    def _wake_phrase(_item=None):
+        subprocess.Popen(
+            [str(Path.home() / ".local/bin/jarvis-wake-phrase"), "--gui"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+
+    @staticmethod
+    def _listen_shortcut(_item=None):
+        subprocess.Popen(
+            [str(Path.home() / ".local/bin/jarvis-listen-shortcut"), "--gui"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+
+    def _terminal_helper(self, name, *arguments, success=None):
+        helper = Path.home() / ".local/bin" / name
+        command = shlex.join([str(helper), *arguments])
+        if success:
+            command += f" && printf '%s\\n' {shlex.quote(success)}"
+        self._terminal_command(command)
 
     @staticmethod
     def _terminal_command(command):
@@ -273,17 +298,20 @@ print(json.dumps(sorted(items, key=lambda item: item[0].lower())))
         )
 
     def _health(self, _item=None):
-        self._terminal_command("jarvis-health-check && echo 'Jarvis health check passed.'")
+        self._terminal_helper(
+            "jarvis-health-check",
+            success="Jarvis health check passed.",
+        )
 
     def _report(self, _item=None):
-        self._terminal_command("jarvis-report && echo 'Support report saved in Downloads.'")
+        self._terminal_helper(
+            "jarvis-report",
+            success="Support report saved in Downloads.",
+        )
 
     def _updates(self, _item=None):
-        command = (
-            "jarvis-update install"
-            if self.update_release else "jarvis-update check"
-        )
-        self._terminal_command(command)
+        action = "install" if self.update_release else "check"
+        self._terminal_helper("jarvis-update", action)
 
     def _restart(self, _item=None):
         self._background(
@@ -378,6 +406,8 @@ print(json.dumps(sorted(items, key=lambda item: item[0].lower())))
         menu = Gtk.Menu()
         entries = [
             ("Setup…", self._setup),
+            ("Wake phrase…", self._wake_phrase),
+            ("Keyboard shortcuts…", self._listen_shortcut),
             ("Speech Note setup…", self._speechnote),
             ("Health check", self._health),
             ("Create AI support report", self._report),

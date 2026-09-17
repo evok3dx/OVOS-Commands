@@ -81,12 +81,20 @@ def migrate_profile(path: Path) -> dict[str, object]:
     preserve_private_agents = bool(
         isinstance(legacy_private, dict) and legacy_private.get("agents") is True
     ) or raw.get("name") in {"brain", "brain-compatibility"}
+    wake_phrase = str(raw.get("wake_phrase", "hey_jarvis"))
     data = {
         "schema_version": 1,
         "name": "jarvis",
         "mode": "migrated",
         "conversation": bool(raw.get("conversation", False)),
-        "wake_phrase": str(raw.get("wake_phrase", "hey_jarvis")),
+        "wake_phrase": wake_phrase,
+        "wake_phrase_spoken": str(
+            raw.get("wake_phrase_spoken", wake_phrase.replace("_", " "))
+        ),
+        "listen_shortcut": str(raw.get("listen_shortcut", "<Super>l")),
+        "microphone_shortcut": str(
+            raw.get("microphone_shortcut", "<Shift><Super>l")
+        ),
         "applications": applications,
         # This flag is never offered by normal setup. It only preserves an
         # already-customised Brain deployment during migration.

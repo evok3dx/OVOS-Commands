@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ovos-skill-jarvis-dispatcher"
-version = "2.2.4"
+version = "2.3.0"
 description = "Allowlisted Jarvis voice and desktop controls"
 requires-python = ">=3.10"
 dependencies = ["ovos-workshop"]

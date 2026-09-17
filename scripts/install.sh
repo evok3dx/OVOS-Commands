@@ -13,6 +13,12 @@ systemd_dir="$jarvis_home/.config/systemd/user"
 launcher="$jarvis_home/.local/share/applications/hermes.desktop"
 tray_icon_dir="$jarvis_home/.local/share/icons/ovos-tray"
 tray_autostart="$jarvis_home/.config/autostart/ovos-tray.desktop"
+mic_icon_dir="$jarvis_home/.local/share/jarvis"
+mic_autostart="$jarvis_home/.config/autostart/jarvis-mic-indicator.desktop"
+ovos_config="$jarvis_home/.config/mycroft/mycroft.conf"
+sound_dir="$jarvis_home/.local/share/ovos/sounds"
+listening_sound="$sound_dir/jarvis-ready.wav"
+shortcut_state="$jarvis_home/.config/jarvis/listen-shortcut.json"
 state_root="$jarvis_home/.local/state/jarvis"
 ovos_python="${OVOS_PYTHON:-$jarvis_home/.venvs/ovos/bin/python}"
 desktop_python="${JARVIS_DESKTOP_PYTHON:-/usr/bin/python3}"
@@ -250,7 +256,7 @@ import urllib.request
 from pathlib import Path
 
 url, destination, expected = sys.argv[1:]
-request = urllib.request.Request(url, headers={"User-Agent": "OVOS-Commands/2.2.4"})
+request = urllib.request.Request(url, headers={"User-Agent": "OVOS-Commands/2.3.0"})
 digest = hashlib.sha256()
 try:
     with urllib.request.urlopen(request, timeout=60) as response, Path(destination).open("wb") as output:
@@ -357,6 +363,7 @@ xdotool:xdotool
 xprop:x11-utils
 wmctrl:wmctrl
 xclip:xclip
+play:sox
 EOF
   if ! command -v wpctl >/dev/null 2>&1 && ! command -v pactl >/dev/null 2>&1; then
     missing_commands+=("wpctl or pactl")
@@ -379,6 +386,198 @@ install_desktop_prerequisites() {
   }
   sudo apt-get update
   sudo apt-get install --no-install-recommends "${prerequisite_packages[@]}"
+}
+
+installed_package_version() {
+  "$ovos_python" - "$1" <<'PY'
+import importlib.metadata as metadata
+import sys
+
+try:
+    print(metadata.version(sys.argv[1]))
+except metadata.PackageNotFoundError:
+    pass
+PY
+}
+
+installed_phoonnx_is_reviewed() {
+  local expected_version="$1"
+  local expected_commit="$2"
+  local cached_archive="$3"
+  "$ovos_python" - "$expected_version" "$expected_commit" "$cached_archive" <<'PY'
+import importlib.metadata as metadata
+import json
+import sys
+from pathlib import Path
+
+expected_version, expected_commit, cached_archive = sys.argv[1:]
+try:
+    distribution = metadata.distribution("phoonnx")
+except metadata.PackageNotFoundError:
+    raise SystemExit(1)
+if distribution.version != expected_version:
+    raise SystemExit(1)
+raw = distribution.read_text("direct_url.json")
+if not raw:
+    raise SystemExit(1)
+direct = json.loads(raw)
+if direct.get("vcs_info", {}).get("commit_id") == expected_commit:
+    raise SystemExit(0)
+url = direct.get("url", "")
+if url == Path(cached_archive).resolve().as_uri():
+    raise SystemExit(0)
+raise SystemExit(1)
+PY
+}
+
+pip_install() {
+  if "$ovos_python" -m pip --version >/dev/null 2>&1; then
+    "$ovos_python" -m pip install --disable-pip-version-check "$@"
+  elif command -v uv >/dev/null 2>&1; then
+    uv pip install --python "$ovos_python" "$@"
+  else
+    echo "Neither pip in the OVOS virtualenv nor uv is available." >&2
+    return 1
+  fi
+}
+
+download_verified() {
+  local url="$1"
+  local destination="$2"
+  local expected="$3"
+  python3 - "$url" "$destination" "$expected" <<'PY'
+import hashlib
+import sys
+import urllib.request
+from pathlib import Path
+
+url, destination, expected = sys.argv[1:]
+request = urllib.request.Request(url, headers={"User-Agent": "OVOS-Commands/2.3.0"})
+digest = hashlib.sha256()
+with urllib.request.urlopen(request, timeout=120) as response, Path(destination).open("wb") as output:
+    while chunk := response.read(1024 * 1024):
+        digest.update(chunk)
+        output.write(chunk)
+actual = digest.hexdigest()
+if actual != expected:
+    Path(destination).unlink(missing_ok=True)
+    raise SystemExit(f"Download checksum mismatch: expected {expected}, got {actual}")
+PY
+}
+
+managed_package_names() {
+  printf '%s\n' \
+    ovos-plugin-manager \
+    "$(read_compatibility_value ovos.wakeword.package)" \
+    "$(read_compatibility_value ovos.wakeword.engine_package)" \
+    "$(read_compatibility_value ovos.custom_wakeword.package)" \
+    "$(read_compatibility_value ovos.vad.package)" \
+    "$(read_compatibility_value ovos.stt.package)" \
+    "$(read_compatibility_value ovos.stt.engine_package)" \
+    "$(read_compatibility_value ovos.stt.runtime_package)" \
+    "$(read_compatibility_value ovos.tts.package)" \
+    misaki scriptconv espeakng-loader phonemizer-fork num2words spacy \
+    en-core-web-sm onnxruntime numpy
+}
+
+cleanup_voice_stack_work() {
+  local work="${1:-}"
+  case "$work" in
+    "${TMPDIR:-/tmp}"/jarvis-voice-stack.*) rm -rf -- "$work" ;;
+    "") ;;
+    *) echo "Refusing to remove unexpected voice-stack path: $work" >&2 ;;
+  esac
+}
+
+ensure_voice_stack() {
+  local work="" archive repository commit expected_sha phoonnx_version
+  local source_dir cached_archive
+  local -a requirements
+  repository="$(read_compatibility_value ovos.tts.repository)"
+  commit="$(read_compatibility_value ovos.tts.reference_commit)"
+  expected_sha="$(read_compatibility_value ovos.tts.archive_sha256)"
+  phoonnx_version="$(read_compatibility_value ovos.tts.validated_version)"
+  source_dir="$jarvis_home/.local/share/jarvis/sources"
+  cached_archive="$source_dir/phoonnx-$commit.tar.gz"
+  requirements=(
+    "ovos-plugin-manager==$(read_compatibility_value ovos.validated_package_versions.ovos-plugin-manager)"
+    "$(read_compatibility_value ovos.wakeword.package)==$(read_compatibility_value ovos.wakeword.validated_version)"
+    "$(read_compatibility_value ovos.wakeword.engine_package)==$(read_compatibility_value ovos.wakeword.engine_version)"
+    "$(read_compatibility_value ovos.custom_wakeword.package)==$(read_compatibility_value ovos.custom_wakeword.validated_version)"
+    "$(read_compatibility_value ovos.vad.package)==$(read_compatibility_value ovos.vad.validated_version)"
+    "$(read_compatibility_value ovos.stt.package)==$(read_compatibility_value ovos.stt.validated_version)"
+    "$(read_compatibility_value ovos.stt.engine_package)==$(read_compatibility_value ovos.stt.engine_version)"
+    "$(read_compatibility_value ovos.stt.runtime_package)==$(read_compatibility_value ovos.stt.runtime_version)"
+    "misaki==$(read_compatibility_value ovos.tts.misaki_version)"
+    "scriptconv==$(read_compatibility_value ovos.tts.scriptconv_version)"
+    "espeakng-loader==$(read_compatibility_value ovos.tts.espeakng_loader_version)"
+    "phonemizer-fork==$(read_compatibility_value ovos.tts.phonemizer_fork_version)"
+    "num2words==$(read_compatibility_value ovos.tts.num2words_version)"
+    "spacy==$(read_compatibility_value ovos.tts.spacy_version)"
+    "en-core-web-sm @ $(read_compatibility_value ovos.tts.spacy_model_url)#sha256=$(read_compatibility_value ovos.tts.spacy_model_sha256)"
+    "onnxruntime==$(read_compatibility_value ovos.tts.onnxruntime_version)"
+    "numpy==$(read_compatibility_value ovos.tts.numpy_version)"
+  )
+
+  mkdir -p "$source_dir"
+  if [[ ! -f "$cached_archive" ]] || \
+     [[ "$(sha256sum "$cached_archive" | awk '{print $1}')" != "$expected_sha" ]]; then
+    work="$(mktemp -d "${TMPDIR:-/tmp}/jarvis-voice-stack.XXXXXX")"
+    archive="$work/phoonnx.tar.gz"
+    printf '%s\n' "Downloading the reviewed Bella voice engine source..."
+    if ! download_verified \
+      "${repository%.git}/archive/${commit}.tar.gz" "$archive" "$expected_sha"; then
+      cleanup_voice_stack_work "$work"
+      return 1
+    fi
+    install -m 0644 "$archive" "$cached_archive"
+    cleanup_voice_stack_work "$work"
+    work=""
+  fi
+
+  if ! installed_phoonnx_is_reviewed \
+    "$phoonnx_version" "$commit" "$cached_archive"; then
+    printf '%s\n' "Installing the reviewed PhōnNX source revision."
+    pip_install --force-reinstall --no-deps \
+      "phoonnx @ file://$cached_archive"
+  fi
+  # Include the exact local source in the main transaction as well, so pip
+  # verifies and installs its ordinary runtime dependencies without enabling
+  # heavyweight optional language/GPU extras.
+  requirements+=("phoonnx @ file://$cached_archive")
+
+  printf '%s\n' \
+    "Installing the reviewed local OVOS voice stack." \
+    "Wake word, speech recognition and Bella run without administrator access."
+  if ! pip_install "${requirements[@]}"; then
+    cleanup_voice_stack_work "$work"
+    return 1
+  fi
+  cleanup_voice_stack_work "$work"
+
+  printf '%s\n' "Preparing the local Hey Jarvis, small.en and Bella models..."
+  "$ovos_python" - <<'PY'
+from openwakeword.utils import download_models
+from openwakeword import get_pretrained_model_paths
+from faster_whisper import WhisperModel
+
+download_models()
+paths = [str(path) for path in (get_pretrained_model_paths() or [])]
+if not any("hey_jarvis" in path for path in paths):
+    raise SystemExit("OpenWakeWord did not provide the reviewed hey_jarvis model")
+WhisperModel("small.en", device="cpu", compute_type="int8", cpu_threads=8)
+PY
+  "$ovos_python" - "$(read_compatibility_value ovos.tts.voice)" <<'PY'
+import sys
+from phoonnx.model_manager import TTSModelManager
+
+voice = sys.argv[1]
+manager = TTSModelManager()
+manager.load()
+manager.merge_default_voices()
+if not manager.download_voice_by_id(voice):
+    raise SystemExit(f"PhōnNX voice is not in the reviewed catalogue: {voice}")
+PY
 }
 
 [[ -x "$desktop_python" ]] || {
@@ -492,7 +691,7 @@ restore_failed_transaction() {
     if [[ -f "$rollback_script" ]]; then
       JARVIS_HOME="$jarvis_home" OVOS_PYTHON="$ovos_python" \
         JARVIS_TEST_MODE="${JARVIS_TEST_MODE:-0}" \
-        bash "$rollback_script" "$backup_root" --no-restart || true
+        bash "$rollback_script" "$backup_root" || true
     elif [[ -d "$backup_root/target-root" && ! -d "$target_root" ]]; then
       cp -a "$backup_root/target-root" "$target_root" || true
     fi
@@ -509,6 +708,8 @@ mkdir -p \
   "$target_profile_dir" \
   "$systemd_dir" \
   "$tray_icon_dir" \
+  "$mic_icon_dir" \
+  "$sound_dir" \
   "$(dirname "$tray_autostart")" \
   "$stage_release"
 
@@ -531,11 +732,44 @@ else
   JARVIS_HOME="$jarvis_home" "$desktop_python" "$repo_root/scripts/setup.py" "${setup_arguments[@]}"
 fi
 
+JARVIS_HOME="$jarvis_home" "$desktop_python" - \
+  "$configuration_source" "$repo_root" <<'PY'
+import json
+import importlib.util
+import os
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+capabilities_path = (
+    Path(sys.argv[2]) / "ovos_skill_jarvis_dispatcher/capabilities.py"
+)
+spec = importlib.util.spec_from_file_location(
+    "jarvis_capability_detection", capabilities_path
+)
+capabilities = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(capabilities)
+
+data = json.loads(path.read_text(encoding="utf-8"))
+data.setdefault("listen_shortcut", "<Super>l")
+data.setdefault("microphone_shortcut", "<Shift><Super>l")
+if data.get("mode") == "all-detected":
+    # "All detected" is a continuing policy, not a one-time snapshot. This
+    # picks up a supported application installed after Jarvis without changing
+    # core-only or deliberately customised selections.
+    home = Path(os.environ.get("JARVIS_HOME", Path.home())).expanduser()
+    data["applications"] = capabilities.detect_applications(home)
+temporary = path.with_suffix(path.suffix + ".new")
+temporary.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+temporary.chmod(0o600)
+temporary.replace(path)
+PY
+
 # Copy only reviewed release roots. This avoids deploying unrelated files from
 # a checkout (for example local notes, credentials or previous build output).
 release_roots=(
   .github command_editor docs mic ovos_skill_jarvis_dispatcher profiles
-  scripts system_helpers systemd tray
+  scripts system_helpers systemd tray voice
 )
 release_files=(
   .gitignore COMMAND-EDITOR.md README.md compatibility.json
@@ -549,7 +783,6 @@ tar --create --file=- \
   --exclude='*/__pycache__' \
   --exclude='*.pyc' \
   --exclude='*.log' \
-  --exclude='*.wav' \
   --exclude='*.mp3' \
   --exclude='*.flac' \
   -- "${release_roots[@]}" "${release_files[@]}" \
@@ -596,6 +829,61 @@ for icon in \
   ovos-failed.svg ovos-failed-update.svg; do
   backup_file "$tray_icon_dir/$icon" "tray/$icon"
 done
+backup_file "$target_bin/jarvis-mic-indicator" mic/jarvis-mic-indicator
+backup_file "$target_bin/jarvis-mic-toggle" mic/jarvis-mic-toggle
+backup_file "$mic_autostart" mic/jarvis-mic-indicator.desktop
+backup_file "$mic_icon_dir/mic-active.svg" mic/mic-active.svg
+backup_file "$mic_icon_dir/mic-muted.svg" mic/mic-muted.svg
+backup_file "$ovos_config" mycroft.conf
+backup_file "$listening_sound" sounds/jarvis-ready.wav
+backup_file "$shortcut_state" listen-shortcut.json
+
+if [[ "${JARVIS_TEST_MODE:-0}" == 1 ]]; then
+  printf '%s\n' '{}' > "$backup_root/managed-packages.json"
+  printf '%s\n' unavailable > "$backup_root/cinnamon-shortcuts.state"
+  : > "$backup_root/pronunciation-source.missing"
+else
+  mapfile -t managed_packages < <(managed_package_names | awk '!seen[$0]++')
+  "$ovos_python" - "$backup_root/managed-packages.json" "${managed_packages[@]}" <<'PY'
+import importlib.metadata as metadata
+import json
+import sys
+from pathlib import Path
+
+state = {}
+for package in sys.argv[2:]:
+    try:
+        distribution = metadata.distribution(package)
+        direct = distribution.read_text("direct_url.json")
+        state[package] = {
+            "version": distribution.version,
+            "direct_url": json.loads(direct) if direct else None,
+        }
+    except metadata.PackageNotFoundError:
+        state[package] = {"version": None, "direct_url": None}
+path = Path(sys.argv[1])
+path.write_text(json.dumps(state, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+path.chmod(0o600)
+PY
+  pronunciation_source="$(
+    "$ovos_python" "$repo_root/scripts/patch-pronunciation.py" --print-source 2>/dev/null || true
+  )"
+  if [[ -n "$pronunciation_source" && -f "$pronunciation_source" ]]; then
+    printf '%s\n' "$pronunciation_source" > "$backup_root/pronunciation-source"
+    backup_file "$pronunciation_source" pronunciation/mul.py
+  else
+    : > "$backup_root/pronunciation-source.missing"
+  fi
+  if command -v gsettings >/dev/null 2>&1 && \
+     JARVIS_HOME="$jarvis_home" "$desktop_python" \
+       "$repo_root/scripts/listen-shortcut.py" \
+       --snapshot "$backup_root/cinnamon-shortcuts.json"; then
+    printf '%s\n' available > "$backup_root/cinnamon-shortcuts.state"
+  else
+    printf '%s\n' unavailable > "$backup_root/cinnamon-shortcuts.state"
+    echo "Cinnamon shortcut schemas unavailable; configure the listen key later from the tray." >&2
+  fi
+fi
 
 transaction_active=true
 if [[ -d "$target_root" ]]; then
@@ -631,7 +919,45 @@ if [[ "${JARVIS_TEST_MODE:-0}" != 1 ]]; then
     echo "Neither pip in the OVOS virtualenv nor uv is available." >&2
     exit 1
   fi
+  ensure_voice_stack
+  "$ovos_python" "$target_root/scripts/patch-pronunciation.py"
+  "$ovos_python" - <<'PY'
+from scriptconv.phonemizers.mul import MisakiEnPhonemizer
+
+phonemes = MisakiEnPhonemizer().phonemize_string(
+    "Harvard Jarvis Ollama Facebook", "en-US"
+)
+if not phonemes or "None" in phonemes:
+    raise SystemExit("Bella pronunciation fallback validation failed")
+print("Bella pronunciation fallback validated.")
+PY
 fi
+
+install -m 0644 "$target_root/voice/jarvis-ready.wav" "$listening_sound"
+"$desktop_python" "$target_root/scripts/configure-audio-stack.py" \
+  --config "$ovos_config" --listening-sound "$listening_sound"
+if [[ "${JARVIS_TEST_MODE:-0}" != 1 ]]; then
+  "$ovos_python" "$target_root/scripts/configure-intent-pipeline.py" \
+    --config "$ovos_config"
+fi
+
+mapfile -t wake_settings < <(python3 - "$configuration_source" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+data = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+identifier = data.get("wake_phrase", "hey_jarvis")
+spoken = data.get("wake_phrase_spoken", str(identifier).replace("_", " "))
+print(identifier)
+print(spoken)
+PY
+)
+wake_phrase="${wake_settings[0]}"
+wake_phrase_spoken="${wake_settings[1]}"
+"$desktop_python" "$target_root/scripts/configure-wakeword.py" \
+  --config "$ovos_config" --wake-phrase "$wake_phrase" \
+  --spoken-phrase "$wake_phrase_spoken"
 
 for helper in "${runtime_helpers[@]}"; do
   install -m 0755 "$target_root/system_helpers/$helper" "$target_bin/$helper"
@@ -639,6 +965,25 @@ done
 install -m 0600 "$configuration_source" "$target_capabilities"
 if [[ -n "$source_profile" ]]; then
   install -m 0600 "$source_profile" "$target_profile"
+fi
+
+mapfile -t shortcut_settings < <(python3 - "$configuration_source" <<'PY'
+import json
+import sys
+from pathlib import Path
+data = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+print(data.get("listen_shortcut", "<Super>l"))
+print(data.get("microphone_shortcut", "<Shift><Super>l"))
+PY
+)
+listen_shortcut="${shortcut_settings[0]}"
+microphone_shortcut="${shortcut_settings[1]}"
+if [[ "${JARVIS_TEST_MODE:-0}" != 1 && \
+      "$(<"$backup_root/cinnamon-shortcuts.state")" == available ]]; then
+  JARVIS_HOME="$jarvis_home" "$desktop_python" \
+    "$target_root/scripts/listen-shortcut.py" \
+    --shortcut "$listen_shortcut" \
+    --microphone-shortcut "$microphone_shortcut"
 fi
 
 tray_installed=false
@@ -665,6 +1010,14 @@ PY
   tray_installed=true
 else
   echo "GTK 3 tray support is unavailable; jarvis-setup remains available in the terminal." >&2
+fi
+
+mic_indicator_installed=false
+if [[ "$tray_installed" == true ]]; then
+  JARVIS_NO_START=1 JARVIS_HOME="$jarvis_home" \
+    JARVIS_DESKTOP_PYTHON="$desktop_python" \
+    bash "$target_root/scripts/install-jarvis-mic-indicator.sh"
+  mic_indicator_installed=true
 fi
 
 render_unit() {
@@ -725,22 +1078,23 @@ if [[ "${JARVIS_TEST_MODE:-0}" != 1 ]]; then
     systemctl --user disable --now jarvis-update-check.timer >/dev/null 2>&1 || true
   fi
 
+  if "$restart"; then
+    "$target_bin/jarvis-restart" --full
+  fi
+
+  python3 "$target_root/scripts/doctor.py" --ovos-python "$ovos_python"
+
+  # Start the new tray only after final validation. A failed transaction must
+  # not leave a process whose helpers have just been rolled back or removed.
   if "$tray_installed"; then
     pkill -f "$target_bin/ovos-tray" 2>/dev/null || true
     nohup "$target_bin/ovos-tray" > "$state_root/ovos-tray.log" 2>&1 &
   fi
-
-  if "$restart"; then
-    if command -v jarvis-restart >/dev/null 2>&1; then
-      jarvis-restart
-    elif systemctl --user cat ovos-core.service >/dev/null 2>&1; then
-      systemctl --user restart ovos-core.service
-    else
-      echo "OVOS core service was not found; restart OVOS manually." >&2
-    fi
+  if "$mic_indicator_installed"; then
+    pkill -f "$target_bin/jarvis-mic-indicator" 2>/dev/null || true
+    nohup "$target_bin/jarvis-mic-indicator" \
+      > "$state_root/jarvis-mic-indicator.log" 2>&1 &
   fi
-
-  python3 "$target_root/scripts/doctor.py" --ovos-python "$ovos_python"
 fi
 
 current_version="$(python3 - "$target_root/pyproject.toml" <<'PY'

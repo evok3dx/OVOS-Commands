@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+action="${1:-}"
+window_id="$(xdotool getactivewindow 2>/dev/null || true)"
+
+if [[ ! "$window_id" =~ ^[0-9]+$ ]]; then
+  echo "No focused window" >&2
+  exit 1
+fi
+
+window_class="$(xprop -id "$window_id" WM_CLASS 2>/dev/null || true)"
+window_class="${window_class,,}"
+window_type="$(xprop -id "$window_id" _NET_WM_WINDOW_TYPE 2>/dev/null || true)"
+window_type="${window_type,,}"
+
+case "$window_class" in
+  *nemo-desktop*|*plank*|*cinnamon*)
+    echo "Refusing to navigate the desktop or panel" >&2
+    exit 1
+    ;;
+esac
+
+if [[ "$window_type" == *"_net_wm_window_type_desktop"* ||
+      "$window_type" == *"_net_wm_window_type_dock"* ]]; then
+  echo "Refusing to navigate the desktop or dock" >&2
+  exit 1
+fi
+
+# Confirm focus immediately before sending an allowlisted navigation key. A
+# focus change aborts instead of delivering the key to a different window.
+confirm_focus() {
+  if [[ "$(xdotool getactivewindow 2>/dev/null || true)" != "$window_id" ]]; then
+    echo "The focused window changed" >&2
+    exit 1
+  fi
+}
+
+if [[ "$window_class" == *terminal* ]]; then
+  case "$action" in
+    scroll_down|page_down) key="shift+Page_Down" ;;
+    scroll_up|page_up) key="shift+Page_Up" ;;
+    top) key="ctrl+shift+Home" ;;
+    bottom) key="ctrl+shift+End" ;;
+    *)
+      echo "Usage: jarvis-focused-navigation {scroll_down|scroll_up|page_down|page_up|top|bottom}" >&2
+      exit 2
+      ;;
+  esac
+
+  xdotool windowactivate --sync "$window_id"
+  confirm_focus
+  xdotool key --clearmodifiers "$key"
+  exit 0
+fi
+
+confirm_focus
+
+# Preserve the Brain's proven four-step scrolling while delivering the event
+# to the verified focused window. Chromium/Electron/Firefox may ignore direct
+# synthetic events sent with xdotool --window.
+case "$action" in
+  scroll_down)
+    xdotool key --clearmodifiers --repeat 4 --delay 50 Down
+    ;;
+  scroll_up)
+    xdotool key --clearmodifiers --repeat 4 --delay 50 Up
+    ;;
+  page_down)
+    xdotool key --clearmodifiers Page_Down
+    ;;
+  page_up)
+    xdotool key --clearmodifiers Page_Up
+    ;;
+  top)
+    xdotool key --clearmodifiers ctrl+Home
+    ;;
+  bottom)
+    xdotool key --clearmodifiers ctrl+End
+    ;;
+  *)
+    echo "Usage: jarvis-focused-navigation {scroll_down|scroll_up|page_down|page_up|top|bottom}" >&2
+    exit 2
+    ;;
+esac

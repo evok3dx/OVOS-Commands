@@ -28,7 +28,10 @@ class StandardNotesIntegrationMixin:
             text=True,
             timeout=5,
         ).stdout.lower()
-        return "standard notes" in window_class
+        normalised_class = "".join(
+            character for character in window_class if character.isalnum()
+        )
+        return "standardnotes" in normalised_class
 
     def _create_new_note(self):
         applications = self._jarvis_profile.get("applications", {})

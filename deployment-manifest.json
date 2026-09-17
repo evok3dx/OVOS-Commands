@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "release_version": "2.2.4",
+  "release_version": "2.3.0",
   "package_modules": [
     "__init__.py",
     "agents.py",
@@ -31,14 +31,18 @@
     "hermes-secure-launch",
     "jarvis-app-window",
     "jarvis-default-app",
+    "jarvis-focused-navigation",
     "jarvis-focused-window",
     "jarvis-health-check",
+    "jarvis-listen-shortcut",
+    "jarvis-restart",
     "jarvis-report",
     "jarvis-read-visible-text",
     "jarvis-setup",
     "jarvis-speechnote-setup",
     "jarvis-system-microphone",
-    "jarvis-update"
+    "jarvis-update",
+    "jarvis-wake-phrase"
   ],
   "profiles": [
     "brain.json",
@@ -55,6 +59,9 @@
     "systemd/jarvis-update-check.timer"
   ],
   "optional_components": {
+    "audio": [
+      "voice/jarvis-ready.wav"
+    ],
     "command_editor": [
       "command_editor/jarvis-command-editor"
     ],

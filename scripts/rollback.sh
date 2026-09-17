@@ -15,6 +15,11 @@ systemd_dir="$jarvis_home/.config/systemd/user"
 launcher="$jarvis_home/.local/share/applications/hermes.desktop"
 tray_icon_dir="$jarvis_home/.local/share/icons/ovos-tray"
 tray_autostart="$jarvis_home/.config/autostart/ovos-tray.desktop"
+mic_icon_dir="$jarvis_home/.local/share/jarvis"
+mic_autostart="$jarvis_home/.config/autostart/jarvis-mic-indicator.desktop"
+ovos_config="$jarvis_home/.config/mycroft/mycroft.conf"
+listening_sound="$jarvis_home/.local/share/ovos/sounds/jarvis-ready.wav"
+shortcut_state="$jarvis_home/.config/jarvis/listen-shortcut.json"
 ovos_python="${OVOS_PYTHON:-$jarvis_home/.venvs/ovos/bin/python}"
 backup_root=""
 restart=true
@@ -133,6 +138,29 @@ for icon in \
   ovos-failed.svg ovos-failed-update.svg; do
   validate_restore_entry "$backup_root/tray/$icon"
 done
+validate_restore_entry "$backup_root/mic/jarvis-mic-indicator"
+validate_restore_entry "$backup_root/mic/jarvis-mic-toggle"
+validate_restore_entry "$backup_root/mic/jarvis-mic-indicator.desktop"
+validate_restore_entry "$backup_root/mic/mic-active.svg"
+validate_restore_entry "$backup_root/mic/mic-muted.svg"
+validate_restore_entry "$backup_root/mycroft.conf"
+validate_restore_entry "$backup_root/sounds/jarvis-ready.wav"
+validate_restore_entry "$backup_root/listen-shortcut.json"
+[[ -f "$backup_root/managed-packages.json" ]] || {
+  echo "Backup entry is missing: $backup_root/managed-packages.json" >&2
+  exit 1
+}
+[[ -f "$backup_root/cinnamon-shortcuts.state" ]] || {
+  echo "Backup entry is missing: $backup_root/cinnamon-shortcuts.state" >&2
+  exit 1
+}
+
+# Stop the process belonging to the deployment being replaced. A failed fresh
+# install must not leave a tray whose helper files have just been removed.
+if [[ "${JARVIS_TEST_MODE:-0}" != 1 ]]; then
+  pkill -f "$target_bin/ovos-tray" 2>/dev/null || true
+  pkill -f "$target_bin/jarvis-mic-indicator" 2>/dev/null || true
+fi
 
 retired_base="$state_root/retired"
 retired_root="$retired_base/rollback-$(date +%Y%m%d-%H%M%S-%N)"
@@ -172,6 +200,27 @@ for icon in \
   ovos-failed.svg ovos-failed-update.svg; do
   restore_file "$backup_root/tray/$icon" "$tray_icon_dir/$icon" 0644
 done
+restore_file "$backup_root/mic/jarvis-mic-indicator" \
+  "$target_bin/jarvis-mic-indicator" 0755
+restore_file "$backup_root/mic/jarvis-mic-toggle" \
+  "$target_bin/jarvis-mic-toggle" 0755
+restore_file "$backup_root/mic/jarvis-mic-indicator.desktop" \
+  "$mic_autostart" 0644
+restore_file "$backup_root/mic/mic-active.svg" \
+  "$mic_icon_dir/mic-active.svg" 0644
+restore_file "$backup_root/mic/mic-muted.svg" \
+  "$mic_icon_dir/mic-muted.svg" 0644
+restore_file "$backup_root/mycroft.conf" "$ovos_config" 0600
+restore_file "$backup_root/sounds/jarvis-ready.wav" "$listening_sound" 0644
+restore_file "$backup_root/listen-shortcut.json" "$shortcut_state" 0600
+
+if [[ "${JARVIS_TEST_MODE:-0}" != 1 && \
+      "$(<"$backup_root/cinnamon-shortcuts.state")" == available ]]; then
+  shortcut_script="$repo_root/scripts/listen-shortcut.py"
+  [[ -f "$shortcut_script" ]] || shortcut_script="$retired_root/scripts/listen-shortcut.py"
+  /usr/bin/python3 "$shortcut_script" \
+    --restore-snapshot "$backup_root/cinnamon-shortcuts.json"
+fi
 
 if [[ "${JARVIS_TEST_MODE:-0}" != 1 ]]; then
   [[ -x "$ovos_python" ]] || {
@@ -183,6 +232,56 @@ if [[ "${JARVIS_TEST_MODE:-0}" != 1 ]]; then
       --no-deps --editable "$target_root"
   else
     "$ovos_python" -m pip uninstall --yes ovos-skill-jarvis-dispatcher >/dev/null
+  fi
+
+  mapfile -t restore_requirements < <(python3 - "$backup_root/managed-packages.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+for package, saved in json.loads(Path(sys.argv[1]).read_text()).items():
+    if isinstance(saved, dict):
+        version = saved.get("version")
+        direct = saved.get("direct_url") or {}
+    else:  # Backward compatibility with pre-2.2.8 backups.
+        version = saved
+        direct = {}
+    if version is None:
+        continue
+    url = direct.get("url")
+    vcs = direct.get("vcs_info") or {}
+    if url and vcs.get("vcs") and vcs.get("commit_id"):
+        print(f"{package} @ {vcs['vcs']}+{url}@{vcs['commit_id']}")
+    elif url:
+        archive = direct.get("archive_info") or {}
+        digest = archive.get("hash")
+        suffix = f"#{digest}" if digest and "#" not in url else ""
+        print(f"{package} @ {url}{suffix}")
+    else:
+        print(f"{package}=={version}")
+PY
+)
+  mapfile -t remove_packages < <(python3 - "$backup_root/managed-packages.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+for package, saved in json.loads(Path(sys.argv[1]).read_text()).items():
+    version = saved.get("version") if isinstance(saved, dict) else saved
+    if version is None:
+        print(package)
+PY
+)
+  if ((${#restore_requirements[@]})); then
+    "$ovos_python" -m pip install --disable-pip-version-check \
+      "${restore_requirements[@]}"
+  fi
+  if ((${#remove_packages[@]})); then
+    "$ovos_python" -m pip uninstall --yes "${remove_packages[@]}" >/dev/null 2>&1 || true
+  fi
+  if [[ -f "$backup_root/pronunciation-source" && \
+        -f "$backup_root/pronunciation/mul.py" ]]; then
+    pronunciation_source="$(<"$backup_root/pronunciation-source")"
+    install -m 0644 "$backup_root/pronunciation/mul.py" "$pronunciation_source"
   fi
 
   systemctl --user daemon-reload
@@ -198,11 +297,23 @@ if [[ "${JARVIS_TEST_MODE:-0}" != 1 ]]; then
     fi
   done
 
+  if [[ -x "$target_bin/ovos-tray" && -f "$tray_autostart" ]]; then
+    nohup "$target_bin/ovos-tray" > "$state_root/ovos-tray.log" 2>&1 &
+  fi
+  if [[ -x "$target_bin/jarvis-mic-indicator" && -f "$mic_autostart" ]]; then
+    nohup "$target_bin/jarvis-mic-indicator" \
+      > "$state_root/jarvis-mic-indicator.log" 2>&1 &
+  fi
+
   if "$restart"; then
-    if command -v jarvis-restart >/dev/null 2>&1; then
-      jarvis-restart
+    if [[ -x "$target_bin/jarvis-restart" ]]; then
+      "$target_bin/jarvis-restart" --full
     elif systemctl --user cat ovos-core.service >/dev/null 2>&1; then
-      systemctl --user restart ovos-core.service
+      systemctl --user stop \
+        ovos-core.service ovos-listener.service ovos-audio.service
+      systemctl --user start ovos-audio.service
+      systemctl --user start ovos-listener.service
+      systemctl --user start ovos-core.service
     fi
   fi
 fi

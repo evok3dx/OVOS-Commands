@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "release_version": "2.2.4",
+  "release_version": "2.3.0",
   "validated_on": "2026-09-16",
   "support": {
     "operating_system": "Linux",
@@ -16,14 +16,83 @@
     "config_path": "~/.config/mycroft/mycroft.conf",
     "entry_point_group": "opm.skill",
     "entry_point_name": "ovos-skill-jarvis-dispatcher.openvoiceos",
+    "wakeword": {
+      "phrase": "hey_jarvis",
+      "module": "ovos-ww-plugin-openwakeword",
+      "package": "ovos-ww-plugin-openwakeword",
+      "validated_version": "0.4.5a2",
+      "engine_package": "openwakeword",
+      "engine_version": "0.6.0",
+      "threshold": 0.5
+    },
+    "custom_wakeword": {
+      "module": "ovos-ww-plugin-vosk",
+      "package": "ovos-ww-plugin-vosk",
+      "validated_version": "0.1.10"
+    },
+    "vad": {
+      "module": "ovos-vad-plugin-silero",
+      "package": "ovos-vad-plugin-silero",
+      "validated_version": "0.1.0",
+      "threshold": 0.2
+    },
+    "stt": {
+      "module": "ovos-stt-plugin-fasterwhisper",
+      "package": "ovos-stt-plugin-fasterwhisper",
+      "validated_version": "0.4.0",
+      "engine_package": "faster-whisper",
+      "engine_version": "1.2.1",
+      "runtime_package": "ctranslate2",
+      "runtime_version": "4.8.1",
+      "model": "small.en"
+    },
+    "tts": {
+      "module": "ovos-tts-plugin-phoonnx",
+      "package": "phoonnx",
+      "validated_version": "1.90.0a1",
+      "voice": "kokoro/af_bella",
+      "repository": "https://github.com/TigreGotico/phoonnx.git",
+      "reference_commit": "d1149fa470bfd1428a9dbf5ba243d7637ff39f9b",
+      "archive_sha256": "8f1ba4c3a7570dacee692d9858630e5188f305438db0a1b636ef1c5baeb549ab",
+      "misaki_version": "0.9.4",
+      "scriptconv_version": "0.0.4a23",
+      "espeakng_loader_version": "0.2.4",
+      "phonemizer_fork_version": "3.3.2",
+      "num2words_version": "0.5.14",
+      "spacy_version": "3.8.15",
+      "spacy_model_version": "3.8.0",
+      "spacy_model_url": "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl",
+      "spacy_model_sha256": "1932429db727d4bff3deed6b34cfc05df17794f4a52eeb26cf8928f7c1a0fb85",
+      "onnxruntime_version": "1.29.0",
+      "numpy_version": "1.26.4"
+    },
     "validated_package_versions": {
-      "ovos-workshop": "8.0.0",
-      "ovos-plugin-manager": "2.2.0"
+      "ovos-core": "2.1.1",
+      "ovos-workshop": "7.0.6",
+      "ovos-config": "2.1.1",
+      "ovos-plugin-manager": "2.11.1a2",
+      "ovos-audio": "1.2.0",
+      "ovos-dinkum-listener": "0.5.0"
     },
     "required_api": [
       "ovos_workshop.decorators.intent_handler",
       "ovos_workshop.intents.IntentBuilder",
       "ovos_workshop.skills.converse.ConversationalSkill"
+    ],
+    "intent_pipeline": [
+      "ovos-stop-pipeline-plugin-high",
+      "ovos-converse-pipeline-plugin",
+      "ovos-ocp-pipeline-plugin-high",
+      "ovos-adapt-pipeline-plugin-high",
+      "ovos-persona-pipeline-plugin-high",
+      "ovos-padatious-pipeline-plugin-high",
+      "ovos-fallback-pipeline-plugin-high",
+      "ovos-stop-pipeline-plugin-medium",
+      "ovos-adapt-pipeline-plugin-medium",
+      "ovos-persona-pipeline-plugin-low",
+      "ovos-common-query-pipeline-plugin",
+      "ovos-fallback-pipeline-plugin-medium",
+      "ovos-fallback-pipeline-plugin-low"
     ],
     "services": [
       "ovos.service",

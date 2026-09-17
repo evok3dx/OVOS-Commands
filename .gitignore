@@ -4,6 +4,7 @@
 *.bak
 *.log
 *.wav
+!voice/jarvis-ready.wav
 *.pyc
 __pycache__/
 *.egg-info/
