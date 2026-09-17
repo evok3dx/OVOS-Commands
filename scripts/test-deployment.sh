@@ -165,6 +165,35 @@ assert module.patch(source, backup) == "applied"
 assert "from misaki.espeak import EspeakFallback" in source.read_text()
 assert "self.g2p_en = en.G2P()" in backup.read_text()
 assert module.patch(source) == "already-applied"
+
+# The working Brain has the same fallback with harmless formatting differences.
+# It must be recognised without rewriting the installed dependency.
+brain_source = root / "mul-brain.py"
+brain_layout = """class Example:
+    def method(self, lang):
+                if self.g2p_en is None:
+                    from misaki import en
+                    from misaki.espeak import EspeakFallback
+
+                    british = lang == "en-GB"
+                    self.g2p_en = en.G2P(
+                        british=british,
+                        fallback=EspeakFallback(british=british)
+                    )
+"""
+brain_source.write_text(brain_layout, encoding="utf-8")
+assert module.layout(brain_layout) == "already-applied"
+assert module.patch(brain_source) == "already-applied"
+assert brain_source.read_text(encoding="utf-8") == brain_layout
+
+unknown = root / "mul-unknown.py"
+unknown.write_text("self.g2p_en = something_unreviewed()\n", encoding="utf-8")
+try:
+    module.patch(unknown)
+except RuntimeError as error:
+    assert "not the reviewed layout" in str(error)
+else:
+    raise AssertionError("unknown pronunciation layout was accepted")
 PY
 
 # The installer pins the exact reviewed pipeline exported from the brain and
@@ -690,17 +719,17 @@ tray = module.OvosTray.__new__(module.OvosTray)
 status = Path.home() / ".local/state/jarvis/updates/latest.json"
 status.parent.mkdir(parents=True, exist_ok=True)
 status.write_text(json.dumps({
-    "installed": "2.3.0", "latest": "2.3.1", "update_available": True,
+    "installed": "2.3.1", "latest": "2.3.2", "update_available": True,
 }), encoding="utf-8")
-assert tray._available_update() == "2.3.1"
+assert tray._available_update() == "2.3.2"
 commands = []
 tray._terminal_command = commands.append
-tray.update_release = "2.3.1"
+tray.update_release = "2.3.2"
 tray._updates()
 expected_helper = str(Path.home() / ".local/bin/jarvis-update")
 assert commands == [f"{expected_helper} install"]
 status.write_text(json.dumps({
-    "installed": "2.3.0", "latest": "2.3.0", "update_available": True,
+    "installed": "2.3.1", "latest": "2.3.1", "update_available": True,
 }), encoding="utf-8")
 assert tray._available_update() is None
 commands.clear()
@@ -781,6 +810,64 @@ cmp "$repo_root/profiles/default.json" "$failure_home/.config/jarvis/profile.jso
 for helper in "${helpers[@]}"; do
   grep -q "previous $helper" "$failure_home/.local/bin/$helper"
 done
+
+# A normal upgrade changes managed program files while preserving machine-owned
+# configuration, personal phrases, sounds, shortcuts and private helpers.
+preserve_home="$test_root/preserve"
+preserve_target="$preserve_home/.local/src/ovos-skill-jarvis-dispatcher"
+mkdir -p \
+  "$preserve_target" \
+  "$preserve_home/.local/bin" \
+  "$preserve_home/.config/jarvis" \
+  "$preserve_home/.config/mycroft" \
+  "$preserve_home/.local/share/ovos/sounds" \
+  "$test_root/preserve-expected"
+printf '%s\n' legacy > "$preserve_target/legacy-only.txt"
+cp "$repo_root/profiles/default.json" "$preserve_home/.config/jarvis/profile.json"
+printf '%s\n' '{"private":"audio configuration"}' \
+  > "$preserve_home/.config/mycroft/mycroft.conf"
+printf '%s\n' '{"listen_shortcut":"<Super>j","microphone_shortcut":"disabled"}' \
+  > "$preserve_home/.config/jarvis/listen-shortcut.json"
+printf '%s\n' '{"schema_version":1,"phrases":{}}' \
+  > "$preserve_home/.config/jarvis/custom-commands.json"
+printf '%s\n' 'private listening sound' \
+  > "$preserve_home/.local/share/ovos/sounds/jarvis-ready.wav"
+printf '%s\n' '#!/usr/bin/env bash' 'echo private agent helper' \
+  > "$preserve_home/.local/bin/jarvis-agent-window"
+chmod 0755 "$preserve_home/.local/bin/jarvis-agent-window"
+cp -a "$preserve_home/.config/mycroft/mycroft.conf" \
+  "$preserve_home/.config/jarvis/listen-shortcut.json" \
+  "$preserve_home/.config/jarvis/custom-commands.json" \
+  "$preserve_home/.local/share/ovos/sounds/jarvis-ready.wav" \
+  "$preserve_home/.local/bin/jarvis-agent-window" \
+  "$test_root/preserve-expected/"
+
+JARVIS_HOME="$preserve_home" JARVIS_TEST_MODE=1 \
+  bash "$repo_root/scripts/install.sh" --no-restart
+
+test ! -e "$preserve_target/legacy-only.txt"
+for file in \
+  mycroft.conf listen-shortcut.json custom-commands.json \
+  jarvis-ready.wav jarvis-agent-window; do
+  case "$file" in
+    mycroft.conf) actual="$preserve_home/.config/mycroft/$file" ;;
+    listen-shortcut.json|custom-commands.json)
+      actual="$preserve_home/.config/jarvis/$file" ;;
+    jarvis-ready.wav) actual="$preserve_home/.local/share/ovos/sounds/$file" ;;
+    jarvis-agent-window) actual="$preserve_home/.local/bin/$file" ;;
+  esac
+  cmp "$test_root/preserve-expected/$file" "$actual"
+done
+test -f "$preserve_home/.config/jarvis/capabilities.json"
+python3 - "$preserve_home/.config/jarvis/capabilities.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+data = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+assert data["listen_shortcut"] == "<Super>j"
+assert data["microphone_shortcut"] == "disabled"
+PY
 
 # Upgrade rollback restores an existing tree byte-for-byte where it matters.
 upgrade_home="$test_root/upgrade"

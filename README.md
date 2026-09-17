@@ -16,7 +16,7 @@ checks and downloads are available only while it is public.
 
 ## Current source status
 
-This tree is version `v2.3.0`. Check GitHub Releases for the latest published
+This tree is version `v2.3.1`. Check GitHub Releases for the latest published
 version; the `main` branch can contain newer validated fixes before a new
 release is published.
 Do not infer a published release from the name of a local extracted/downloaded
@@ -34,14 +34,14 @@ The validated diagnosis and portability rules are documented in
 
 ## Quick start
 
-Download the `ovos-commands-2.3.0.tar.gz` archive and matching `.sha256` file
+Download the `ovos-commands-2.3.1.tar.gz` archive and matching `.sha256` file
 from the [latest GitHub release](https://github.com/evok3dx/OVOS-Commands/releases/latest),
 then verify and install it:
 
 ```bash
-sha256sum --check ovos-commands-2.3.0.tar.gz.sha256 &&
-tar -xzf ovos-commands-2.3.0.tar.gz &&
-cd ovos-commands-2.3.0 &&
+sha256sum --check ovos-commands-2.3.1.tar.gz.sha256 &&
+tar -xzf ovos-commands-2.3.1.tar.gz &&
+cd ovos-commands-2.3.1 &&
 bash scripts/install.sh
 ```
 
@@ -68,6 +68,13 @@ every replaced component under
 Jarvis once. A failed transaction restores the previous deployment. It works
 from a Git checkout or an extracted release archive. Jarvis installation,
 configuration, updates and daily operation remain user-space.
+
+An update replaces only release-managed Jarvis code and the helpers listed in
+`deployment-manifest.json`. It preserves the machine's OVOS configuration,
+application selection, personal commands, keyboard shortcuts, listening sound
+and any private helpers that are not part of the release. An existing voice
+stack and its downloaded models are also left untouched. Complete voice and
+desktop configuration is performed only for a fresh installation.
 Desktop GTK tools always use Mint's `/usr/bin/python3`, so installation and
 tray setup remain reliable even when the OVOS virtual environment is active.
 

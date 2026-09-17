@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import py_compile
+import re
 import shutil
 from pathlib import Path
 
@@ -25,6 +26,26 @@ NEW = """                if self.g2p_en is None:
 """
 
 
+def layout(source: str) -> str:
+    """Classify the installed fallback without depending on formatting."""
+    fallback = re.search(
+        r"fallback\s*=\s*EspeakFallback\(\s*british\s*=\s*british\s*\)\s*,?",
+        source,
+    )
+    if (
+        "from misaki.espeak import EspeakFallback" in source
+        and 'british = lang == "en-GB"' in source
+        and fallback
+    ):
+        return "already-applied"
+    if OLD in source:
+        return "needs-patch"
+    raise RuntimeError(
+        "The installed scriptconv source is not the reviewed layout; "
+        "refusing an unsafe pronunciation patch."
+    )
+
+
 def source_path() -> Path:
     spec = importlib.util.find_spec("scriptconv.phonemizers.mul")
     if spec is None or not spec.origin:
@@ -34,13 +55,9 @@ def source_path() -> Path:
 
 def patch(path: Path, backup: Path | None = None) -> str:
     source = path.read_text(encoding="utf-8")
-    if NEW in source:
+    state = layout(source)
+    if state == "already-applied":
         return "already-applied"
-    if OLD not in source:
-        raise RuntimeError(
-            "The installed scriptconv source is not the reviewed layout; "
-            "refusing an unsafe pronunciation patch."
-        )
     if backup is not None:
         backup.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(path, backup)

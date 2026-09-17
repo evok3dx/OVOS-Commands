@@ -22,6 +22,14 @@ shortcut_state="$jarvis_home/.config/jarvis/listen-shortcut.json"
 state_root="$jarvis_home/.local/state/jarvis"
 ovos_python="${OVOS_PYTHON:-$jarvis_home/.venvs/ovos/bin/python}"
 desktop_python="${JARVIS_DESKTOP_PYTHON:-/usr/bin/python3}"
+existing_deployment=false
+if [[ -d "$target_root" || -f "$target_profile" || -f "$target_capabilities" ]]; then
+  existing_deployment=true
+fi
+existing_deployment_flag=0
+if "$existing_deployment"; then
+  existing_deployment_flag=1
+fi
 restart=true
 check_only=false
 health_check=true
@@ -256,7 +264,7 @@ import urllib.request
 from pathlib import Path
 
 url, destination, expected = sys.argv[1:]
-request = urllib.request.Request(url, headers={"User-Agent": "OVOS-Commands/2.3.0"})
+request = urllib.request.Request(url, headers={"User-Agent": "OVOS-Commands/2.3.1"})
 digest = hashlib.sha256()
 try:
     with urllib.request.urlopen(request, timeout=60) as response, Path(destination).open("wb") as output:
@@ -452,7 +460,7 @@ import urllib.request
 from pathlib import Path
 
 url, destination, expected = sys.argv[1:]
-request = urllib.request.Request(url, headers={"User-Agent": "OVOS-Commands/2.3.0"})
+request = urllib.request.Request(url, headers={"User-Agent": "OVOS-Commands/2.3.1"})
 digest = hashlib.sha256()
 with urllib.request.urlopen(request, timeout=120) as response, Path(destination).open("wb") as output:
     while chunk := response.read(1024 * 1024):
@@ -664,6 +672,12 @@ if "$check_only"; then
   exit 0
 fi
 
+if "$existing_deployment"; then
+  printf '%s\n' \
+    "Existing OVOS voice packages and models will be left untouched." \
+    "Existing Jarvis configuration and keyboard shortcuts will be preserved."
+fi
+
 stamp="$(date +%Y%m%d-%H%M%S-%N)"
 backup_root="$state_root/backups/$stamp"
 mkdir -p "$state_root"
@@ -732,8 +746,10 @@ else
   JARVIS_HOME="$jarvis_home" "$desktop_python" "$repo_root/scripts/setup.py" "${setup_arguments[@]}"
 fi
 
-JARVIS_HOME="$jarvis_home" "$desktop_python" - \
-  "$configuration_source" "$repo_root" <<'PY'
+JARVIS_HOME="$jarvis_home" \
+JARVIS_EXISTING_DEPLOYMENT="$existing_deployment_flag" \
+  "$desktop_python" - \
+  "$configuration_source" "$repo_root" "$shortcut_state" <<'PY'
 import json
 import importlib.util
 import os
@@ -751,8 +767,22 @@ capabilities = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(capabilities)
 
 data = json.loads(path.read_text(encoding="utf-8"))
-data.setdefault("listen_shortcut", "<Super>l")
-data.setdefault("microphone_shortcut", "<Shift><Super>l")
+if os.environ.get("JARVIS_EXISTING_DEPLOYMENT") == "1":
+    shortcut_path = Path(sys.argv[3])
+    if shortcut_path.is_file():
+        try:
+            shortcuts = json.loads(shortcut_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            shortcuts = {}
+        listen = shortcuts.get("listen_shortcut", shortcuts.get("shortcut"))
+        microphone = shortcuts.get("microphone_shortcut")
+        if isinstance(listen, str):
+            data["listen_shortcut"] = listen
+        if isinstance(microphone, str):
+            data["microphone_shortcut"] = microphone
+else:
+    data.setdefault("listen_shortcut", "<Super>l")
+    data.setdefault("microphone_shortcut", "<Shift><Super>l")
 if data.get("mode") == "all-detected":
     # "All detected" is a continuing policy, not a one-time snapshot. This
     # picks up a supported application installed after Jarvis without changing
@@ -919,9 +949,10 @@ if [[ "${JARVIS_TEST_MODE:-0}" != 1 ]]; then
     echo "Neither pip in the OVOS virtualenv nor uv is available." >&2
     exit 1
   fi
-  ensure_voice_stack
-  "$ovos_python" "$target_root/scripts/patch-pronunciation.py"
-  "$ovos_python" - <<'PY'
+  if ! "$existing_deployment"; then
+    ensure_voice_stack
+    "$ovos_python" "$target_root/scripts/patch-pronunciation.py"
+    "$ovos_python" - <<'PY'
 from scriptconv.phonemizers.mul import MisakiEnPhonemizer
 
 phonemes = MisakiEnPhonemizer().phonemize_string(
@@ -931,15 +962,21 @@ if not phonemes or "None" in phonemes:
     raise SystemExit("Bella pronunciation fallback validation failed")
 print("Bella pronunciation fallback validated.")
 PY
+  fi
 fi
 
-install -m 0644 "$target_root/voice/jarvis-ready.wav" "$listening_sound"
-"$desktop_python" "$target_root/scripts/configure-audio-stack.py" \
-  --config "$ovos_config" --listening-sound "$listening_sound"
-if [[ "${JARVIS_TEST_MODE:-0}" != 1 ]]; then
-  "$ovos_python" "$target_root/scripts/configure-intent-pipeline.py" \
-    --config "$ovos_config"
+if "$existing_deployment"; then
+  echo "Preserved the existing OVOS voice packages and models."
 fi
+
+if ! "$existing_deployment"; then
+  install -m 0644 "$target_root/voice/jarvis-ready.wav" "$listening_sound"
+  "$desktop_python" "$target_root/scripts/configure-audio-stack.py" \
+    --config "$ovos_config" --listening-sound "$listening_sound"
+  if [[ "${JARVIS_TEST_MODE:-0}" != 1 ]]; then
+    "$ovos_python" "$target_root/scripts/configure-intent-pipeline.py" \
+      --config "$ovos_config"
+  fi
 
 mapfile -t wake_settings < <(python3 - "$configuration_source" <<'PY'
 import json
@@ -955,9 +992,12 @@ PY
 )
 wake_phrase="${wake_settings[0]}"
 wake_phrase_spoken="${wake_settings[1]}"
-"$desktop_python" "$target_root/scripts/configure-wakeword.py" \
-  --config "$ovos_config" --wake-phrase "$wake_phrase" \
-  --spoken-phrase "$wake_phrase_spoken"
+  "$desktop_python" "$target_root/scripts/configure-wakeword.py" \
+    --config "$ovos_config" --wake-phrase "$wake_phrase" \
+    --spoken-phrase "$wake_phrase_spoken"
+else
+  echo "Preserved existing audio, wake-word, intent-pipeline and sound configuration."
+fi
 
 for helper in "${runtime_helpers[@]}"; do
   install -m 0755 "$target_root/system_helpers/$helper" "$target_bin/$helper"
@@ -978,7 +1018,7 @@ PY
 )
 listen_shortcut="${shortcut_settings[0]}"
 microphone_shortcut="${shortcut_settings[1]}"
-if [[ "${JARVIS_TEST_MODE:-0}" != 1 && \
+if ! "$existing_deployment" && [[ "${JARVIS_TEST_MODE:-0}" != 1 && \
       "$(<"$backup_root/cinnamon-shortcuts.state")" == available ]]; then
   JARVIS_HOME="$jarvis_home" "$desktop_python" \
     "$target_root/scripts/listen-shortcut.py" \

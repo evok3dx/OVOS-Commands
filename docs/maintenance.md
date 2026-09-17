@@ -89,6 +89,20 @@ compatibility workflow are read-only. Only an explicit `jarvis-update install`
 changes the deployment, and it uses checksum verification and rollback
 protection.
 
+The update ownership boundary is intentionally small:
+
+- release-managed package code, documented runtime helpers and desktop assets
+  are updated;
+- OVOS configuration, capabilities, personal commands, shortcuts, sounds and
+  unlisted private helpers are machine-owned and preserved;
+- an existing voice stack and its model caches are preserved;
+- fresh installations still receive the complete reviewed setup.
+
+Do not add a machine-owned path to the replacement set merely because the
+installer can recreate it. Add a migration only when the new release cannot
+operate safely with the existing value, and cover that migration with an
+upgrade-preservation regression test.
+
 ## Release discipline
 
 The version in a local working directory name is not authoritative. The

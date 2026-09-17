@@ -63,8 +63,8 @@ created or silently managed by this repository.
 Before installing a downloaded archive:
 
 ```bash
-sha256sum --check ovos-commands-2.3.0.tar.gz.sha256
-tar -tzf ovos-commands-2.3.0.tar.gz
+sha256sum --check ovos-commands-2.3.1.tar.gz.sha256
+tar -tzf ovos-commands-2.3.1.tar.gz
 ```
 
 ## Updating Jarvis and OVOS
@@ -79,6 +79,13 @@ detected. Use `jarvis-update check`, review the result, then run
 HTTPS, verifies SHA-256, rejects unsafe archive paths and invokes the normal
 transactional installer. `jarvis-update rollback` restores the previous Jarvis
 deployment.
+
+On an existing installation, the transaction updates release-managed Jarvis
+code and helpers but preserves machine-owned OVOS configuration, selected
+applications, personal commands, keyboard shortcuts, listening sound and
+unlisted private helpers. An existing voice stack and its downloaded models
+are reused rather than reinstalled. Fresh installations still receive the
+complete reviewed setup.
 
 This experimental repository may be private between announced update windows.
 Scheduled checks fail quietly while it is private or the laptop is offline.
