@@ -45,7 +45,11 @@ for the validated troubleshooting sequence.
 | `bash scripts/test-deployment.sh` | Isolated install/rollback regression |
 | `python3 scripts/setup.py` | Detect and select reviewed applications |
 | `jarvis-speechnote-setup` | Manage the optional per-user Speech Note add-on |
-| `python3 scripts/update.py` | Check, verify, install or roll back a release |
+| `jarvis-health-check` | Validate the live host and Jarvis installation |
+| `jarvis-report --issue "..."` | Build a private diagnostic handoff |
+| `jarvis-update check` | Check the configured release source without installing |
+| `jarvis-update install` | Verify and install a newer release transactionally |
+| `jarvis-update rollback` | Restore the latest Jarvis deployment snapshot |
 | `python3 scripts/check_upstream.py` | Read-only OVOS upstream drift report |
 | `python3 scripts/doctor.py` | Host, API and deployment compatibility checks |
 | `bash scripts/deploy-modular-refactor.sh` | Legacy compatibility wrapper |
@@ -129,7 +133,7 @@ class.
 
 ## Documentation policy
 
-`README.md`, `docs/command-reference.md`, this guide,
+`README.md`, `docs/command-reference.md`, `docs/troubleshooting.md`, this guide,
 `docs/profiles-and-integrations.md` and
 `docs/window-focus-and-app-integration.md` describe current operation. Files
 under `docs/history/` preserve implementation rationale and old observed

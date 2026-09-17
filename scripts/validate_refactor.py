@@ -136,9 +136,17 @@ tray_source = (ROOT / "tray/ovos-tray.py").read_text(encoding="utf-8")
 assert 'Path.home() / ".local/bin" / name' in tray_source
 assert '"Wake phrase…", self._wake_phrase' in tray_source
 assert '"Keyboard shortcuts…", self._listen_shortcut' in tray_source
+assert '"Run health check", self._health' in tray_source
+assert '"Restart Jarvis commands", self._restart' in tray_source
+assert '"Restart full voice system", self._full_restart' in tray_source
+assert '"Close tray icon", lambda _item: Gtk.main_quit()' in tray_source
 assert '"About…", self._about' in tray_source
 assert "def _installed_jarvis_version" in tray_source
 assert "def _ovos_versions" in tray_source
+readme_source = (ROOT / "README.md").read_text(encoding="utf-8")
+assert "docs/troubleshooting.md" in readme_source
+assert "The voice services keep running." in readme_source
+assert (ROOT / "docs/troubleshooting.md").is_file()
 assert "jarvis-focused-navigation" in EXPECTED_SYSTEM_HELPERS
 assert COMPATIBILITY["ovos"]["wakeword"] == {
     "phrase": "hey_jarvis",

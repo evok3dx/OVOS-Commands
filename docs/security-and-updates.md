@@ -104,7 +104,7 @@ OVOS and Jarvis updates are deliberately supervised rather than unattended:
 3. Re-run the official OVOS virtualenv installer or its documented update flow.
 4. Run `bash scripts/install.sh --check`, then install this Jarvis release.
 5. Run `jarvis-health-check` and exercise critical voice commands.
-6. Use `scripts/rollback.sh` if the Jarvis deployment regresses. Restore the
+6. Use `jarvis-update rollback` if the Jarvis deployment regresses. Restore the
    OVOS configuration backup separately if the upstream update changed it.
 
 The GitHub workflow tests this skill against current OVOS Python APIs.

@@ -409,16 +409,16 @@ print(json.dumps(sorted(items, key=lambda item: item[0].lower())))
             ("Wake phrase…", self._wake_phrase),
             ("Keyboard shortcuts…", self._listen_shortcut),
             ("Speech Note setup…", self._speechnote),
-            ("Health check", self._health),
+            ("Run health check", self._health),
             ("Create AI support report", self._report),
             ("Check for updates", self._updates),
-            ("Restart Commands", self._restart),
-            ("Restart Voice System", self._full_restart),
-            ("Start Voice System", self._start),
-            ("Stop Voice System", self._stop),
-            ("Recent logs", self._logs),
+            ("Restart Jarvis commands", self._restart),
+            ("Restart full voice system", self._full_restart),
+            ("Start voice system", self._start),
+            ("Stop voice system", self._stop),
+            ("View recent logs", self._logs),
             ("About…", self._about),
-            ("Exit tray", lambda _item: Gtk.main_quit()),
+            ("Close tray icon", lambda _item: Gtk.main_quit()),
         ]
         editor = Path.home() / ".local/bin/jarvis-command-editor"
         if editor.is_file():

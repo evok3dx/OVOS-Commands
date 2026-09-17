@@ -39,9 +39,12 @@ from the [latest GitHub release](https://github.com/evok3dx/OVOS-Commands/releas
 then verify and install it:
 
 ```bash
-sha256sum --check ovos-commands-2.3.1.tar.gz.sha256 &&
-tar -xzf ovos-commands-2.3.1.tar.gz &&
-cd ovos-commands-2.3.1 &&
+cd ~/Downloads
+sha256sum --check ovos-commands-2.3.1.tar.gz.sha256
+install_dir="$(mktemp -d "$HOME/Downloads/ovos-2.3.1-install.XXXXXX")"
+tar -xzf ovos-commands-2.3.1.tar.gz -C "$install_dir"
+cd "$install_dir/ovos-commands-2.3.1"
+bash scripts/install.sh --check
 bash scripts/install.sh
 ```
 
@@ -112,7 +115,7 @@ first so it can offer the reviewed setup.
 Restore the most recent deployment with:
 
 ```bash
-bash scripts/rollback.sh
+jarvis-update rollback
 ```
 
 The former `scripts/deploy-modular-refactor.sh` entry point remains as a thin
@@ -241,6 +244,30 @@ The command editor maps personal wording only to approved actions. The OVOS
 tray controls service status and safe restarts. The microphone indicator
 controls only `ovos-listener.service`.
 
+### Tray menu
+
+| Menu item | What it does |
+|---|---|
+| **Setup…** | Detect and select the applications Jarvis may control. |
+| **Commands…** | Edit personal phrases for approved actions. Shown only when the optional command editor is installed. |
+| **Wake phrase…** | Change the wake phrase. The trained **Hey Jarvis** preset uses OpenWakeWord; other phrases use local Vosk matching. |
+| **Keyboard shortcuts…** | Change or disable the manual-listen and continuous-listening shortcuts. |
+| **Speech Note setup…** | Inspect or install the optional local reading and dictation application. Existing settings and models are preserved. |
+| **Run health check** | Validate the host, configured apps, OVOS services, voice packages and Jarvis installation. |
+| **Create AI support report** | Save a privacy-filtered diagnostic archive in `~/Downloads`. Nothing is uploaded. |
+| **Check for updates** | Check the configured GitHub release. If a newer release was already detected, this opens its supervised installer. |
+| **Restart Jarvis commands** | Restart only `ovos-core.service`, which reloads Jarvis command code. |
+| **Restart full voice system** | Restart audio, listener and core services in dependency order. |
+| **Start/Stop voice system** | Start or stop the three managed OVOS voice services. |
+| **View recent logs** | Follow the latest 200 core, listener and audio log lines in a terminal. |
+| **About…** | Show the installed Jarvis version and the OVOS/plugin versions in its active virtual environment. |
+| **Close tray icon** | Close only the status icon. The voice services keep running. |
+
+The tray icon reports `ready`, `starting`, `stopped` or `failed`. A small red
+badge means that a newer Jarvis release was detected. See the
+[troubleshooting guide](docs/troubleshooting.md) for the shortest safe checks
+when a command or service is not behaving as expected.
+
 Wake-word capture tuning remains independent and reversible:
 
 ```bash
@@ -285,14 +312,17 @@ prompt.
 
 Publishing ordinary commits never updates clients. A client sees an update
 only after a higher semantic version is published as a GitHub Release with the
-matching versioned archive and checksum assets. Releases are prepared as
-drafts, checked, and then published under GitHub release immutability. After
-the small user group has updated, the repository may be made private again.
+matching versioned archive and checksum assets. Test the exact archive and
+checksum before publishing, and never replace assets attached to an existing
+version. After the small user group has updated, the repository may be made
+private again.
 
 See the [maintenance guide](docs/maintenance.md) before changing inventory or
 deployment, the
 [window focus/integration guide](docs/window-focus-and-app-integration.md) for
-cross-machine GUI diagnosis, and the
+cross-machine GUI diagnosis, the
+[troubleshooting guide](docs/troubleshooting.md) for normal operational checks,
+and the
 [repository audit](docs/repository-audit.md) for the v21 cleanup decisions.
 Earlier implementation reports are retained under
 [`docs/history/`](docs/history/README.md) as historical records only.
@@ -337,5 +367,6 @@ never uploaded automatically. See [AI-assisted maintenance](docs/ai-maintenance.
 - The reviewed Brain intent-pipeline order, verified against installed plugins
 
 Normal capability files omit private agent vocabulary, so their registration
-count is intentionally smaller. The larger compatibility inventory protects an
-existing customised Brain installation during migration.
+count is intentionally smaller. The larger count is a migration regression
+fixture for the previously customised Brain profile; private agent vocabulary
+is not enabled or installed by normal setup.
