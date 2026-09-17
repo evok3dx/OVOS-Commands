@@ -14,6 +14,23 @@ The repository may be private between announced update windows. Existing
 installations continue to work while it is private, but anonymous update
 checks and downloads are available only while it is public.
 
+## Current source status
+
+The latest **published GitHub release** is currently `v2.2.4`. The `main`
+branch can contain newer validated fixes before a new release is published.
+Do not infer a published release from the name of a local extracted/downloaded
+folder.
+
+On 16 September 2026, cross-machine testing between the Brain and a second
+Linux Mint laptop identified and fixed a generic X11 window-discovery bug:
+portable application definitions may contain several reviewed window-class
+alternatives separated by `|`, and `jarvis-app-window` must test each literal
+candidate independently. Treating the full `|`-joined value as one literal
+string caused an already-open Standard Notes window to be reported as missing.
+
+The validated diagnosis and portability rules are documented in
+[`docs/window-focus-and-app-integration.md`](docs/window-focus-and-app-integration.md).
+
 ## Quick start
 
 Download the `ovos-commands-2.2.4.tar.gz` archive and matching `.sha256` file
@@ -84,6 +101,44 @@ bash scripts/rollback.sh
 
 The former `scripts/deploy-modular-refactor.sh` entry point remains as a thin
 compatibility wrapper. New documentation and automation use `scripts/install.sh`.
+
+## Post-install application validation
+
+For product-specific actions, confirm the capability mapping and window focus
+before debugging shortcuts or OVOS intent routing.
+
+```bash
+cat ~/.config/jarvis/capabilities.json
+```
+
+Then inspect the real X11 identity of the application:
+
+```bash
+wmctrl -lx
+ACTIVE="$(xdotool getactivewindow)"
+xprop -id "$ACTIVE" WM_CLASS
+```
+
+For Standard Notes, the validated laptop reported:
+
+```text
+WM_CLASS(STRING) = "standard notes", "Standard Notes"
+```
+
+Test Jarvis focus directly:
+
+```bash
+~/.local/bin/jarvis-app-window focus standard_notes
+echo "exit=$?"
+```
+
+Only after focus succeeds should you test application-specific actions such as
+`New note` or `Search notes`. A bare `xdotool key ...` command targets whatever
+window currently owns focus, often the terminal, so it is not a valid app test
+unless the intended application is actually active.
+
+See [`docs/window-focus-and-app-integration.md`](docs/window-focus-and-app-integration.md)
+for the complete Brain/laptop comparison and troubleshooting procedure.
 
 ## Capabilities
 
@@ -175,6 +230,12 @@ bash scripts/test-deployment.sh
 bash scripts/build-release.sh
 ```
 
+Before publishing a desktop-integration change, test both an existing
+known-good machine and any machine that motivated a new window-class variant.
+For each affected app, capture `wmctrl -lx`, confirm `WM_CLASS`, run
+`jarvis-app-window focus <integration>`, and only then test the product-specific
+shortcut and spoken intent.
+
 CI validates Python 3.10 through 3.13, checks every shell entry point and
 builds a clean release archive. Archives exclude Git metadata, caches, logs,
 local configuration and previous builds. Each archive has a `.sha256` sidecar
@@ -200,8 +261,11 @@ drafts, checked, and then published under GitHub release immutability. After
 the small user group has updated, the repository may be made private again.
 
 See the [maintenance guide](docs/maintenance.md) before changing inventory or
-deployment, and the [repository audit](docs/repository-audit.md) for the v21
-cleanup decisions. Earlier implementation reports are retained under
+deployment, the
+[window focus/integration guide](docs/window-focus-and-app-integration.md) for
+cross-machine GUI diagnosis, and the
+[repository audit](docs/repository-audit.md) for the v21 cleanup decisions.
+Earlier implementation reports are retained under
 [`docs/history/`](docs/history/README.md) as historical records only.
 The [security and update policy](docs/security-and-updates.md) defines the
 supported platform, privilege boundary, checksum limits and supervised OVOS
