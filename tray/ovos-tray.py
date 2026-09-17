@@ -3,6 +3,7 @@
 
 import json
 import re
+import shlex
 import subprocess
 from pathlib import Path
 
@@ -124,6 +125,78 @@ class OvosTray:
             if latest > installed:
                 return str(update["latest"])
         return None
+
+    def _installed_jarvis_version(self):
+        current = self._json(
+            Path.home() / ".local/state/jarvis/current.json"
+        )
+        version = str(current.get("version", "")).strip()
+        return version or "unknown"
+
+    def _ovos_python(self):
+        """Return the Python executable for the active OVOS environment."""
+
+        candidates = [
+            Path.home() / ".venvs/ovos/bin/python",
+            Path.home() / ".venvs/ovos/bin/python3",
+        ]
+        for candidate in candidates:
+            if candidate.is_file() and candidate.stat().st_mode & 0o111:
+                return candidate
+
+        # Fall back to the executable path declared by the live core service.
+        # Typical ExecStart values point at <venv>/bin/ovos-core; use the
+        # sibling Python from that same environment rather than system Python.
+        result = self._run(
+            "systemctl",
+            "--user",
+            "show",
+            "ovos-core.service",
+            "--property=ExecStart",
+            "--value",
+        )
+        text = result.stdout.strip()
+        for token in shlex.split(text.replace("{", " ").replace("}", " ")):
+            path = Path(token)
+            if path.name.startswith("ovos-") and path.parent.name == "bin":
+                for name in ("python", "python3"):
+                    candidate = path.parent / name
+                    if candidate.is_file() and candidate.stat().st_mode & 0o111:
+                        return candidate
+        return None
+
+    def _ovos_versions(self):
+        """Read installed OVOS package/plugin versions from the OVOS venv."""
+
+        python = self._ovos_python()
+        if python is None:
+            return [], "OVOS environment not found"
+
+        script = r'''
+import json
+from importlib import metadata
+
+items = []
+for dist in metadata.distributions():
+    name = (dist.metadata.get("Name") or "").strip()
+    lowered = name.lower().replace("_", "-")
+    if lowered.startswith("ovos-") or lowered == "openvoiceos":
+        items.append((name, dist.version))
+print(json.dumps(sorted(items, key=lambda item: item[0].lower())))
+'''
+        result = self._run(str(python), "-c", script)
+        if result.returncode != 0:
+            return [], "Could not query OVOS package versions"
+        try:
+            values = json.loads(result.stdout)
+        except (TypeError, ValueError, json.JSONDecodeError):
+            return [], "Invalid OVOS version response"
+        packages = [
+            (str(name), str(version))
+            for name, version in values
+            if name and version
+        ]
+        return packages, None
 
     def _poll(self):
         try:
@@ -251,6 +324,56 @@ class OvosTray:
             start_new_session=True,
         )
 
+    def _about(self, _item=None):
+        jarvis_version = self._installed_jarvis_version()
+        packages, error = self._ovos_versions()
+
+        lines = [f"Jarvis / OVOS Commands: {jarvis_version}", ""]
+        if packages:
+            lines.append("Installed OVOS components and plugins:")
+            lines.extend(
+                f"{name}: {version}" for name, version in packages
+            )
+        else:
+            lines.append(error or "No OVOS packages found")
+
+        dialog = Gtk.Dialog(
+            title="About Jarvis Voice System",
+            transient_for=None,
+            flags=Gtk.DialogFlags.MODAL,
+        )
+        dialog.add_button("Close", Gtk.ResponseType.CLOSE)
+        dialog.set_default_size(540, 420)
+
+        box = dialog.get_content_area()
+        box.set_border_width(12)
+
+        heading = Gtk.Label()
+        heading.set_markup(
+            "<b>Jarvis Voice System</b>\n"
+            "Local allowlisted voice control powered by OpenVoiceOS"
+        )
+        heading.set_xalign(0)
+        heading.set_selectable(True)
+        box.pack_start(heading, False, False, 0)
+
+        scroller = Gtk.ScrolledWindow()
+        scroller.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        scroller.set_margin_top(12)
+
+        text = Gtk.TextView()
+        text.set_editable(False)
+        text.set_cursor_visible(False)
+        text.set_monospace(True)
+        text.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
+        text.get_buffer().set_text("\n".join(lines))
+        scroller.add(text)
+        box.pack_start(scroller, True, True, 0)
+
+        dialog.show_all()
+        dialog.run()
+        dialog.destroy()
+
     def _build_menu(self):
         menu = Gtk.Menu()
         entries = [
@@ -264,6 +387,7 @@ class OvosTray:
             ("Start Voice System", self._start),
             ("Stop Voice System", self._stop),
             ("Recent logs", self._logs),
+            ("About…", self._about),
             ("Exit tray", lambda _item: Gtk.main_quit()),
         ]
         editor = Path.home() / ".local/bin/jarvis-command-editor"
