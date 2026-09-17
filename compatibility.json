@@ -74,6 +74,14 @@
       "ovos-audio": "1.2.0",
       "ovos-dinkum-listener": "0.5.0"
     },
+    "latest_stable_compatibility": {
+      "validated_on": "2026-09-17",
+      "workflow_run": "https://github.com/evok3dx/OVOS-Commands/actions/runs/35179528368",
+      "package_versions": {
+        "ovos-workshop": "8.0.0",
+        "ovos-plugin-manager": "2.2.0"
+      }
+    },
     "required_api": [
       "ovos_workshop.decorators.intent_handler",
       "ovos_workshop.intents.IntentBuilder",
