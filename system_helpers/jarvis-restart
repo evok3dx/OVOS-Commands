@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+mode="core"
+case "${1:-}" in
+  "") ;;
+  --full) mode="full" ;;
+  *)
+    echo "Usage: jarvis-restart [--full]" >&2
+    exit 2
+    ;;
+esac
+
+systemctl_command="${JARVIS_SYSTEMCTL:-systemctl}"
+
+wait_active() {
+  local service="$1"
+  local attempt
+  for attempt in {1..60}; do
+    if "$systemctl_command" --user is-active --quiet "$service"; then
+      return 0
+    fi
+    sleep 0.5
+  done
+  echo "Jarvis service did not become active: $service" >&2
+  return 1
+}
+
+if [[ "$mode" == full ]]; then
+  # Do not restart the message bus.  Stop the voice consumers first, then
+  # start each component in dependency order so a reconnect cannot launch a
+  # second concurrent skill-discovery pass.
+  "$systemctl_command" --user stop \
+    ovos-core.service ovos-listener.service ovos-audio.service
+  for service in \
+    ovos-audio.service ovos-listener.service ovos-core.service; do
+    "$systemctl_command" --user start "$service"
+    wait_active "$service"
+  done
+  echo "Jarvis voice system restarted."
+else
+  "$systemctl_command" --user restart ovos-core.service
+  wait_active ovos-core.service
+  echo "Jarvis core restarted."
+fi

@@ -59,7 +59,7 @@ X-GNOME-Autostart-Delay=3
 EOF
 install -m 0644 "$desktop_tmp" "$desktop_file"
 
-if [[ "${JARVIS_TEST_MODE:-0}" != 1 ]]; then
+if [[ "${JARVIS_TEST_MODE:-0}" != 1 && "${JARVIS_NO_START:-0}" != 1 ]]; then
   pkill -f "$bin_dir/jarvis-mic-indicator" 2>/dev/null || true
   nohup "$bin_dir/jarvis-mic-indicator" \
     > "$state_dir/jarvis-mic-indicator.log" 2>&1 &

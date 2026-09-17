@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+jarvis_home="${JARVIS_HOME:-$HOME}"
+source_root="${JARVIS_SOURCE_ROOT:-$jarvis_home/.local/src/ovos-skill-jarvis-dispatcher}"
+exec /usr/bin/python3 "$source_root/scripts/wake-phrase.py" "$@"

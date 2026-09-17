@@ -24,7 +24,7 @@ cleanup() {
 trap cleanup EXIT
 
 if git -C "$repo_root" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  git -C "$repo_root" ls-files -z > "$file_list"
+  git -C "$repo_root" ls-files --cached --others --exclude-standard -z > "$file_list"
 else
   python3 - "$repo_root" > "$file_list" <<'PY'
 import os
@@ -34,7 +34,7 @@ from pathlib import Path
 root = Path(sys.argv[1])
 roots = (
     ".github", "command_editor", "docs", "mic", "ovos_skill_jarvis_dispatcher",
-    "profiles", "scripts", "system_helpers", "systemd", "tray",
+    "profiles", "scripts", "system_helpers", "systemd", "tray", "voice",
 )
 files = (
     ".gitignore", "COMMAND-EDITOR.md", "README.md", "compatibility.json",

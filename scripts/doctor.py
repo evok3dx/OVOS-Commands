@@ -90,12 +90,31 @@ def locate_ovos_python(home: Path, explicit: str | None) -> Path | None:
 def run_json(command: list[str], timeout: int = 20) -> dict[str, object]:
     result = subprocess.run(
         command,
-        check=True,
+        check=False,
         capture_output=True,
         text=True,
         timeout=timeout,
     )
-    return json.loads(result.stdout)
+    if result.returncode:
+        detail = result.stderr.strip() or result.stdout.strip() or "no diagnostic output"
+        raise RuntimeError(
+            f"probe exited with status {result.returncode}: {detail[-4000:]}"
+        )
+    output = result.stdout.strip()
+    try:
+        return json.loads(output)
+    except json.JSONDecodeError as error:
+        # Dependencies occasionally print a warning before the JSON result.
+        # Accept a valid final line, but retain useful output on real failures.
+        lines = [line for line in output.splitlines() if line.strip()]
+        if lines:
+            try:
+                return json.loads(lines[-1])
+            except json.JSONDecodeError:
+                pass
+        raise RuntimeError(
+            f"probe returned invalid JSON: {(output or result.stderr.strip())[-4000:]}"
+        ) from error
 
 
 def check_ovos_python(report: Report, python: Path | None) -> None:
@@ -109,7 +128,9 @@ def check_ovos_python(report: Report, python: Path | None) -> None:
 
     probe = r'''
 import importlib.metadata as metadata
+import importlib.util
 import json
+from pathlib import Path
 
 from ovos_workshop.decorators import intent_handler
 from ovos_workshop.intents import IntentBuilder
@@ -117,7 +138,11 @@ from ovos_workshop.skills.converse import ConversationalSkill
 
 names = [
     "ovos-core", "ovos-workshop", "ovos-config", "ovos-plugin-manager",
-    "ovos-audio", "ovos-dinkum-listener", "ovos-skill-jarvis-dispatcher"
+    "ovos-audio", "ovos-dinkum-listener", "ovos-skill-jarvis-dispatcher",
+    "ovos-ww-plugin-openwakeword", "openwakeword", "ovos-ww-plugin-vosk",
+    "ovos-vad-plugin-silero", "ovos-stt-plugin-fasterwhisper",
+    "faster-whisper", "ctranslate2", "phoonnx", "misaki", "scriptconv",
+    "spacy", "en-core-web-sm", "onnxruntime", "numpy"
 ]
 versions = {}
 for name in names:
@@ -126,16 +151,50 @@ for name in names:
     except metadata.PackageNotFoundError:
         versions[name] = None
 
-groups = sorted({entry.group for entry in metadata.entry_points()})
-opm_skill_names = sorted(
-    entry.name for entry in metadata.entry_points()
-    if entry.group == "opm.skill"
+# Request the group directly. Iterating entry_points() without a group returns
+# group-name strings on the Python 3.11 API used by the official OVOS image,
+# rather than EntryPoint objects.
+def entries_for(group):
+    try:
+        return metadata.entry_points(group=group)
+    except TypeError:
+        all_entries = metadata.entry_points()
+        if hasattr(all_entries, "select"):
+            return all_entries.select(group=group)
+        if isinstance(all_entries, dict):
+            return all_entries.get(group, ())
+        return [
+            entry for entry in all_entries
+            if getattr(entry, "group", None) == group
+        ]
+
+
+opm_entries = entries_for("opm.skill")
+opm_skill_names = sorted(entry.name for entry in opm_entries)
+opm_wake_word_names = sorted(
+    entry.name for entry in entries_for("opm.wake_word")
 )
+opm_stt_names = sorted(entry.name for entry in entries_for("opm.stt"))
+opm_tts_names = sorted(entry.name for entry in entries_for("opm.tts"))
+opm_vad_names = sorted(entry.name for entry in entries_for("opm.VAD"))
+try:
+    scriptconv_spec = importlib.util.find_spec("scriptconv.phonemizers.mul")
+    pronunciation_fallback = bool(
+        scriptconv_spec and scriptconv_spec.origin
+        and "EspeakFallback" in Path(scriptconv_spec.origin).read_text(encoding="utf-8")
+    )
+except (ImportError, ModuleNotFoundError, OSError):
+    pronunciation_fallback = False
 print(json.dumps({
     "python": __import__("sys").version.split()[0],
     "versions": versions,
-    "has_opm_skill": "opm.skill" in groups,
+    "has_opm_skill": bool(opm_skill_names),
     "opm_skill_names": opm_skill_names,
+    "opm_wake_word_names": opm_wake_word_names,
+    "opm_stt_names": opm_stt_names,
+    "opm_tts_names": opm_tts_names,
+    "opm_vad_names": opm_vad_names,
+    "pronunciation_fallback": pronunciation_fallback,
     "api": {
         "intent_handler": callable(intent_handler),
         "IntentBuilder": callable(IntentBuilder),
@@ -145,7 +204,7 @@ print(json.dumps({
 '''
     try:
         data = run_json([str(python), "-c", probe])
-    except (subprocess.SubprocessError, json.JSONDecodeError) as error:
+    except (OSError, RuntimeError, subprocess.SubprocessError) as error:
         report.fail("ovos-api", f"OVOS API probe failed: {error}")
         return
 
@@ -180,6 +239,152 @@ print(json.dumps({
             f"OVOS entry point {expected_entry!r} is registered.",
         )
 
+    wakeword_policy = POLICY["ovos"]["wakeword"]
+    wakeword_version = data["versions"].get(wakeword_policy["package"])
+    if wakeword_version:
+        level = (
+            "PASS"
+            if wakeword_version == wakeword_policy["validated_version"]
+            else "WARN"
+        )
+        report.add(
+            level,
+            "wakeword-package",
+            f"{wakeword_policy['package']} {wakeword_version} is installed.",
+        )
+    else:
+        report.fail(
+            "wakeword-package",
+            f"Required wake-word package {wakeword_policy['package']} is missing.",
+        )
+    if wakeword_policy["module"] in data["opm_wake_word_names"]:
+        report.pass_(
+            "wakeword-entry-point",
+            f"OVOS wake-word entry point {wakeword_policy['module']!r} is registered.",
+        )
+    else:
+        report.fail(
+            "wakeword-entry-point",
+            f"OVOS wake-word entry point {wakeword_policy['module']!r} is missing.",
+        )
+
+    for label, policy_name, entry_key in (
+        ("vad", "vad", "opm_vad_names"),
+        ("stt", "stt", "opm_stt_names"),
+        ("tts", "tts", "opm_tts_names"),
+    ):
+        policy = POLICY["ovos"][policy_name]
+        version = data["versions"].get(policy["package"])
+        if version == policy["validated_version"]:
+            report.pass_(f"{label}-package", f"{policy['package']} {version} is installed.")
+        elif version:
+            report.warn(
+                f"{label}-package",
+                f"{policy['package']} {version} is installed; reviewed version is "
+                f"{policy['validated_version']}.",
+            )
+        else:
+            report.fail(f"{label}-package", f"Required package {policy['package']} is missing.")
+        if policy["module"] in data[entry_key]:
+            report.pass_(f"{label}-entry-point", f"OVOS {label.upper()} entry point is registered.")
+        else:
+            report.fail(
+                f"{label}-entry-point",
+                f"OVOS {label.upper()} entry point {policy['module']!r} is missing.",
+            )
+    if data.get("pronunciation_fallback"):
+        report.pass_("bella-pronunciation", "Bella's general unknown-word fallback is active.")
+    else:
+        report.fail("bella-pronunciation", "Bella's reviewed unknown-word fallback is missing.")
+
+    tts_policy = POLICY["ovos"]["tts"]
+    for package, version_key in (
+        ("misaki", "misaki_version"),
+        ("scriptconv", "scriptconv_version"),
+        ("spacy", "spacy_version"),
+        ("en-core-web-sm", "spacy_model_version"),
+        ("onnxruntime", "onnxruntime_version"),
+        ("numpy", "numpy_version"),
+    ):
+        installed_version = data["versions"].get(package)
+        expected_version = tts_policy[version_key]
+        if installed_version == expected_version:
+            report.pass_(
+                f"bella-{package}", f"{package} {installed_version} is installed."
+            )
+        else:
+            report.fail(
+                f"bella-{package}",
+                f"{package} must be {expected_version}; found {installed_version or 'missing'}.",
+            )
+
+
+def check_wakeword_config(
+    report: Report, home: Path, profile: dict[str, object]
+) -> None:
+    path = home / ".config/mycroft/mycroft.conf"
+    expected_phrase = str(
+        profile.get("wake_phrase", POLICY["ovos"]["wakeword"]["phrase"])
+    )
+    expected_module = (
+        POLICY["ovos"]["wakeword"]["module"]
+        if expected_phrase == POLICY["ovos"]["wakeword"]["phrase"]
+        else POLICY["ovos"]["custom_wakeword"]["module"]
+    )
+    try:
+        config = json.loads(path.read_text(encoding="utf-8"))
+        listener = config.get("listener", {})
+        hotword = config.get("hotwords", {}).get(expected_phrase, {})
+    except (OSError, ValueError, json.JSONDecodeError) as error:
+        report.fail("wakeword-config", f"Could not read {path}: {error}")
+        return
+    if (
+        listener.get("wake_word") == expected_phrase
+        and hotword.get("module") == expected_module
+        and hotword.get("listen") is True
+    ):
+        report.pass_(
+            "wakeword-config",
+            f"Wake phrase {expected_phrase.replace('_', ' ')!r} is configured.",
+        )
+    else:
+        report.fail(
+            "wakeword-config",
+            f"Wake phrase {expected_phrase.replace('_', ' ')!r} is not active in OVOS.",
+        )
+
+
+def check_audio_stack_config(report: Report, home: Path) -> None:
+    path = home / ".config/mycroft/mycroft.conf"
+    sound = home / ".local/share/ovos/sounds/jarvis-ready.wav"
+    try:
+        config = json.loads(path.read_text(encoding="utf-8"))
+        listener = config.get("listener", {})
+        vad = listener.get("VAD", {})
+        stt = config.get("stt", {})
+        tts = config.get("tts", {})
+        sounds = config.get("sounds", {})
+    except (OSError, ValueError, json.JSONDecodeError) as error:
+        report.fail("audio-config", f"Could not read {path}: {error}")
+        return
+    valid = (
+        vad.get("module") == POLICY["ovos"]["vad"]["module"]
+        and listener.get("instant_listen") is True
+        and listener.get("fake_barge_in") is True
+        and listener.get("barge_in_delay") == 0.25
+        and listener.get("barge_in_volume") == 15
+        and stt.get("module") == POLICY["ovos"]["stt"]["module"]
+        and tts.get("module") == POLICY["ovos"]["tts"]["module"]
+        and tts.get(POLICY["ovos"]["tts"]["module"], {}).get("voice")
+        == POLICY["ovos"]["tts"]["voice"]
+        and sounds.get("start_listening") == str(sound)
+        and sound.is_file()
+    )
+    if valid:
+        report.pass_("audio-config", "Local STT, Silero VAD, Bella and the listening beep are configured.")
+    else:
+        report.fail("audio-config", "The reviewed local Jarvis audio stack is not fully configured.")
+
 
 def command_exists(names: Iterable[str]) -> str | None:
     for name in names:
@@ -212,6 +417,7 @@ def check_commands(report: Report, profile: dict[str, object]) -> None:
         "window-metadata": ("xprop",),
         "window-management": ("wmctrl",),
         "clipboard": ("xclip",),
+        "audio-playback": ("play",),
         "audio-control": ("wpctl", "pactl"),
         "service-control": ("systemctl",),
     }
@@ -370,6 +576,8 @@ def main() -> int:
         profile = load_and_validate_profile(profile_path)
         report.pass_("profile", f"Jarvis {configuration_label} validates.")
         check_commands(report, profile)
+        check_wakeword_config(report, home, profile)
+        check_audio_stack_config(report, home)
     except (OSError, ValueError, json.JSONDecodeError) as error:
         report.fail("profile", f"Profile validation failed: {error}")
 

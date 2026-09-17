@@ -16,8 +16,9 @@ checks and downloads are available only while it is public.
 
 ## Current source status
 
-The latest **published GitHub release** is currently `v2.2.4`. The `main`
-branch can contain newer validated fixes before a new release is published.
+This tree is version `v2.3.0`. Check GitHub Releases for the latest published
+version; the `main` branch can contain newer validated fixes before a new
+release is published.
 Do not infer a published release from the name of a local extracted/downloaded
 folder.
 
@@ -33,14 +34,14 @@ The validated diagnosis and portability rules are documented in
 
 ## Quick start
 
-Download the `ovos-commands-2.2.4.tar.gz` archive and matching `.sha256` file
+Download the `ovos-commands-2.3.0.tar.gz` archive and matching `.sha256` file
 from the [latest GitHub release](https://github.com/evok3dx/OVOS-Commands/releases/latest),
 then verify and install it:
 
 ```bash
-sha256sum --check ovos-commands-2.2.4.tar.gz.sha256
-tar -xzf ovos-commands-2.2.4.tar.gz
-cd ovos-commands-2.2.4
+sha256sum --check ovos-commands-2.3.0.tar.gz.sha256 &&
+tar -xzf ovos-commands-2.3.0.tar.gz &&
+cd ovos-commands-2.3.0 &&
 bash scripts/install.sh
 ```
 
@@ -69,6 +70,14 @@ from a Git checkout or an extracted release archive. Jarvis installation,
 configuration, updates and daily operation remain user-space.
 Desktop GTK tools always use Mint's `/usr/bin/python3`, so installation and
 tray setup remain reliable even when the OVOS virtual environment is active.
+
+The installer also prepares the reviewed, fully local voice stack used by the
+Brain: OpenWakeWord for the trained **Hey Jarvis** model, Silero VAD, Faster
+Whisper `small.en`, and PhōnNX/Kokoro **Bella**. Exact working component
+versions are centralised in `compatibility.json`. The first install downloads
+the speech models into the user's caches and may take several minutes; it does
+not use `sudo`. The short listening beep is shipped inside this release, so it
+does not depend on a file hidden inside a particular OVOS virtualenv.
 
 First setup offers one simple choice:
 
@@ -204,11 +213,21 @@ check, support report, update check, safe restarts, start/stop and logs. No
 tray package installation is attempted if GTK is unavailable; all functions
 remain accessible from the terminal.
 
-The command editor and microphone indicator remain optional:
+The canonical installer adds both tray icons automatically: the voice-system
+status/control tray and the separate green/red listener microphone toggle.
+The status tray also provides a simple **Wake phrase…** editor for one-to-four
+word phrases. Changes remain in the user's OVOS configuration, are backed up,
+and restart only the listener. The trained **Hey Jarvis** preset uses
+OpenWakeWord; arbitrary custom phrases use local Vosk matching. The tray also
+provides **Keyboard shortcuts…**. Windows/Super+L starts one manual
+`ovos-listen` session and Shift+Windows/Super+L toggles continuous wake-word
+listening, matching the validated Brain controls. Both can be changed or
+disabled. Ctrl+Alt+L remains available for screen lock with the defaults, and
+rollback restores any Cinnamon bindings Jarvis replaced. The command editor
+remains optional:
 
 ```bash
 bash scripts/install-command-editor.sh
-bash scripts/install-jarvis-mic-indicator.sh
 ```
 
 The command editor maps personal wording only to approved actions. The OVOS
@@ -218,7 +237,8 @@ controls only `ovos-listener.service`.
 Wake-word capture tuning remains independent and reversible:
 
 ```bash
-bash scripts/set-instant-listen.sh enable
+bash scripts/set-instant-listen.sh status
+bash scripts/set-instant-listen.sh disable
 jarvis-restart --full
 ```
 
@@ -226,6 +246,8 @@ jarvis-restart --full
 
 ```bash
 python3 scripts/validate_refactor.py
+bash scripts/test-window-matching.sh
+bash scripts/test-focused-navigation.sh
 bash scripts/test-deployment.sh
 bash scripts/build-release.sh
 ```
@@ -293,7 +315,7 @@ never uploaded automatically. See [AI-assisted maintenance](docs/ai-maintenance.
 | `system_helpers/` | Allowlisted local automation |
 | `profiles/` | Legacy migration mappings |
 | `command_editor/` | Safe GTK personal-phrase editor |
-| `tray/` and `mic/` | Independent status controls |
+| `tray/`, `mic/` and `voice/` | Status controls and packaged listening sound |
 | `scripts/` | Install, rollback, validation, packaging and optional setup |
 | `docs/` | Current guides and archived implementation records |
 
@@ -301,10 +323,11 @@ never uploaded automatically. See [AI-assisted maintenance](docs/ai-maintenance.
 
 - 21 Python modules
 - 90 intents
-- 1,701 Brain-compatibility vocabulary registrations
+- 1,705 Brain-compatibility vocabulary registrations
 - 4 deployment profiles
-- 12 runtime helpers
+- 16 runtime helpers
 - 6 managed user-systemd units
+- The reviewed Brain intent-pipeline order, verified against installed plugins
 
 Normal capability files omit private agent vocabulary, so their registration
 count is intentionally smaller. The larger compatibility inventory protects an

@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+source_root="${JARVIS_HOME:-$HOME}/.local/src/ovos-skill-jarvis-dispatcher"
+exec /usr/bin/python3 "$source_root/scripts/listen-shortcut.py" "$@"

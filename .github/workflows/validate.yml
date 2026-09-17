@@ -19,6 +19,10 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - run: python3 scripts/validate_refactor.py
+      - name: Test desktop regressions
+        run: |
+          bash scripts/test-window-matching.sh
+          bash scripts/test-focused-navigation.sh
       - name: Check shell syntax
         run: |
           while IFS= read -r -d '' file; do

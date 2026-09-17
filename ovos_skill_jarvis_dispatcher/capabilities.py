@@ -23,9 +23,21 @@ INTEGRATIONS = {
     "terminal": {"category": "terminal", "commands": (
         "x-terminal-emulator", "gnome-terminal", "kgx", "konsole", "xfce4-terminal"
     )},
-    "standard_notes": {"category": "notes", "commands": ("standard-notes",),
+    "standard_notes": {"category": "notes", "commands": (
+                           "standard-notes", "standard-notes-desktop"
+                       ),
                        "flatpaks": ("org.standardnotes.standardnotes",),
-                       "home_globs": ("Apps/standard-notes-*-linux-x86_64.AppImage",)},
+                       "home_globs": (
+                           "Apps/standard-notes*.AppImage",
+                           "Apps/Standard-Notes*.AppImage",
+                           "Apps/standardnotes*.AppImage",
+                           "Apps/StandardNotes*.AppImage",
+                           "Applications/standard-notes*.AppImage",
+                           "Applications/Standard-Notes*.AppImage",
+                           "Applications/standardnotes*.AppImage",
+                           "Applications/StandardNotes*.AppImage",
+                       ),
+                       "desktop_contains": ("standard notes",)},
     "onlyoffice": {"category": "office", "commands": (
         "desktopeditors", "onlyoffice-desktopeditors"
     ), "paths": ("/opt/onlyoffice/desktopeditors/DesktopEditors",),
@@ -156,6 +168,9 @@ def build_configuration(
         "mode": modes[mode],
         "conversation": False,
         "wake_phrase": "hey_jarvis",
+        "wake_phrase_spoken": "hey jarvis",
+        "listen_shortcut": "<Super>l",
+        "microphone_shortcut": "<Shift><Super>l",
         "applications": applications,
         "private_extensions": {"agents": False},
     }
