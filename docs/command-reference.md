@@ -26,6 +26,12 @@ Examples:
 Open, launch, start, focus, show, switch, minimise, maximise, hide, close, quit
 and exit variants are supported where applicable.
 
+Jarvis app-specific actions first focus a reviewed X11 window through
+`jarvis-app-window`, then verify focus before sending a shortcut. If an app
+opens normally but an action such as `New note` fails, test window discovery
+before changing the shortcut. See
+[`window-focus-and-app-integration.md`](window-focus-and-app-integration.md).
+
 ### Standard Notes
 
 When the active capabilities map `notes` to Standard Notes:
@@ -39,9 +45,14 @@ When the active capabilities map `notes` to Standard Notes:
 Jarvis focuses or opens Standard Notes, verifies that it owns the active
 window, and only then sends `Alt+Shift+N`.
 
-- `Search notes` opens the universal Standard Notes search.
+- `Search notes` opens the universal Standard Notes search with
+  `Ctrl+Shift+Colon`.
 - `Search this note` uses focused-document search in the open note.
 - `Search this node` is retained as an STT-tolerant pronunciation variant.
+
+The helper accepts several reviewed Standard Notes X11 class spellings across
+packaging variants. Those alternatives are matched independently; the `|`
+separator is not part of a literal class name.
 
 ### Proton Mail
 
@@ -54,7 +65,12 @@ commands such as `Open Proton Mail` explicitly select Proton Mail.
 - `Find an email`
 
 Proton actions verify that the configured Mail integration is Proton Mail and
-that its window owns focus. Search opens the field before asking for the query.
+that its window owns focus. `New email` sends `N`. Search sends `/`, asks for
+the query, types it into the verified Proton Mail window, then sends `Enter`.
+
+Proton uses the same generic app-focus helper as Standard Notes but retains its
+own reviewed window signature. A Standard Notes-specific failure does not by
+itself prove Proton Mail is broken.
 
 ### Zoom
 
@@ -178,109 +194,3 @@ Examples:
 - `Minimise window`
 - `Maximise window`
 - `Restore window`
-- `Unmaximise window`
-
-The focused-window helper refuses to control the desktop or Cinnamon panel.
-
-## Focused editing and field navigation
-
-Examples:
-
-- `Select all`
-- `Delete selected text`
-- `Clear text` (requires confirmation)
-- `Undo` / `Redo`
-- `Copy text` / `Cut text` / `Paste text`
-- `Save document`
-- `Press Tab` / `Next field` / `Next box`
-- `Press Shift Tab` / `Previous field` / `Previous box`
-- `Search this page` / `Search this document`
-
-Search opens the application's search field first, then asks what to search
-for, verifies the original window still owns focus and enters the response.
-Terminal uses its compatible copy, select and search shortcuts; unsafe editing
-operations are refused there.
-
-## Other commands
-
-Examples:
-
-- `Read today's date`
-- `Mute mic` / `Mute microphone`
-- `Mute system` / `Mute everything`
-- `Mute Jarvis` / `Stop Jarvis listening`
-- `Stop`
-- `Hey Jarvis` while speech is playing to interrupt and begin another command
-
-## Keyboard, media and Hermes
-
-Universal focused-app controls:
-
-- `Press Enter` / `Press Return` / `Press Send`
-- `Caps Lock on` / `Caps Lock off`
-
-Caps Lock is state-aware: saying the requested state twice does not toggle it
-back. Full-system mute affects both speaker and microphone and must be reversed
-from the keyboard or Cinnamon sound settings.
-
-Cinnamon media controls:
-
-- `Play media` / `Resume playback`
-- `Pause media` / `Pause playback`
-- `Stop media` / `Stop playback`
-- `Next track` / `Skip track`
-- `Previous track` / `Back track`
-
-Hermes Desktop controls:
-
-- `Open Hermes` / `Focus Hermes` / `Minimise Hermes` / `Close Hermes`
-
-- `Focus Hermes composer`
-- `Open Hermes model picker`
-- `New line in Hermes`
-- `Queue Hermes message`
-- `Send next Hermes message`
-- `Open Hermes commands`
-- `Reference file in Hermes`
-- `Cancel Hermes run`
-- `Message Hermes` / `Ask Hermes` / `Tell Hermes`
-- `Write to Hermes` / `Type into Hermes` / `Talk to Hermes`
-
-Hermes is focused and verified before its shortcut is sent. Direct message
-commands focus the composer, clear any existing text, ask what to send, verify
-that the same Hermes window still owns focus, type the response and press Enter.
-They do not repeat the dictated content or require a second confirmation.
-Recognition-tolerant `Hermas` and `Omos` forms are included because they were
-observed in Whisper output; the broad phrase `from me` is deliberately not an
-alias. Media uses state-specific `playerctl` actions; bare `play`, `pause` and
-`stop` are not registered because they would collide with other voice flows.
-
-## Personal command phrases
-
-Choose **Commands…** from the OVOS tray to view approved actions and all their
-existing built-in phrases. A personal phrase can be added to the selected
-action and activated with **Save & Reload**.
-
-Built-ins are read-only. Personal phrases cannot run arbitrary applications,
-hotkeys or shell commands; they can only call actions already implemented and
-allowlisted by Jarvis.
-
-## Source of truth
-
-The registered intent inventory is defined in
-[`__init__.py`](../ovos_skill_jarvis_dispatcher/__init__.py). Behaviour is
-split across:
-
-- [Browser commands](../ovos_skill_jarvis_dispatcher/browser.py)
-- [Desktop commands](../ovos_skill_jarvis_dispatcher/desktop.py)
-- [Dictation commands](../ovos_skill_jarvis_dispatcher/dictation.py)
-- [Controlled follow-ups](../ovos_skill_jarvis_dispatcher/conversation.py)
-- [Personal phrase validation](../ovos_skill_jarvis_dispatcher/custom_commands.py)
-- [System microphone control](../ovos_skill_jarvis_dispatcher/system_audio.py)
-- [Keyboard and media controls](../ovos_skill_jarvis_dispatcher/system_controls.py)
-- [Wake-word interruption](../ovos_skill_jarvis_dispatcher/wakeword.py)
-- [Focused editing and navigation](../ovos_skill_jarvis_dispatcher/text_editing.py)
-- [Application integrations](../ovos_skill_jarvis_dispatcher/integrations/)
-
-Run `python3 scripts/validate_refactor.py` after changing commands or
-vocabulary.
