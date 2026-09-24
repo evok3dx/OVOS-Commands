@@ -12,6 +12,10 @@ class WakewordActionsMixin:
     def stop(self):
         """Stop OVOS speech, Speech Note reading and conversation."""
 
+        router = getattr(self, "_qwen_router", None)
+        if router is not None:
+            router.cancel()
+
         self.bus.emit(
             Message("mycroft.audio.speech.stop")
         )

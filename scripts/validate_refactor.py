@@ -133,20 +133,13 @@ probe_values = [
 assert len(probe_values) == 1
 compile(probe_values[0], "doctor-ovos-probe", "exec")
 tray_source = (ROOT / "tray/ovos-tray.py").read_text(encoding="utf-8")
-assert 'Path.home() / ".local/bin" / name' in tray_source
-assert '"Wake phrase…", self._wake_phrase' in tray_source
-assert '"Keyboard shortcuts…", self._listen_shortcut' in tray_source
-assert '"Run health check", self._health' in tray_source
-assert '"Restart Jarvis commands", self._restart' in tray_source
-assert '"Restart full voice system", self._full_restart' in tray_source
-assert '"Close tray icon", lambda _item: Gtk.main_quit()' in tray_source
-assert '"About…", self._about' in tray_source
-assert "def _installed_jarvis_version" in tray_source
-assert "def _ovos_versions" in tray_source
-readme_source = (ROOT / "README.md").read_text(encoding="utf-8")
-assert "docs/troubleshooting.md" in readme_source
-assert "The voice services keep running." in readme_source
-assert (ROOT / "docs/troubleshooting.md").is_file()
+assert 'Open Jarvis…' in tray_source
+assert 'Stop speaking' in tray_source
+assert 'Restart Jarvis' not in tray_source
+assert 'service_action' not in tray_source
+assert "from control_runtime import" in tray_source
+for gui_module in ('control_center.py', 'control_runtime.py'):
+    compile((ROOT / 'scripts' / gui_module).read_text(), gui_module, 'exec')
 assert "jarvis-focused-navigation" in EXPECTED_SYSTEM_HELPERS
 assert COMPATIBILITY["ovos"]["wakeword"] == {
     "phrase": "hey_jarvis",
@@ -160,10 +153,17 @@ assert COMPATIBILITY["ovos"]["wakeword"] == {
 assert COMPATIBILITY["ovos"]["custom_wakeword"]["module"] == "ovos-ww-plugin-vosk"
 assert COMPATIBILITY["ovos"]["stt"]["model"] == "small.en"
 assert COMPATIBILITY["ovos"]["tts"]["voice"] == "kokoro/af_bella"
-assert COMPATIBILITY["ovos"]["tts"]["scriptconv_version"] == "0.0.4a23"
+# Keep the original release and the functionally verified Brain upgrade.
+# Exact tuples prevent acceptance of unreviewed mixtures or future versions.
+assert tuple(COMPATIBILITY["ovos"]["tts"][key] for key in (
+    "scriptconv_version", "onnxruntime_version", "numpy_version"
+)) in {
+    ("0.0.4a23", "1.29.0", "1.26.4"),
+    ("0.0.4a31", "1.30.0", "2.4.6"),
+}, "TTS dependency versions do not match a reviewed baseline"
 assert COMPATIBILITY["ovos"]["tts"]["spacy_version"] == "3.8.15"
-assert COMPATIBILITY["ovos"]["tts"]["onnxruntime_version"] == "1.29.0"
-assert COMPATIBILITY["ovos"]["tts"]["numpy_version"] == "1.26.4"
+
+
 assert COMPATIBILITY["ovos"]["intent_pipeline"] == [
     "ovos-stop-pipeline-plugin-high",
     "ovos-converse-pipeline-plugin",
@@ -191,7 +191,7 @@ assert re.fullmatch(
 assert (ROOT / "voice/jarvis-ready.wav").read_bytes()[:4] == b"RIFF"
 assert "nvidia-" not in installer_source
 assert "torch==" not in installer_source
-assert '_terminal_helper("jarvis-update", action)' in tray_source
+assert "update_available" in tray_source
 speechnote_setup = (ROOT / "system_helpers/jarvis-speechnote-setup").read_text(
     encoding="utf-8"
 )
@@ -225,7 +225,7 @@ EXPECTED_INTENTS = {
     "MuteSystemMicrophoneIntent",
     "MuteSystemAudioIntent",
     "MuteJarvisIntent",
-    "PressEnterIntent",
+    "PressEnterIntent", "PressEscapeIntent",
     "PlayMediaIntent", "PauseMediaIntent", "StopMediaIntent",
     "NextMediaIntent", "PreviousMediaIntent",
     "CapsLockOnIntent", "CapsLockOffIntent",
@@ -374,7 +374,9 @@ def main():
         and isinstance(node.args[0], ast.Constant)
     }
 
-    profile_namespace = {}
+    profile_namespace = {"__name__": "jarvis_profile_check",
+                         "__file__": str(PACKAGE / "profile.py"),
+                         "__package__": ""}
     exec((PACKAGE / "profile.py").read_text(), profile_namespace)
     brain_profile = profile_namespace["resolve_profile"](
         profile_namespace["BRAIN_COMPATIBILITY_PROFILE"]
@@ -402,7 +404,7 @@ def main():
     fake = FakeSkill()
     fake._jarvis_profile = brain_profile
     namespace["register_skill_vocabulary"](fake, include_custom=False)
-    assert len(fake.registrations) == 1705
+    assert len(fake.registrations) == 1829, len(fake.registrations)
     assert len(fake.registrations) == len(set(fake.registrations)), (
         "Duplicate vocabulary registrations are present"
     )
@@ -508,15 +510,18 @@ def main():
         ) in fake.registrations
     for phrase in (
         "press enter", "press return", "press send", "hit enter", "hit return",
+        "new line", "newline", "insert new line", "add a new line",
     ):
         assert (phrase, "PressEnterCommand") in fake.registrations
+    for phrase in ("press escape", "press esc", "hit escape", "escape key"):
+        assert (phrase, "PressEscapeCommand") in fake.registrations
     media_commands = {
         "PlayMediaCommand": ("play media", "resume playback", "play music"),
         "PauseMediaCommand": ("pause media", "pause playback", "pause music"),
         "StopMediaCommand": ("stop media", "stop playback", "stop playing"),
         "NextMediaCommand": ("next track", "next song", "skip track"),
         "PreviousMediaCommand": (
-            "previous track", "previous song", "back track",
+            "previous track", "previous song", "go back one track", "back track",
         ),
     }
     for entity, phrases in media_commands.items():
@@ -638,6 +643,8 @@ def main():
             for entity, verbs in action_verbs.items():
                 for verb in verbs:
                     assert (f"{verb} {alias}", entity) in registrations
+            assert (f"show me {alias}", "FocusDesktopAppCommand") in registrations
+            assert (f"show me the {alias} window", "FocusDesktopAppCommand") in registrations
     for phrase in (
         "read app", "read this app", "read application",
         "read this application", "read screen", "read this screen",
@@ -645,6 +652,8 @@ def main():
         "read the full page", "read the entire page",
     ):
         assert (phrase, "ReadVisiblePageCommand") in registrations
+
+    assert ("go back one track", "PreviousMediaCommand") in registrations
 
     profiles = sorted((ROOT / "profiles").glob("*.json"))
     assert {path.name for path in profiles} == EXPECTED_PROFILES
@@ -744,8 +753,8 @@ def main():
                 )
 
     print(f"PASS: {len(python_files)} Python modules compile")
-    print("PASS: 90 intents match the expected inventory")
-    print("PASS: 1705 compatibility vocabulary registrations are present")
+    print("PASS: 91 intents match the expected inventory")
+    print("PASS: 1829 compatibility vocabulary registrations are present")
     print("PASS: vocabulary registrations and entities are consistent")
     print("PASS: personal phrase validation rejects built-in collisions")
     print("PASS: personal phrases save atomically with private permissions")

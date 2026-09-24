@@ -31,3 +31,12 @@ Rollback:
 ```bash
 bash scripts/uninstall-command-editor.sh
 ```
+
+## Unified configuration window
+
+Use **Tray > Configure Jarvis… > Custom commands**. The previous Commands shortcut
+now opens this same tab. **Applications** contains app selection and editable
+spoken names; use **Custom commands** for complete personal phrases. App names
+automatically generate the normal application commands and keep original aliases.
+Both tabs share **Save changes**, which validates and saves them together, then
+restarts voice control once. Save progress and restart errors remain visible.

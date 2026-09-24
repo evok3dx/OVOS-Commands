@@ -189,6 +189,17 @@ class JarvisDispatcherSkill(
 
         register_skill_vocabulary(self)
 
+        from .routing_runtime import RouterRuntime
+        self._qwen_router = RouterRuntime(self)
+        from . import launcher  # Verify the launch backend is importable at startup.
+        self.log.info("Jarvis configuration ready")
+
+    def shutdown(self):
+        router = getattr(self, "_qwen_router", None)
+        if router is not None:
+            router.close()
+        return super().shutdown()
+
     @intent_handler(
         IntentBuilder("CustomCommandIntent").require("CustomCommandPhrase")
     )
@@ -221,6 +232,12 @@ class JarvisDispatcherSkill(
     )
     def handle_press_enter(self, _message):
         self._press_enter()
+
+    @intent_handler(
+        IntentBuilder("PressEscapeIntent").require("PressEscapeCommand")
+    )
+    def handle_press_escape(self, _message):
+        self._press_escape()
 
     @intent_handler(
         IntentBuilder("PlayMediaIntent").require("PlayMediaCommand")
@@ -499,7 +516,7 @@ class JarvisDispatcherSkill(
 
         self.activate(duration_minutes=1)
         self.speak(
-            "What should I write?",
+            "Ready.",
             expect_response=True,
             wait=True
         )

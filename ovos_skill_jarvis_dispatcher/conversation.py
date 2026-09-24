@@ -165,6 +165,7 @@ class ConversationMixin:
         claude_payload = None
         hermes_payload = None
         typing_payload = None
+        direct_typing = False
 
         with self._message_lock:
             stage = self._message_stage
@@ -222,17 +223,11 @@ class ConversationMixin:
                 if not re.search(r"[.!?]$", text_to_write):
                     text_to_write += "."
 
-                self._pending_message = text_to_write
-                self._message_stage = "typing_confirmation"
-
-                self.speak(
-                    f"I heard: {text_to_write} "
-                    "Say write it, send it, or cancel.",
-                    expect_response=True,
-                    wait=True
-                )
-                self._arm_message_timeout(20)
-                return True
+                # One-shot writing was explicitly requested by the user.
+                # Never interpret dictated text as a send/Enter command.
+                typing_payload = (self._pending_window_id, text_to_write, False)
+                direct_typing = True
+                self._clear_message_state()
 
             if stage == "typing_confirmation":
                 typing_accepted = {
@@ -439,6 +434,9 @@ class ConversationMixin:
 
         if typing_payload:
             window_id, text, press_enter = typing_payload
+            if direct_typing and self._active_window_id() != str(window_id):
+                self.speak("The focused window changed, so I cancelled.")
+                return True
             self._type_into_window(
                 window_id,
                 text,

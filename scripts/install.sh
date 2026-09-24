@@ -1052,12 +1052,16 @@ else
   echo "GTK 3 tray support is unavailable; jarvis-setup remains available in the terminal." >&2
 fi
 
-mic_indicator_installed=false
-if [[ "$tray_installed" == true ]]; then
-  JARVIS_NO_START=1 JARVIS_HOME="$jarvis_home" \
-    JARVIS_DESKTOP_PYTHON="$desktop_python" \
-    bash "$target_root/scripts/install-jarvis-mic-indicator.sh"
-  mic_indicator_installed=true
+# Older releases started a second tray icon. The unified tray displays the
+# listener state itself. Retire only the autostart entry we created, after its
+# exact contents have been included in the transaction backup above.
+if [[ -f "$mic_autostart" ]] && \
+   grep -Fxq 'Name=Jarvis Microphone Indicator' "$mic_autostart" && \
+   grep -Fxq "Exec=$target_bin/jarvis-mic-indicator" "$mic_autostart"; then
+  rm -- "$mic_autostart"
+  if [[ "${JARVIS_TEST_MODE:-0}" != 1 ]]; then
+    pkill -f "$target_bin/jarvis-mic-indicator" 2>/dev/null || true
+  fi
 fi
 
 render_unit() {
@@ -1129,11 +1133,6 @@ if [[ "${JARVIS_TEST_MODE:-0}" != 1 ]]; then
   if "$tray_installed"; then
     pkill -f "$target_bin/ovos-tray" 2>/dev/null || true
     nohup "$target_bin/ovos-tray" > "$state_root/ovos-tray.log" 2>&1 &
-  fi
-  if "$mic_indicator_installed"; then
-    pkill -f "$target_bin/jarvis-mic-indicator" 2>/dev/null || true
-    nohup "$target_bin/jarvis-mic-indicator" \
-      > "$state_root/jarvis-mic-indicator.log" 2>&1 &
   fi
 fi
 

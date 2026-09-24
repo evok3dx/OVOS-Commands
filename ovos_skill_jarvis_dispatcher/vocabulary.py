@@ -280,6 +280,10 @@ def register_skill_vocabulary(self, include_custom=True):
         "PressEnterCommand": [
             "press enter", "press return", "press send",
             "hit enter", "hit return",
+            "new line", "newline", "insert new line", "add a new line",
+        ],
+        "PressEscapeCommand": [
+            "press escape", "press esc", "hit escape", "escape key",
         ],
         "PlayMediaCommand": [
             "play media", "play the media", "resume playback",
@@ -299,7 +303,7 @@ def register_skill_vocabulary(self, include_custom=True):
         ],
         "PreviousMediaCommand": [
             "previous track", "previous song", "back track", "back a track",
-            "go back a track", "play previous track", "play previous song",
+            "go back a track", "go back one track", "play previous track", "play previous song",
         ],
         "CapsLockOnCommand": [
             "caps lock on", "turn caps lock on",
@@ -366,6 +370,12 @@ def register_skill_vocabulary(self, include_custom=True):
                         f"{verb} {app_alias}",
                         entity
                     )
+
+    # Practical misses from the v4 corpus: apply focus wording uniformly.
+    for aliases in self._desktop_app_aliases.values():
+        for alias in aliases:
+            for phrase in (f"show me {alias}", f"show me the {alias} window"):
+                self.register_vocabulary(phrase, "FocusDesktopAppCommand")
 
     website_commands = {
         "OpenChatGPTWebsiteCommand": (
@@ -681,6 +691,7 @@ def register_skill_vocabulary(self, include_custom=True):
         )
     visible_text_commands = {
         "ReadSelectedTextCommand": [
+            "read this",
             "read selected text",
             "read the selected text",
             "read this selection",

@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "release_version": "2.3.1",
+  "release_version": "3.0.0rc1",
   "package_modules": [
     "__init__.py",
     "agents.py",
@@ -16,7 +16,17 @@
     "system_controls.py",
     "text_editing.py",
     "vocabulary.py",
-    "wakeword.py"
+    "wakeword.py",
+    "action_registry.py",
+    "router_bridge.py",
+    "routing_prompt.py",
+    "routing_model.py",
+    "routing_runtime.py",
+    "routing_pipeline.py",
+    "routing_chat.py",
+    "_ovos_launcher.py",
+    "launcher.py",
+    "discovery.py"
   ],
   "integration_modules": [
     "__init__.py",
@@ -42,7 +52,8 @@
     "jarvis-speechnote-setup",
     "jarvis-system-microphone",
     "jarvis-update",
-    "jarvis-wake-phrase"
+    "jarvis-wake-phrase",
+    "jarvis-desktop-launch"
   ],
   "profiles": [
     "brain.json",
@@ -81,6 +92,15 @@
       "mic/jarvis-mic-toggle",
       "mic/mic-active.svg",
       "mic/mic-muted.svg"
+    ],
+    "whisper_hints": [
+      "extras/whisper-hints/reviewed-plugin-0.4.0.py",
+      "extras/whisper-hints/LICENSE.upstream",
+      "extras/whisper-hints/install.py",
+      "extras/whisper-hints/jarvis_app_hints.py",
+      "extras/whisper-hints/test_update.py",
+      "extras/whisper-hints/test-fixtures/discovery.py",
+      "extras/whisper-hints/test-fixtures/profile.py"
     ]
   }
 }
