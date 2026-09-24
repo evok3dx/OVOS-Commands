@@ -372,6 +372,9 @@ xprop:x11-utils
 wmctrl:wmctrl
 xclip:xclip
 play:sox
+playerctl:playerctl
+zenity:zenity
+xdg-open:xdg-utils
 EOF
   if ! command -v wpctl >/dev/null 2>&1 && ! command -v pactl >/dev/null 2>&1; then
     missing_commands+=("wpctl or pactl")
@@ -475,6 +478,9 @@ PY
 
 managed_package_names() {
   printf '%s\n' \
+    ovos-skill-jarvis-media \
+    jarvis-file-search-skill \
+    yt-dlp \
     ovos-plugin-manager \
     "$(read_compatibility_value ovos.wakeword.package)" \
     "$(read_compatibility_value ovos.wakeword.engine_package)" \
@@ -662,14 +668,25 @@ if [[ "${JARVIS_TEST_MODE:-0}" != 1 ]]; then
   }
 fi
 
+if [[ "${JARVIS_TEST_MODE:-0}" != 1 ]]; then
+  "$ovos_python" "$repo_root/scripts/check-plugin-rollback.py"
+fi
+
 if "$check_only"; then
   if [[ "${JARVIS_TEST_MODE:-0}" == 1 ]]; then
     echo "PASS: repository and profile validate in test mode"
   else
     python3 "$repo_root/scripts/doctor.py" --ovos-python "$ovos_python"
+    "$desktop_python" "$repo_root/scripts/qwen-setup.py"
   fi
   printf '%s\n' "Preflight passed." "No files changed."
   exit 0
+fi
+
+# The reviewed local model is required for V3. The prompt and download happen
+# before any Jarvis files or configuration change. Existing models are reused.
+if [[ "${JARVIS_TEST_MODE:-0}" != 1 ]]; then
+  "$desktop_python" "$repo_root/scripts/qwen-setup.py" --prepare
 fi
 
 if "$existing_deployment"; then
@@ -798,7 +815,7 @@ PY
 # Copy only reviewed release roots. This avoids deploying unrelated files from
 # a checkout (for example local notes, credentials or previous build output).
 release_roots=(
-  .github command_editor docs mic ovos_skill_jarvis_dispatcher profiles
+  .github command_editor docs extras mic ovos_skill_jarvis_dispatcher plugins profiles
   scripts system_helpers systemd tray voice
 )
 release_files=(
@@ -837,6 +854,7 @@ backup_file() {
 
 backup_file "$target_profile" profile.json
 backup_file "$target_capabilities" capabilities.json
+backup_file "$target_profile_dir/router.json" router.json
 for helper in "${runtime_helpers[@]}"; do
   backup_file "$target_bin/$helper" "helpers/$helper"
 done
@@ -963,6 +981,13 @@ if not phonemes or "None" in phonemes:
 print("Bella pronunciation fallback validated.")
 PY
   fi
+  # These are bundled, reviewed first-party skills. Do not resolve their
+  # dependencies or replace working OVOS voice packages on an upgrade.
+  if ! "$ovos_python" -c 'import yt_dlp' >/dev/null 2>&1; then
+    pip_install --no-deps yt-dlp
+  fi
+  pip_install --no-deps --editable "$target_root/plugins/ovos-skill-jarvis-media"
+  pip_install --no-deps --editable "$target_root/plugins/jarvis-file-search"
 fi
 
 if "$existing_deployment"; then
@@ -975,7 +1000,7 @@ if ! "$existing_deployment"; then
     --config "$ovos_config" --listening-sound "$listening_sound"
   if [[ "${JARVIS_TEST_MODE:-0}" != 1 ]]; then
     "$ovos_python" "$target_root/scripts/configure-intent-pipeline.py" \
-      --config "$ovos_config"
+      --config "$ovos_config" --merge-v3
   fi
 
 mapfile -t wake_settings < <(python3 - "$configuration_source" <<'PY'
@@ -997,6 +1022,14 @@ wake_phrase_spoken="${wake_settings[1]}"
     --spoken-phrase "$wake_phrase_spoken"
 else
   echo "Preserved existing audio, wake-word, intent-pipeline and sound configuration."
+  if [[ "${JARVIS_TEST_MODE:-0}" != 1 ]]; then
+    "$ovos_python" "$target_root/scripts/configure-intent-pipeline.py" \
+      --config "$ovos_config" --merge-v3
+  fi
+fi
+
+if [[ "${JARVIS_TEST_MODE:-0}" != 1 ]]; then
+  "$desktop_python" "$target_root/scripts/qwen-setup.py" --enable
 fi
 
 for helper in "${runtime_helpers[@]}"; do
@@ -1052,12 +1085,16 @@ else
   echo "GTK 3 tray support is unavailable; jarvis-setup remains available in the terminal." >&2
 fi
 
-mic_indicator_installed=false
-if [[ "$tray_installed" == true ]]; then
-  JARVIS_NO_START=1 JARVIS_HOME="$jarvis_home" \
-    JARVIS_DESKTOP_PYTHON="$desktop_python" \
-    bash "$target_root/scripts/install-jarvis-mic-indicator.sh"
-  mic_indicator_installed=true
+# Older releases started a second tray icon. The unified tray displays the
+# listener state itself. Retire only the autostart entry we created, after its
+# exact contents have been included in the transaction backup above.
+if [[ -f "$mic_autostart" ]] && \
+   grep -Fxq 'Name=Jarvis Microphone Indicator' "$mic_autostart" && \
+   grep -Fxq "Exec=$target_bin/jarvis-mic-indicator" "$mic_autostart"; then
+  rm -- "$mic_autostart"
+  if [[ "${JARVIS_TEST_MODE:-0}" != 1 ]]; then
+    pkill -f "$target_bin/jarvis-mic-indicator" 2>/dev/null || true
+  fi
 fi
 
 render_unit() {
@@ -1130,11 +1167,6 @@ if [[ "${JARVIS_TEST_MODE:-0}" != 1 ]]; then
     pkill -f "$target_bin/ovos-tray" 2>/dev/null || true
     nohup "$target_bin/ovos-tray" > "$state_root/ovos-tray.log" 2>&1 &
   fi
-  if "$mic_indicator_installed"; then
-    pkill -f "$target_bin/jarvis-mic-indicator" 2>/dev/null || true
-    nohup "$target_bin/jarvis-mic-indicator" \
-      > "$state_root/jarvis-mic-indicator.log" 2>&1 &
-  fi
 fi
 
 current_version="$(python3 - "$target_root/pyproject.toml" <<'PY'
@@ -1178,6 +1210,20 @@ printf '%s\n' "$backup_root" > "$state_root/latest-backup"
 chmod 0600 "$state_root/latest-backup"
 transaction_active=false
 trap cleanup EXIT
+
+# The dynamic Whisper hints modify a third-party plugin only after its exact
+# reviewed layout is checked. This add-on has its own backup and rollback;
+# unknown plugin revisions are reported and left untouched.
+if [[ "${JARVIS_TEST_MODE:-0}" != 1 && "$restart" == true ]]; then
+  hint_installer="$target_root/extras/whisper-hints/install.py"
+  if "$desktop_python" "$hint_installer" --check; then
+    if ! "$desktop_python" "$hint_installer"; then
+      echo "Whisper name hints were not enabled; inspect the add-on backup and status." >&2
+    fi
+  else
+    echo "Whisper name hints require manual review for this plugin revision; existing STT was preserved." >&2
+  fi
+fi
 
 if command -v flatpak >/dev/null 2>&1 && \
    flatpak info net.mkiol.SpeechNote >/dev/null 2>&1; then

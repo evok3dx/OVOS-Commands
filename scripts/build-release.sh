@@ -33,14 +33,14 @@ from pathlib import Path
 
 root = Path(sys.argv[1])
 roots = (
-    ".github", "command_editor", "docs", "mic", "ovos_skill_jarvis_dispatcher",
-    "profiles", "scripts", "system_helpers", "systemd", "tray", "voice",
+    ".github", "command_editor", "docs", "extras", "mic", "ovos_skill_jarvis_dispatcher",
+    "plugins", "profiles", "scripts", "system_helpers", "systemd", "tray", "voice",
 )
 files = (
-    ".gitignore", "COMMAND-EDITOR.md", "README.md", "compatibility.json",
-    "deployment-manifest.json", "pyproject.toml",
+    ".gitignore", "AGENTS.md", "COMMAND-EDITOR.md", "README.md", "compatibility.json",
+    "deployment-manifest.json", "pyproject.toml", "LAUNCHER.md", "OVOS-LAUNCHER-LICENSE.txt",
 )
-excluded = {".git", "__pycache__", "dist"}
+excluded = {".git", "__pycache__", "build", "dist"}
 for relative in files:
     path = root / relative
     if path.is_file() and not path.is_symlink():
@@ -58,7 +58,7 @@ tar --create --gzip --file "$temporary" \
   --null --files-from "$file_list" \
   --transform="s|^|$archive_root/|"
 tar -tzf "$temporary" > "$archive_list"
-if grep -Eq '(^|/)(\.git|__pycache__|dist)(/|$)|\.pyc$' "$archive_list"; then
+if grep -Eq '(^|/)(\.git|__pycache__|build|dist)(/|$)|\.pyc$' "$archive_list"; then
   echo "Release contains excluded build artefacts." >&2
   exit 1
 fi

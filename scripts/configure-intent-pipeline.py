@@ -112,6 +112,22 @@ def reviewed_pipeline(compatibility_path: Path) -> list[object]:
     return pipeline
 
 
+def merge_v3_pipeline(existing: list[object]) -> list[str]:
+    """Add the three local stages without changing unrelated host routing."""
+    if not isinstance(existing, list) or not all(isinstance(s, str) and s for s in existing):
+        raise ValueError("OVOS intents.pipeline must be a list of stage names")
+    stages = [stage for stage in existing if stage not in (
+        "jarvis-media-pipeline", "jarvis-qwen-pipeline", "jarvis-qwen-chat-pipeline")]
+    medium = "ovos-fallback-pipeline-plugin-medium"
+    low = "ovos-fallback-pipeline-plugin-low"
+    if medium not in stages or low not in stages:
+        raise ValueError("The reviewed medium and low fallback stages are missing")
+    index = stages.index(medium)
+    stages[index:index] = ["jarvis-media-pipeline", "jarvis-qwen-pipeline"]
+    stages.insert(stages.index(low), "jarvis-qwen-chat-pipeline")
+    return stages
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -127,20 +143,37 @@ def main() -> int:
         "--available-plugin", action="append", default=None,
         help="Use an explicit available plugin ID (repeatable)",
     )
+    parser.add_argument("--merge-v3", action="store_true",
+                        help="add reviewed local Media and Qwen stages while retaining existing stages")
     args = parser.parse_args()
 
     available = (
         set(args.available_plugin)
         if args.available_plugin is not None else installed_pipeline_plugins()
     )
-    retained, removed = filter_pipeline(
-        reviewed_pipeline(args.compatibility), available
-    )
-
     local = load_json(args.config)
     intents = local.setdefault("intents", {})
     if not isinstance(intents, dict):
         raise ValueError("local OVOS intents setting is not an object")
+    baseline = (intents.get("pipeline", reviewed_pipeline(args.compatibility))
+                if args.merge_v3 else reviewed_pipeline(args.compatibility))
+    if args.merge_v3:
+        baseline = merge_v3_pipeline(baseline)
+        required = {"jarvis-media-pipeline", "jarvis-qwen-pipeline",
+                    "jarvis-qwen-chat-pipeline"}
+        missing = required - available
+        if missing:
+            raise ValueError("Required local pipeline entry points missing: " + ", ".join(sorted(missing)))
+        persona = intents.setdefault("persona", {})
+        if not isinstance(persona, dict) or persona.get("handle_fallback") is True:
+            raise ValueError("An existing persona fallback setting needs manual review")
+        persona["handle_fallback"] = False
+    if args.merge_v3:
+        # Existing private or machine-specific stages are the owner's policy.
+        # A V3 update only adds its three verified local stages.
+        retained, removed = baseline, []
+    else:
+        retained, removed = filter_pipeline(baseline, available)
     if intents.get("pipeline") == retained:
         print("OVOS intent pipeline already matches the reviewed Jarvis baseline.")
         return 0

@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ovos-skill-jarvis-media"
+version = "0.1.0"
+description = "Restricted local media controls and Brave-first YouTube playback for Jarvis"
+requires-python = ">=3.10"
+dependencies = ["ovos-workshop"]
+
+[project.entry-points."opm.skill"]
+"ovos-skill-jarvis-media.openvoiceos" = "ovos_skill_jarvis_media:JarvisMediaSkill"
+
+[project.entry-points."opm.pipeline"]
+"jarvis-media-pipeline" = "ovos_skill_jarvis_media.pipeline:JarvisMediaPipeline"
+
+[tool.setuptools]
+packages = ["ovos_skill_jarvis_media"]
+
+[tool.setuptools.package-data]
+ovos_skill_jarvis_media = ["voice_phrases.json"]

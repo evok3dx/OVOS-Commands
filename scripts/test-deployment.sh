@@ -26,6 +26,12 @@ PY
 
 mapfile -t helpers < <(manifest_list runtime_helpers)
 
+python3 "$repo_root/scripts/test-v3-routing.py"
+bash "$repo_root/scripts/test-speech-note-speed.sh"
+python3 "$repo_root/extras/whisper-hints/test_update.py"
+PYTHONPATH="$repo_root/plugins/jarvis-file-search" \
+  python3 -m unittest discover -s "$repo_root/plugins/jarvis-file-search/tests" -q
+
 # A check-only run on a fresh home must not create a deployment.
 fresh_home="$test_root/fresh"
 mkdir -p "$fresh_home"
@@ -56,6 +62,10 @@ launcher.symlink_to(base)
 found = module.locate_ovos_python(home, None)
 assert found == launcher, (found, launcher)
 assert found != base.resolve()
+
+upgrade = module.POLICY["ovos"]["preserved_alpha_stack"]
+assert module.reviewed_voice_versions(upgrade["core"]) == upgrade["voice"]
+assert module.reviewed_voice_versions({**upgrade["core"], "ovos-workshop": "7.0.6"}) == {}
 
 try:
     module.run_json([
@@ -271,13 +281,9 @@ assert data["applications"] == {
 assert data["private_extensions"] == {"agents": False}
 assert stat.S_IMODE(path.stat().st_mode) == 0o600
 PY
-test -x "$fresh_home/.local/bin/jarvis-mic-indicator"
-test -x "$fresh_home/.local/bin/jarvis-mic-toggle"
 test -x "$fresh_home/.local/bin/jarvis-restart"
 test -f "$fresh_home/.config/autostart/ovos-tray.desktop"
-test -f "$fresh_home/.config/autostart/jarvis-mic-indicator.desktop"
-test -f "$fresh_home/.local/share/jarvis/mic-active.svg"
-test -f "$fresh_home/.local/share/jarvis/mic-muted.svg"
+test ! -e "$fresh_home/.config/autostart/jarvis-mic-indicator.desktop"
 test -f "$fresh_home/.local/share/ovos/sounds/jarvis-ready.wav"
 
 # Full voice restarts avoid the message bus and start audio, listener and core
@@ -697,45 +703,40 @@ grep -q '^OnCalendar=monthly$' \
 for state in ready starting stopped failed; do
   test -f "$fresh_home/.local/share/icons/ovos-tray/ovos-$state-update.svg"
 done
-HOME="$fresh_home" python3 - "$fresh_target/tray/ovos-tray.py" <<'PY'
+HOME="$fresh_home" python3 - "$fresh_target/scripts/control_runtime.py" <<'PY'
 import importlib.util
 import json
 import sys
-import types
 from pathlib import Path
 
-gi = types.ModuleType("gi")
-gi.require_version = lambda *_args: None
-repository = types.ModuleType("gi.repository")
-repository.GLib = object()
-repository.Gtk = object()
-sys.modules["gi"] = gi
-sys.modules["gi.repository"] = repository
-
-spec = importlib.util.spec_from_file_location("ovos_tray", sys.argv[1])
+spec = importlib.util.spec_from_file_location("control_runtime", sys.argv[1])
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
-tray = module.OvosTray.__new__(module.OvosTray)
-status = Path.home() / ".local/state/jarvis/updates/latest.json"
-status.parent.mkdir(parents=True, exist_ok=True)
-status.write_text(json.dumps({
-    "installed": "2.3.1", "latest": "2.3.2", "update_available": True,
-}), encoding="utf-8")
-assert tray._available_update() == "2.3.2"
-commands = []
-tray._terminal_command = commands.append
-tray.update_release = "2.3.2"
-tray._updates()
-expected_helper = str(Path.home() / ".local/bin/jarvis-update")
-assert commands == [f"{expected_helper} install"]
-status.write_text(json.dumps({
-    "installed": "2.3.1", "latest": "2.3.1", "update_available": True,
-}), encoding="utf-8")
-assert tray._available_update() is None
-commands.clear()
-tray.update_release = None
-tray._updates()
-assert commands == [f"{expected_helper} check"]
+state = Path.home() / ".local/state/jarvis"
+updates = state / "updates/latest.json"
+updates.parent.mkdir(parents=True, exist_ok=True)
+(state / "current.json").write_text(json.dumps({"version": "2.3.1"}))
+updates.write_text(json.dumps({"latest": "3.0.0", "update_available": True}))
+assert module.update_available() == "3.0.0"
+updates.write_text(json.dumps({"latest": "2.3.1", "update_available": True}))
+assert module.update_available() is None
+updates.write_text(json.dumps({"latest": "3.0.0", "update_available": True}))
+(state / "current.json").write_text(json.dumps({"version": "3.0.0rc1"}))
+assert module.update_available() == "3.0.0"
+from unittest.mock import patch
+with patch.object(module, 'run') as run:
+    run.return_value.returncode = 0
+    run.return_value.stdout = 'Update installed.\n'
+    run.return_value.stderr = ''
+    assert module.maintenance('install') == 'Update installed.'
+    assert run.call_args.args[0] == [str(Path.home() / '.local/bin/jarvis-update'),
+                                      'install', '--yes']
+updater_path = Path(sys.argv[1]).with_name('update.py')
+updater_spec = importlib.util.spec_from_file_location('jarvis_updater', updater_path)
+updater = importlib.util.module_from_spec(updater_spec)
+updater_spec.loader.exec_module(updater)
+assert updater.version_key('3.0.0rc1') < updater.version_key('3.0.0')
+assert updater.version_key('v3.0.0') > updater.version_key('2.3.1')
 PY
 
 # The AI bundle is bounded, self-describing and redacts supplied secret shapes.
@@ -873,6 +874,16 @@ PY
 upgrade_home="$test_root/upgrade"
 upgrade_target="$upgrade_home/.local/src/ovos-skill-jarvis-dispatcher"
 mkdir -p "$upgrade_target" "$upgrade_home/.local/bin" "$upgrade_home/.config/jarvis"
+mkdir -p "$upgrade_home/.config/autostart"
+cat > "$upgrade_home/.config/autostart/jarvis-mic-indicator.desktop" <<EOF
+[Desktop Entry]
+Type=Application
+Name=Jarvis Microphone Indicator
+Exec=$upgrade_home/.local/bin/jarvis-mic-indicator
+Hidden=true
+X-GNOME-Autostart-enabled=false
+EOF
+cp "$upgrade_home/.config/autostart/jarvis-mic-indicator.desktop" "$test_root/old-mic-autostart.desktop"
 tar --create --file=- --directory "$repo_root" \
   --exclude='./.git' --exclude='./dist' --exclude='*/__pycache__' . \
   | tar --extract --file=- --directory "$upgrade_target"
@@ -891,12 +902,14 @@ JARVIS_HOME="$upgrade_home" JARVIS_TEST_MODE=1 \
 cmp "$repo_root/ovos_skill_jarvis_dispatcher/agents.py" \
   "$upgrade_target/ovos_skill_jarvis_dispatcher/agents.py"
 test ! -e "$upgrade_target/legacy-only.txt"
+test ! -e "$upgrade_home/.config/autostart/jarvis-mic-indicator.desktop"
 
 JARVIS_HOME="$upgrade_home" JARVIS_TEST_MODE=1 \
   bash "$upgrade_target/scripts/rollback.sh" --no-restart
 cmp "$repo_root/ovos_skill_jarvis_dispatcher/wakeword.py" \
   "$upgrade_target/ovos_skill_jarvis_dispatcher/agents.py"
 test -f "$upgrade_target/legacy-only.txt"
+cmp "$test_root/old-mic-autostart.desktop" "$upgrade_home/.config/autostart/jarvis-mic-indicator.desktop"
 cmp "$repo_root/profiles/default.json" "$upgrade_home/.config/jarvis/profile.json"
 for helper in "${helpers[@]}"; do
   grep -q "legacy $helper" "$upgrade_home/.local/bin/$helper"

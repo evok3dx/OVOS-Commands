@@ -65,10 +65,12 @@ def download(url: str, destination: Path, limit: int = 100_000_000) -> None:
 
 
 def version_key(value: str) -> tuple[int, ...]:
-    match = re.fullmatch(r"v?(\d+)\.(\d+)\.(\d+)", value.strip())
+    match = re.fullmatch(r"v?(\d+)\.(\d+)\.(\d+)(?:rc(\d+))?", value.strip())
     if not match:
         raise RuntimeError(f"Unsupported release version: {value}")
-    return tuple(int(part) for part in match.groups())
+    major, minor, patch, candidate = match.groups()
+    return (int(major), int(minor), int(patch), 0 if candidate else 1,
+            int(candidate) if candidate else 0)
 
 
 def latest_release() -> dict[str, object]:

@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -eu
+exec "$HOME/.venvs/ovos/bin/python" -c \
+  'from ovos_skill_jarvis_dispatcher.launcher import main; main()' "$@"

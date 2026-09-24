@@ -279,27 +279,57 @@ def register_skill_vocabulary(self, include_custom=True):
     system_controls = {
         "PressEnterCommand": [
             "press enter", "press return", "press send",
-            "hit enter", "hit return",
+            "hit enter", "hit return", "enter", "send it", "submit it",
+        ],
+        "InsertNewLineCommand": [
+            "new line", "newline", "insert new line", "add a new line",
+        ],
+        "PressEscapeCommand": [
+            "press escape", "press esc", "hit escape", "escape key",
         ],
         "PlayMediaCommand": [
-            "play media", "play the media", "resume playback",
-            "resume media", "play music", "play the music",
+            "play media", "play the media", "resume playback", "unpause playback",
+            "resume media", "play music", "play the music", "resume music",
+            "resume the music", "resume song", "resume the song", "resume track",
+            "resume the track", "continue music", "continue the music",
+            "continue song", "continue the song", "continue track",
+            "continue the track", "carry on with the music", "carry on playing",
+            "start the music again", "unpause music", "unpause the music",
         ],
         "PauseMediaCommand": [
-            "pause media", "pause the media", "pause playback",
-            "pause music", "pause the music",
+            "pause media", "pause the media", "pause playback", "pause music",
+            "pause the music", "pause song", "pause the song", "pause track",
+            "pause the track", "pause video", "pause the video", "pause this",
+            "pause this song", "pause this track", "pause this video",
+            "hold the music", "hold this song", "hold this track",
+            "pause what is playing", "pose music", "pose the music",
+            "hose music", "hose the music",
         ],
         "StopMediaCommand": [
-            "stop media", "stop the media", "stop playback",
-            "stop the music", "stop playing",
+            "stop media", "stop the media", "stop playback", "stop music",
+            "stop the music", "stop playing", "stop song", "stop the song",
+            "stop track", "stop the track", "stop video", "stop the video",
+            "stop this song", "stop this track", "stop this video",
+            "stop what is playing", "turn off the music",
         ],
         "NextMediaCommand": [
-            "next track", "next song", "skip track", "skip this track",
-            "skip song", "play next track", "play next song",
+            "next track", "next song", "next video", "skip track",
+            "skip this track", "skip song", "skip this song", "skip this video",
+            "skip the song", "skip the track", "skip the video",
+            "play next track", "play next song", "play the next track",
+            "play the next song", "go to next track", "go to the next track",
+            "go to next song", "go to the next song", "move to the next track",
+            "move to the next song",
         ],
         "PreviousMediaCommand": [
-            "previous track", "previous song", "back track", "back a track",
-            "go back a track", "play previous track", "play previous song",
+            "previous track", "previous song", "previous video", "back track",
+            "back a track", "back one track", "back one song", "go back a track",
+            "go back one track", "go back one song", "go back one video",
+            "go back to previous track", "go back to the previous track",
+            "go back to previous song", "go back to the previous song",
+            "play previous track", "play previous song", "play the previous track",
+            "play the previous song", "skip back a track", "skip back one track",
+            "skip back one song",
         ],
         "CapsLockOnCommand": [
             "caps lock on", "turn caps lock on",
@@ -366,6 +396,12 @@ def register_skill_vocabulary(self, include_custom=True):
                         f"{verb} {app_alias}",
                         entity
                     )
+
+    # Practical misses from the v4 corpus: apply focus wording uniformly.
+    for aliases in self._desktop_app_aliases.values():
+        for alias in aliases:
+            for phrase in (f"show me {alias}", f"show me the {alias} window"):
+                self.register_vocabulary(phrase, "FocusDesktopAppCommand")
 
     website_commands = {
         "OpenChatGPTWebsiteCommand": (
@@ -680,7 +716,28 @@ def register_skill_vocabulary(self, include_custom=True):
             "ReadLastTypedTextCommand"
         )
     visible_text_commands = {
+        "ReadSelectedTextDoubleSpeedCommand": [
+            "read this at double speed",
+            "read this double speed",
+            "read this at two times speed",
+            "read this two times speed",
+            "read this at two x",
+            "read this two x",
+            "read selected text at double speed",
+            "read selected text at two times speed"
+        ],
+        "ReadVisiblePageDoubleSpeedCommand": [
+            "read this page at double speed",
+            "read this page double speed",
+            "read this page at two times speed",
+            "read this page two times speed",
+            "read this page at two x",
+            "read this page two x",
+            "read page at double speed",
+            "read page at two times speed"
+        ],
         "ReadSelectedTextCommand": [
+            "read this",
             "read selected text",
             "read the selected text",
             "read this selection",

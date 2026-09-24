@@ -63,8 +63,9 @@ created or silently managed by this repository.
 Before installing a downloaded archive:
 
 ```bash
-sha256sum --check ovos-commands-2.3.1.tar.gz.sha256
-tar -tzf ovos-commands-2.3.1.tar.gz
+version=3.0.0
+sha256sum --check "ovos-commands-$version.tar.gz.sha256"
+tar -tzf "ovos-commands-$version.tar.gz"
 ```
 
 ## Updating Jarvis and OVOS

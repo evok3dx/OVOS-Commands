@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "jarvis-file-search-skill"
+version = "0.2.0"
+description = "A filename-only local search skill for OVOS"
+requires-python = ">=3.9"
+dependencies = ["ovos-workshop"]
+
+[project.entry-points."opm.skill"]
+"jarvis-file-search.local" = "jarvis_file_search.skill:JarvisFileSearchSkill"
+
+[tool.setuptools.packages.find]
+include = ["jarvis_file_search*"]
+
+[tool.setuptools.package-data]
+jarvis_file_search = ["locale/en-us/*.intent", "locale/en-us/*.dialog", "gui/jarvis-command-editor"]

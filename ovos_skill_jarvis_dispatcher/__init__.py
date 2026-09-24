@@ -189,6 +189,17 @@ class JarvisDispatcherSkill(
 
         register_skill_vocabulary(self)
 
+        from .routing_runtime import RouterRuntime
+        self._qwen_router = RouterRuntime(self)
+        from . import launcher  # Verify the launch backend is importable at startup.
+        self.log.info("Jarvis configuration ready")
+
+    def shutdown(self):
+        router = getattr(self, "_qwen_router", None)
+        if router is not None:
+            router.close()
+        return super().shutdown()
+
     @intent_handler(
         IntentBuilder("CustomCommandIntent").require("CustomCommandPhrase")
     )
@@ -221,6 +232,18 @@ class JarvisDispatcherSkill(
     )
     def handle_press_enter(self, _message):
         self._press_enter()
+
+    @intent_handler(
+        IntentBuilder("InsertNewLineIntent").require("InsertNewLineCommand")
+    )
+    def handle_insert_new_line(self, _message):
+        self._insert_new_line()
+
+    @intent_handler(
+        IntentBuilder("PressEscapeIntent").require("PressEscapeCommand")
+    )
+    def handle_press_escape(self, _message):
+        self._press_escape()
 
     @intent_handler(
         IntentBuilder("PlayMediaIntent").require("PlayMediaCommand")
@@ -354,6 +377,20 @@ class JarvisDispatcherSkill(
     )
     def handle_read_visible_page(self, _message):
         self._read_visible_text("page")
+
+    @intent_handler(
+        IntentBuilder("ReadSelectedTextDoubleSpeedIntent")
+        .require("ReadSelectedTextDoubleSpeedCommand")
+    )
+    def handle_read_selected_text_double_speed(self, _message):
+        self._read_visible_text("selection", speed=2)
+
+    @intent_handler(
+        IntentBuilder("ReadVisiblePageDoubleSpeedIntent")
+        .require("ReadVisiblePageDoubleSpeedCommand")
+    )
+    def handle_read_visible_page_double_speed(self, _message):
+        self._read_visible_text("page", speed=2)
 
     @intent_handler(IntentBuilder("SelectAllTextIntent").require("SelectAllTextCommand"))
     def handle_select_all_text(self, _message):
@@ -499,7 +536,7 @@ class JarvisDispatcherSkill(
 
         self.activate(duration_minutes=1)
         self.speak(
-            "What should I write?",
+            "Ready.",
             expect_response=True,
             wait=True
         )

@@ -56,18 +56,14 @@ class DictationActionsMixin:
             return None
 
     def _mute_listener_for_speech_note(self):
-        """Mute only OVOS input while Speech Note is reading aloud."""
+        """Keep wake-word input active during Speech Note reading."""
 
-        with self._reader_monitor_lock:
-            if self._reader_listener_muted:
-                return
-            self._reader_listener_muted = True
-
-        self.bus.emit(Message(
-            "mycroft.mic.mute",
-            context={"source": "jarvis.speech-note-reader"},
-        ))
-        self.log.info("Jarvis listening muted during Speech Note reading")
+        # OpenWakeWord must continue receiving microphone audio so spoken
+        # barge-in can cancel long-form reading.  The existing wake-word and
+        # record_begin handlers perform the actual Speech Note cancellation.
+        self.log.info(
+            "Jarvis listening remains active during Speech Note reading"
+        )
 
     def _restore_listener_after_speech_note(self):
         """Restore OVOS input if this skill muted it for page reading."""
@@ -174,23 +170,26 @@ class DictationActionsMixin:
     def _pause_speech_note_reading(self, _message=None):
         """Stop our reader when listening starts by wake word or hotkey."""
 
-        if self._speech_note_dictating:
-            if self._speech_note_action("stop-listening"):
-                self._speech_note_dictating = False
-                self._speech_note_dictation_paused = True
-            return
+        # Wakeword and record_begin may arrive almost simultaneously.
+        # Serialise them so only one D-Bus cancellation runs at a time.
+        with self._reader_monitor_lock:
+            if self._speech_note_dictating:
+                if self._speech_note_action("stop-listening"):
+                    self._speech_note_dictating = False
+                    self._speech_note_dictation_paused = True
+                return
 
-        if self._speech_note_dictation_paused:
-            return
+            if self._speech_note_dictation_paused:
+                return
 
-        # Query Speech Note itself instead of trusting local state. This also
-        # handles reading that survived a skill restart.
-        self._stop_speech_note_reading()
+            # Query Speech Note itself instead of trusting local state. This
+            # also handles reading that survived a skill restart.
+            self._stop_speech_note_reading()
 
     def _start_speech_note_dictation(self):
         """Begin active-window dictation after spoken feedback finishes."""
 
-        self.speak("I'm listening.", wait=True)
+        self.speak("Ready.", wait=True)
 
         if self._speech_note_action("start-listening-active-window"):
             self._speech_note_dictating = True

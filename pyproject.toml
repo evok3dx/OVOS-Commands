@@ -4,13 +4,17 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ovos-skill-jarvis-dispatcher"
-version = "2.3.1"
+version = "3.0.0"
 description = "Allowlisted Jarvis voice and desktop controls"
 requires-python = ">=3.10"
 dependencies = ["ovos-workshop"]
 
 [project.entry-points."opm.skill"]
 "ovos-skill-jarvis-dispatcher.openvoiceos" = "ovos_skill_jarvis_dispatcher:JarvisDispatcherSkill"
+
+[project.entry-points."opm.pipeline"]
+"jarvis-qwen-pipeline" = "ovos_skill_jarvis_dispatcher.routing_pipeline:JarvisQwenPipeline"
+"jarvis-qwen-chat-pipeline" = "ovos_skill_jarvis_dispatcher.routing_pipeline:JarvisQwenChatPipeline"
 
 [tool.setuptools]
 packages = [

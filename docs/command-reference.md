@@ -1,7 +1,7 @@
 # Jarvis command reference
 
-The wake phrase is `Hey Jarvis`. Commands are handled locally by the
-dispatcher and do not require Ollama or Qwen.
+The wake phrase is `Hey Jarvis`. Fixed phrases run locally. V3 also has a
+restricted local Qwen fallback for natural requests.
 
 This is a practical command index. Pronunciation variants and recognition
 corrections are maintained centrally in
@@ -148,7 +148,20 @@ the currently visible tab and does not guess which background tab is intended.
 
 Commands to play the first or second result are deliberately excluded. Search
 results and keyboard focus can change, so automatic selection would not be
-reliable enough for the allowlisted command layer.
+reliable enough for that browser search command. The separate Media plugin
+handles deliberate `Play {title}` requests with one bounded YouTube lookup.
+
+## Media and local files
+
+- `Play {title}` or `Put on {title}` searches for one YouTube video and opens
+  the result in Brave. Replace `{title}` with an actual song or video name.
+- `Pause music`, `Resume playback`, `Stop media`, `Next song` and `Previous
+  track` control a compatible MPRIS player. Next and previous require a queue.
+- `Find {filename}` or `Look in my Documents for {query}` searches local
+  filenames and shows a picker. Nothing opens until you select a result.
+
+The Commands page shows the current installed patterns. File and title
+templates are read-only; [details and limits](10-media-files.md).
 
 ## Reading
 
@@ -157,6 +170,8 @@ Examples:
 - `Read the page`
 - `Read the full page`
 - `Read selected text`
+- `Read this at double speed`
+- `Read this page at double speed`
 - `Read window`
 - `Read it back`
 - `Read the latest response`
@@ -181,10 +196,9 @@ Examples:
 Speech Note performs dictation and reading while the dispatcher controls its
 allowlisted actions.
 
-Speech Note is optional. Run `jarvis-speechnote-setup` or select **Speech Note
-setup** in the Jarvis tray to install it for the current user, inspect its
-active models, or open its model browser. Existing Speech Note settings are
-never overwritten.
+Speech Note is optional. Run `jarvis-speechnote-setup` to install it for the
+current user, inspect active models or open its model browser. Existing Speech
+Note settings are preserved.
 
 ## Window control
 
@@ -194,3 +208,15 @@ Examples:
 - `Minimise window`
 - `Maximise window`
 - `Restore window`
+
+
+### Keyboard actions
+
+- "New line", "newline", "insert new line" and "add a new line" use the
+  dedicated New Line action. They send Shift+Return to the verified focused
+  window without submitting a message.
+- "Press Enter" sends Return to the verified focused window and may submit.
+- "Press Escape", "press Esc", "hit Escape" and "Escape key" send Escape
+  to the focused application, for example to dismiss a search field or dialog
+  when the application supports that key. This is separate from browser Back.
+- Explicit Hermes new-line commands retain their existing Shift+Return action.

@@ -1,5 +1,6 @@
 import re
 import subprocess
+from ovos_bus_client import Message
 
 
 class SystemControlsMixin:
@@ -13,6 +14,24 @@ class SystemControlsMixin:
         except Exception:
             self.log.exception("Enter key action failed")
             self.speak("I could not press Enter.")
+
+    def _insert_new_line(self):
+        """Insert a soft line break in the focused app without submitting."""
+        try:
+            self._focused_window_details()
+            self._send_focused_keys("shift+Return")
+        except Exception:
+            self.log.exception("New-line action failed")
+            self.speak("I could not insert a new line.")
+
+    def _press_escape(self):
+        """Press Escape in the focused app, for example to dismiss its search."""
+        try:
+            self._focused_window_details()
+            self._send_focused_keys("Escape")
+        except Exception:
+            self.log.exception("Escape key action failed")
+            self.speak("I could not press Escape.")
 
     def _set_caps_lock(self, enabled):
         """Set Caps Lock to a requested state without blindly toggling it."""
@@ -46,24 +65,7 @@ class SystemControlsMixin:
             self.speak(f"I could not turn Caps Lock {state}.")
 
     def _run_media_action(self, action):
-        """Control the active Cinnamon/MPRIS media player with playerctl."""
+        """Delegate allowlisted playback controls to the Media skill."""
         if action not in {"play", "pause", "stop", "next", "previous"}:
             raise ValueError("Unsupported media action")
-
-        try:
-            subprocess.run(
-                ["/usr/bin/playerctl", action],
-                check=True,
-                timeout=10,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
-        except FileNotFoundError:
-            self.log.error("playerctl is unavailable")
-            self.speak("Media control is not installed.")
-        except subprocess.CalledProcessError:
-            self.log.info("No controllable media player for action: %s", action)
-            self.speak("No media player is available.")
-        except Exception:
-            self.log.exception("Media action failed: %s", action)
-            self.speak("I could not control media playback.")
+        self.bus.emit(Message("jarvis.media.control", {"action": action}))

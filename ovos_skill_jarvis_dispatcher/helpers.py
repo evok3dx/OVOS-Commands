@@ -6,7 +6,11 @@ from pathlib import Path
 class DispatcherHelpersMixin:
     """Shared text, window and visible-content helpers."""
 
-    def _read_visible_text(self, mode: str) -> None:
+    def _read_visible_text(
+        self,
+        mode: str,
+        speed: int = 1
+    ) -> None:
         """Read selected text or useful content from the focused app."""
 
         helper = Path.home() / ".local/bin/jarvis-read-visible-text"
@@ -24,7 +28,7 @@ class DispatcherHelpersMixin:
 
         try:
             subprocess.run(
-                [str(helper), mode],
+                [str(helper), mode, str(speed)],
                 check=True,
                 timeout=12,
                 stdout=subprocess.DEVNULL,

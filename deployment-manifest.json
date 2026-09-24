@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "release_version": "2.3.1",
+  "release_version": "3.0.0",
   "package_modules": [
     "__init__.py",
     "agents.py",
@@ -16,7 +16,17 @@
     "system_controls.py",
     "text_editing.py",
     "vocabulary.py",
-    "wakeword.py"
+    "wakeword.py",
+    "action_registry.py",
+    "router_bridge.py",
+    "routing_prompt.py",
+    "routing_model.py",
+    "routing_runtime.py",
+    "routing_pipeline.py",
+    "routing_chat.py",
+    "_ovos_launcher.py",
+    "launcher.py",
+    "discovery.py"
   ],
   "integration_modules": [
     "__init__.py",
@@ -42,7 +52,8 @@
     "jarvis-speechnote-setup",
     "jarvis-system-microphone",
     "jarvis-update",
-    "jarvis-wake-phrase"
+    "jarvis-wake-phrase",
+    "jarvis-desktop-launch"
   ],
   "profiles": [
     "brain.json",
@@ -59,6 +70,28 @@
     "systemd/jarvis-update-check.timer"
   ],
   "optional_components": {
+    "plugin_rollback_preflight": [
+      "scripts/check-plugin-rollback.py"
+    ],
+    "media_plugin": [
+      "plugins/ovos-skill-jarvis-media/README.md",
+      "plugins/ovos-skill-jarvis-media/HISTORY.md",
+      "plugins/ovos-skill-jarvis-media/pyproject.toml",
+      "plugins/ovos-skill-jarvis-media/ovos_skill_jarvis_media/__init__.py",
+      "plugins/ovos-skill-jarvis-media/ovos_skill_jarvis_media/bridge.py",
+      "plugins/ovos-skill-jarvis-media/ovos_skill_jarvis_media/media.py",
+      "plugins/ovos-skill-jarvis-media/ovos_skill_jarvis_media/pipeline.py",
+      "plugins/ovos-skill-jarvis-media/ovos_skill_jarvis_media/voice_phrases.json"
+    ],
+    "file_search_plugin": [
+      "plugins/jarvis-file-search/README.md",
+      "plugins/jarvis-file-search/HISTORY.md",
+      "plugins/jarvis-file-search/pyproject.toml",
+      "plugins/jarvis-file-search/jarvis_file_search/__init__.py",
+      "plugins/jarvis-file-search/jarvis_file_search/search.py",
+      "plugins/jarvis-file-search/jarvis_file_search/skill.py",
+      "plugins/jarvis-file-search/jarvis_file_search/results.py"
+    ],
     "audio": [
       "voice/jarvis-ready.wav"
     ],
@@ -81,6 +114,15 @@
       "mic/jarvis-mic-toggle",
       "mic/mic-active.svg",
       "mic/mic-muted.svg"
+    ],
+    "whisper_hints": [
+      "extras/whisper-hints/reviewed-plugin-0.4.0.py",
+      "extras/whisper-hints/LICENSE.upstream",
+      "extras/whisper-hints/install.py",
+      "extras/whisper-hints/jarvis_app_hints.py",
+      "extras/whisper-hints/test_update.py",
+      "extras/whisper-hints/test-fixtures/discovery.py",
+      "extras/whisper-hints/test-fixtures/profile.py"
     ]
   }
 }

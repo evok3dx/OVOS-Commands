@@ -116,6 +116,9 @@ if [[ ! -d "$backup_root/target-root" && ! -f "$backup_root/target-root.missing"
 fi
 validate_restore_entry "$backup_root/profile.json"
 validate_restore_entry "$backup_root/capabilities.json"
+if [[ -f "$backup_root/router.json" || -f "$backup_root/router.json.missing" ]]; then
+  validate_restore_entry "$backup_root/router.json"
+fi
 for helper in "${runtime_helpers[@]}"; do
   validate_restore_entry "$backup_root/helpers/$helper"
 done
@@ -178,6 +181,9 @@ fi
 
 restore_file "$backup_root/profile.json" "$target_profile" 0600
 restore_file "$backup_root/capabilities.json" "$target_capabilities" 0600
+if [[ -f "$backup_root/router.json" || -f "$backup_root/router.json.missing" ]]; then
+  restore_file "$backup_root/router.json" "$jarvis_home/.config/jarvis/router.json" 0600
+fi
 for helper in "${runtime_helpers[@]}"; do
   restore_file "$backup_root/helpers/$helper" "$target_bin/$helper" 0755
 done
@@ -300,7 +306,8 @@ PY
   if [[ -x "$target_bin/ovos-tray" && -f "$tray_autostart" ]]; then
     nohup "$target_bin/ovos-tray" > "$state_root/ovos-tray.log" 2>&1 &
   fi
-  if [[ -x "$target_bin/jarvis-mic-indicator" && -f "$mic_autostart" ]]; then
+  if [[ -x "$target_bin/jarvis-mic-indicator" && -f "$mic_autostart" ]] && \
+     ! grep -Eq '^(Hidden=true|X-GNOME-Autostart-enabled=false)$' "$mic_autostart"; then
     nohup "$target_bin/jarvis-mic-indicator" \
       > "$state_root/jarvis-mic-indicator.log" 2>&1 &
   fi

@@ -20,6 +20,48 @@ trap cleanup EXIT
 status=0
 python3 "$doctor" --json > "$temporary" || status=$?
 chmod 0600 "$temporary"
-mv -f -- "$temporary" "$state_dir/latest.json"
+result_file="$state_dir/latest.json"
+mv -f -- "$temporary" "$result_file"
 trap - EXIT
-exit "$status"
+
+python3 - "$result_file" <<'PYTHON_SUMMARY'
+import json
+import sys
+from collections import Counter
+from pathlib import Path
+
+data = json.loads(Path(sys.argv[1]).read_text())
+findings = data.get("findings", [])
+counts = Counter(
+    str(item.get("level", "UNKNOWN")).upper()
+    for item in findings
+)
+
+print()
+print("Jarvis Health Check")
+print("===================")
+print(
+    f"{counts['PASS']} passed, "
+    f"{counts['WARN']} warnings, "
+    f"{counts['FAIL']} failures"
+)
+
+problems = [
+    item for item in findings
+    if str(item.get("level", "")).upper() != "PASS"
+]
+
+if problems:
+    print()
+    for item in problems:
+        level = str(item.get("level", "INFO")).upper()
+        check = item.get("check", "unknown")
+        message = item.get("message", "")
+        print(f"{level}: {check}")
+        print(f"  {message}")
+else:
+    print()
+    print("PASS: All checks succeeded.")
+PYTHON_SUMMARY
+
+[[ "$status" -eq 0 ]]

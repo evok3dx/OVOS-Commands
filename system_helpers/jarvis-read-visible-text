@@ -2,6 +2,10 @@
 set -u
 
 mode="${1:-}"
+reading_speed="${2:-1}"
+normal_speed_file="$HOME/.config/jarvis/reading-normal-speed"
+speech_note_settings="$HOME/.var/app/net.mkiol.SpeechNote/config/net.mkiol/dsnote/settings.conf"
+fast_marker="$HOME/.local/state/jarvis/reading-fast-active"
 clipboard_backup="$(mktemp)"
 captured_text="$(mktemp)"
 captured_html="$(mktemp)"
@@ -353,6 +357,61 @@ case "$mode" in
     ;;
 esac
 
+if [[ "$reading_speed" != "1" && "$reading_speed" != "2" ]]; then
+    echo "Reading speed must be 1 or 2" >&2
+    exit 2
+fi
+
+normal_speed="$(
+    head -n 1 "$normal_speed_file" 2>/dev/null
+)"
+if [[ ! "$normal_speed" =~ ^([1-9]|1[0-9]|20)$ ]]; then
+    normal_speed="$(sed -n 's/^speech_speed2=//p' "$speech_note_settings" 2>/dev/null | head -n 1)"
+    [[ "$normal_speed" =~ ^([1-9]|1[0-9]|20)$ ]] || normal_speed=11
+fi
+
+set_speech_note_speed() {
+    local value="$1"
+
+    if grep -q '^speech_speed2=' "$speech_note_settings"; then
+        sed -i \
+          "s/^speech_speed2=.*/speech_speed2=$value/" \
+          "$speech_note_settings"
+    else
+        sed -i \
+          "/^\[General\]$/a speech_speed2=$value" \
+          "$speech_note_settings"
+    fi
+}
+
+mkdir -p "$(dirname "$fast_marker")"
+
+if [[ "$reading_speed" == "2" ]]; then
+    # On another PC, leave Speech Note alone if its settings cannot be
+    # inspected and restored. Reading at normal speed still needs no edit.
+    if [[ ! -f "$speech_note_settings" || -L "$speech_note_settings" || \
+          ! -O "$speech_note_settings" || ! -w "$speech_note_settings" ]]; then
+        echo "Cannot safely change Speech Note speed on this computer" >&2
+        exit 1
+    fi
+    configured_speed="$(sed -n 's/^speech_speed2=//p' "$speech_note_settings" | head -n 1)"
+    if [[ ! "$configured_speed" =~ ^([1-9]|1[0-9]|20)$ ]]; then
+        echo "Speech Note speed setting needs review" >&2
+        exit 1
+    fi
+    flatpak kill net.mkiol.SpeechNote >/dev/null 2>&1 || true
+    sleep 1
+
+    set_speech_note_speed 20
+    : > "$fast_marker"
+elif [[ -f "$fast_marker" ]]; then
+    flatpak kill net.mkiol.SpeechNote >/dev/null 2>&1 || true
+    sleep 1
+
+    set_speech_note_speed "$normal_speed"
+    rm -f -- "$fast_marker"
+fi
+
 xclip -selection clipboard -i < "$captured_text"
 
 flatpak run net.mkiol.SpeechNote \
@@ -360,5 +419,60 @@ flatpak run net.mkiol.SpeechNote \
   >/dev/null 2>&1
 
 result="$?"
+
+if [[ "$reading_speed" == "2" ]]; then
+    # The active task already received speed 20. Restore the saved setting
+    # immediately so an unexpected shutdown cannot make 2x permanent.
+    set_speech_note_speed "$normal_speed"
+    if [[ "$result" -ne 0 ]]; then
+        rm -f -- "$fast_marker"
+        exit "$result"
+    fi
+
+    (
+        saw_playback=0
+        startup_checks=0
+
+        while (( startup_checks < 150 || saw_playback == 1 )); do
+            state="$(
+                gdbus call \
+                  --session \
+                  --dest net.mkiol.SpeechNote \
+                  --object-path /net/mkiol/SpeechNote \
+                  --method org.freedesktop.DBus.Properties.Get \
+                  net.mkiol.SpeechNote TaskState \
+                  2>/dev/null |
+                sed -n 's/.*<\([0-9][0-9]*\)>.*/\1/p'
+            )"
+
+            case "$state" in
+                4|5|6)
+                    saw_playback=1
+                    ;;
+                0)
+                    if (( saw_playback == 1 )); then
+                        break
+                    fi
+                    ;;
+                '')
+                    if (( saw_playback == 1 )); then
+                        break
+                    fi
+                    ;;
+            esac
+
+            if (( saw_playback == 0 )); then
+                startup_checks=$((startup_checks + 1))
+            fi
+
+            sleep 0.2
+        done
+
+        flatpak kill net.mkiol.SpeechNote >/dev/null 2>&1 || true
+        set_speech_note_speed "$normal_speed"
+        rm -f -- "$fast_marker"
+    ) >/dev/null 2>&1 &
+fi
+
 sleep 1
 exit "$result"
