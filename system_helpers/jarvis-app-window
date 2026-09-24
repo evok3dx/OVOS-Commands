@@ -24,6 +24,18 @@ window_wait_attempts=40
 systemd_run="${JARVIS_SYSTEMD_RUN:-/usr/bin/systemd-run}"
 
 case "$app" in
+  calculator)
+    window_match="gnome-calculator.Gnome-calculator|org.gnome.Calculator|galculator.Galculator"
+    title="Calculator"
+    ;;
+  settings)
+    window_match="cinnamon-settings"
+    title="Settings"
+    ;;
+  files)
+    window_match="nemo.Nemo"
+    title="Files"
+    ;;
   brave)
     window_match="brave-browser.Brave-browser"
     title="Brave"
@@ -170,7 +182,24 @@ detached_launch() {
 }
 
 launch_window() {
+  # Existing applications retain the launch paths used before this update.
+  # Only the three newly added basic integrations use desktop discovery here.
   case "$app" in
+    calculator|settings|files)
+      if [[ -x "$HOME/.local/bin/jarvis-desktop-launch" ]]; then
+        if "$HOME/.local/bin/jarvis-desktop-launch" "$app"; then
+          return 0
+        else
+          local launcher_status=$?
+          # Only 'no compatible entry' permits the old fixed launch path.
+          # Disabled apps and launch errors must not bypass this decision.
+          [[ "$launcher_status" == 3 ]] || return 1
+        fi
+      fi
+      ;;
+  esac
+  case "$app" in
+    calculator|settings|files) return 1 ;;
     brave)
       if /usr/bin/flatpak info com.brave.Browser >/dev/null 2>&1; then
         detached_launch /usr/bin/flatpak run com.brave.Browser

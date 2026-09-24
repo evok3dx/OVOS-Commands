@@ -1,18 +1,27 @@
 {
   "schema_version": 1,
-  "release_version": "2.3.1",
+  "release_version": "3.0.0rc1",
   "validated_on": "2026-09-16",
   "support": {
     "operating_system": "Linux",
-    "validated_distributions": ["linuxmint"],
-    "compatible_families": ["ubuntu", "debian"],
+    "validated_distributions": [
+      "linuxmint"
+    ],
+    "compatible_families": [
+      "ubuntu",
+      "debian"
+    ],
     "desktop_session": "x11",
-    "architectures": ["x86_64"],
+    "architectures": [
+      "x86_64"
+    ],
     "python": ">=3.10"
   },
   "ovos": {
     "deployment_method": "virtualenv",
-    "python_candidates": ["~/.venvs/ovos/bin/python"],
+    "python_candidates": [
+      "~/.venvs/ovos/bin/python"
+    ],
     "config_path": "~/.config/mycroft/mycroft.conf",
     "entry_point_group": "opm.skill",
     "entry_point_name": "ovos-skill-jarvis-dispatcher.openvoiceos",
@@ -109,7 +118,25 @@
       "ovos-listener.service",
       "ovos-audio.service",
       "ovos-phal.service"
-    ]
+    ],
+    "preserved_alpha_stack": {
+      "verified_on": "2026-09-23",
+      "scope": "Preserve a working Brain upgrade; do not use these versions for a fresh install.",
+      "core": {
+        "ovos-core": "3.7.0a1",
+        "ovos-workshop": "9.8.7a1",
+        "ovos-plugin-manager": "2.12.4a1",
+        "ovos-audio": "2.2.8a1",
+        "ovos-dinkum-listener": "0.10.5a1"
+      },
+      "voice": {
+        "ovos-vad-plugin-silero": "0.1.3a2",
+        "phoonnx": "1.93.0a1",
+        "scriptconv": "0.0.4a31",
+        "onnxruntime": "1.30.0",
+        "numpy": "2.4.6"
+      }
+    }
   },
   "updates": {
     "repository": "evok3dx/OVOS-Commands",

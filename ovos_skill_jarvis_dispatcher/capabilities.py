@@ -13,6 +13,11 @@ SCHEMA_VERSION = 1
 # Detection only decides what setup may offer. Runtime execution remains fixed
 # and allowlisted in the desktop helpers.
 INTEGRATIONS = {
+    "calculator": {"category": "calculator", "desktop_ids": (
+        "org.gnome.Calculator.desktop", "gnome-calculator.desktop", "galculator.desktop"
+    ), "flatpaks": ("org.gnome.Calculator",)},
+    "settings": {"category": "settings", "desktop_ids": ("cinnamon-settings.desktop",)},
+    "files": {"category": "files", "desktop_ids": ("nemo.desktop",)},
     "brave": {"category": "brave", "commands": ("brave-browser-stable",),
               "flatpaks": ("com.brave.Browser",)},
     "firefox": {"category": "firefox", "commands": ("firefox",)},
@@ -135,11 +140,22 @@ def detect_applications(home: Path | None = None) -> dict[str, str]:
             str(INTEGRATIONS[name]["category"]): name
             for name in INTEGRATIONS if name in requested
         }
-    return {
+    detected = {
         str(rule["category"]): name
         for name, rule in INTEGRATIONS.items()
         if _integration_present(name, home)
     }
+    try:
+        from .profile import discovered_applications
+    except ImportError:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            'jarvis_discovery_profile', Path(__file__).with_name('profile.py'))
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        discovered_applications = module.discovered_applications
+    detected.update({key:key for key in discovered_applications(home)})
+    return detected
 
 
 def build_configuration(

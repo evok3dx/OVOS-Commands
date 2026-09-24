@@ -35,13 +35,20 @@ class DesktopActionsMixin:
             message.data.get("utterance", "")
         ).lower()
 
+        matches = []
         for app, aliases in self._desktop_app_aliases.items():
-            for alias in sorted(aliases, key=len, reverse=True):
+            for alias in aliases:
                 if re.search(
                     rf"\b{re.escape(alias)}\b",
                     utterance
                 ):
-                    return app
+                    matches.append((len(alias), app))
+
+        if matches:
+            longest = max(length for length, _app in matches)
+            winners = {app for length, app in matches if length == longest}
+            if len(winners) == 1:
+                return winners.pop()
 
         return None
 
@@ -76,7 +83,24 @@ class DesktopActionsMixin:
             app.replace("_", " ").title(),
         )
         integration = self._desktop_app_integrations.get(app, app)
-        timeout = 40 if integration == "hermes_desktop" else 15
+        if integration.startswith('desktop_'):
+            from .launcher import desktop_action
+            try:
+                success = desktop_action(integration, action)
+            except Exception:
+                self.log.exception('Discovered application action failed')
+                success = False
+            if announce:
+                if not success:
+                    self.speak(f"I could not {action} {display_name}.")
+                elif action == 'open':
+                    self.speak(f"Opening {display_name}.")
+                elif action == 'close':
+                    self.speak(f"{display_name} closed.")
+            return success
+        # Allow the bounded Flatpak discovery probe plus the existing window
+        # appearance/focus check; failed launches still return a brief response.
+        timeout = 40 if integration == "hermes_desktop" else 20
 
         try:
             subprocess.run(
@@ -91,9 +115,13 @@ class DesktopActionsMixin:
                 check=True,
                 timeout=timeout,
                 stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL
+                stderr=subprocess.PIPE,
+                text=True,
             )
-        except Exception:
+        except Exception as error:
+            detail = getattr(error, 'stderr', None)
+            if detail:
+                self.log.error('Desktop helper: %s', detail.strip()[:800])
             self.log.exception(
                 f"Desktop application action failed: "
                 f"{action} {app}"

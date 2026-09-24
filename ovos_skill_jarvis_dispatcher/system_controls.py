@@ -14,6 +14,15 @@ class SystemControlsMixin:
             self.log.exception("Enter key action failed")
             self.speak("I could not press Enter.")
 
+    def _press_escape(self):
+        """Press Escape in the focused app, for example to dismiss its search."""
+        try:
+            self._focused_window_details()
+            self._send_focused_keys("Escape")
+        except Exception:
+            self.log.exception("Escape key action failed")
+            self.speak("I could not press Escape.")
+
     def _set_caps_lock(self, enabled):
         """Set Caps Lock to a requested state without blindly toggling it."""
         try:

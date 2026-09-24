@@ -33,12 +33,12 @@ from pathlib import Path
 
 root = Path(sys.argv[1])
 roots = (
-    ".github", "command_editor", "docs", "mic", "ovos_skill_jarvis_dispatcher",
+    ".github", "command_editor", "docs", "extras", "mic", "ovos_skill_jarvis_dispatcher",
     "profiles", "scripts", "system_helpers", "systemd", "tray", "voice",
 )
 files = (
-    ".gitignore", "COMMAND-EDITOR.md", "README.md", "compatibility.json",
-    "deployment-manifest.json", "pyproject.toml",
+    ".gitignore", "AGENTS.md", "COMMAND-EDITOR.md", "README.md", "compatibility.json",
+    "deployment-manifest.json", "pyproject.toml", "LAUNCHER.md", "OVOS-LAUNCHER-LICENSE.txt",
 )
 excluded = {".git", "__pycache__", "dist"}
 for relative in files:

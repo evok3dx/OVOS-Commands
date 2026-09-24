@@ -13,7 +13,10 @@ from gi.repository import Gtk
 
 
 HOME = Path.home()
-PACKAGE = HOME / ".local/src/ovos-skill-jarvis-dispatcher/ovos_skill_jarvis_dispatcher"
+REPOSITORY = Path(__file__).resolve().parents[1]
+if not (REPOSITORY / 'ovos_skill_jarvis_dispatcher').is_dir():
+    REPOSITORY = HOME / '.local/src/ovos-skill-jarvis-dispatcher'
+PACKAGE = REPOSITORY / 'ovos_skill_jarvis_dispatcher'
 BUILTINS_PATH = HOME / ".config/jarvis/builtin-command-phrases.json"
 
 
@@ -28,24 +31,21 @@ commands = load_module("jarvis_custom_commands", PACKAGE / "custom_commands.py")
 profiles = load_module("jarvis_profile", PACKAGE / "profile.py")
 
 
-class CommandEditor(Gtk.Window):
-    def __init__(self):
-        super().__init__(title="Jarvis Commands")
-        self.set_default_size(820, 720)
-        self.set_border_width(16)
-        self.profile = profiles.load_profile()
+class CommandEditor(Gtk.Box):
+    def __init__(self, profile=None, mapping=None):
+        super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        self.dirty = False
+        self.profile = profile if profile is not None else profiles.load_profile()
         self.catalog = commands.action_catalog(self.profile)
-        self.builtins, self.builtin_inventory = self._read_builtins()
-        self.mapping = commands.read_mapping(
-            profile=self.profile,
-            builtin_phrases=self.builtins,
-        )
+        self.builtins = commands.collect_builtin_phrases(self.profile)
+        self.builtin_inventory = commands.collect_builtin_inventory(self.profile)
+        self.mapping = dict(mapping) if mapping is not None else commands.read_mapping(
+            profile=self.profile, builtin_phrases=self.builtins)
 
-        outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
-        self.add(outer)
+        outer = self
 
         title = Gtk.Label()
-        title.set_markup("<big><b>Jarvis Commands</b></big>")
+        title.set_markup("<big><b>Custom commands</b></big>")
         title.set_xalign(0)
         outer.pack_start(title, False, False, 0)
 
@@ -87,7 +87,7 @@ class CommandEditor(Gtk.Window):
         self.actions.get_selection().connect("changed", self._action_changed)
         action_scroll = Gtk.ScrolledWindow()
         action_scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
-        action_scroll.set_min_content_height(260)
+        action_scroll.set_min_content_height(130)
         action_scroll.add(self.actions)
         outer.pack_start(action_scroll, True, True, 0)
 
@@ -105,7 +105,7 @@ class CommandEditor(Gtk.Window):
             Gtk.TreeViewColumn("Built-in phrase", Gtk.CellRendererText(), text=0)
         )
         builtin_scroll = Gtk.ScrolledWindow()
-        builtin_scroll.set_min_content_height(96)
+        builtin_scroll.set_min_content_height(64)
         builtin_scroll.add(builtin_view)
         outer.pack_start(builtin_scroll, False, True, 0)
 
@@ -118,6 +118,8 @@ class CommandEditor(Gtk.Window):
         self.phrase.connect("activate", self._add_phrase)
         phrase_row.pack_start(self.phrase, True, True, 0)
         add_button = Gtk.Button(label="Add")
+        add_button.set_image(Gtk.Image.new_from_icon_name('list-add-symbolic', Gtk.IconSize.BUTTON))
+        add_button.set_always_show_image(True)
         add_button.connect("clicked", self._add_phrase)
         phrase_row.pack_start(add_button, False, False, 0)
         outer.pack_start(phrase_row, False, False, 0)
@@ -129,24 +131,21 @@ class CommandEditor(Gtk.Window):
             Gtk.TreeViewColumn("Personal phrase", Gtk.CellRendererText(), text=0)
         )
         phrase_scroll = Gtk.ScrolledWindow()
-        phrase_scroll.set_min_content_height(96)
+        phrase_scroll.set_min_content_height(64)
         phrase_scroll.add(self.phrases)
         outer.pack_start(phrase_scroll, False, True, 0)
 
         footer = Gtk.Box(spacing=8)
         remove_button = Gtk.Button(label="Remove selected phrase")
+        remove_button.set_image(Gtk.Image.new_from_icon_name('list-remove-symbolic', Gtk.IconSize.BUTTON))
+        remove_button.set_always_show_image(True)
         remove_button.connect("clicked", self._remove_phrase)
         footer.pack_start(remove_button, False, False, 0)
         self.status = Gtk.Label()
         self.status.set_xalign(0)
+        self.status.set_line_wrap(True)
+        self.status.set_max_width_chars(48)
         footer.pack_start(self.status, True, True, 0)
-        close_button = Gtk.Button(label="Close")
-        close_button.connect("clicked", lambda _button: self.close())
-        footer.pack_start(close_button, False, False, 0)
-        save_button = Gtk.Button(label="Save & Reload")
-        save_button.get_style_context().add_class("suggested-action")
-        save_button.connect("clicked", self._save)
-        footer.pack_start(save_button, False, False, 0)
         outer.pack_start(footer, False, False, 0)
 
         first = self.action_filter.get_iter_first()
@@ -216,6 +215,7 @@ class CommandEditor(Gtk.Window):
         except commands.CustomCommandError as error:
             self.status.set_text(str(error))
             return
+        self.dirty = True
         self.phrase.set_text("")
         self._action_changed(None)
         self.status.set_text("Added. Save to activate it.")
@@ -227,30 +227,33 @@ class CommandEditor(Gtk.Window):
             return
         phrase = model[selected][0]
         self.mapping.pop(phrase, None)
+        self.dirty = True
         self._action_changed(None)
         self.status.set_text("Removed. Save to apply it.")
 
-    def _save(self, _button):
-        try:
-            self.mapping = commands.write_mapping(
-                self.mapping,
-                profile=self.profile,
-                builtin_phrases=self.builtins,
-            )
-            subprocess.Popen(
-                [str(HOME / ".local/bin/jarvis-restart")],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                start_new_session=True,
-            )
-        except (commands.CustomCommandError, OSError) as error:
-            self.status.set_text(f"Could not save: {error}")
-            return
-        self.status.set_text("Saved. Jarvis is reloading commands.")
+    def refresh_profile(self, profile):
+        """Refresh automatically generated commands without losing draft phrases."""
+        selected = self._selected_action()
+        self.profile = profile
+        self.catalog = commands.action_catalog(profile)
+        self.builtins = commands.collect_builtin_phrases(profile)
+        self.builtin_inventory = commands.collect_builtin_inventory(profile)
+        self.action_store.clear()
+        for action_id, details in sorted(self.catalog.items(),
+                key=lambda item: (item[1]['category'], item[1]['label'])):
+            self.action_store.append([action_id, details['label'], details['category']])
+        for row in self.action_filter:
+            if row[0] == selected:
+                self.actions.get_selection().select_iter(row.iter)
+                break
+        else:
+            first = self.action_filter.get_iter_first()
+            if first is not None:
+                self.actions.get_selection().select_iter(first)
 
 
-if __name__ == "__main__":
-    window = CommandEditor()
-    window.connect("destroy", Gtk.main_quit)
-    window.show_all()
-    Gtk.main()
+if __name__ == '__main__':
+    # Existing shortcuts open the same configuration window on its Commands tab.
+    import os
+    os.execv('/usr/bin/python3', ['/usr/bin/python3',
+        str(REPOSITORY / 'scripts/setup.py'), '--gui', '--tab', 'commands'])

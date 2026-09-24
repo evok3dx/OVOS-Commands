@@ -117,6 +117,15 @@ def run_json(command: list[str], timeout: int = 20) -> dict[str, object]:
         ) from error
 
 
+def reviewed_voice_versions(versions: dict[str, str | None]) -> dict[str, str]:
+    """Keep legacy install pins; recognise the already tested Brain upgrade."""
+    upgrade = POLICY["ovos"].get("preserved_alpha_stack", {})
+    if upgrade and all(versions.get(name) == value
+                       for name, value in upgrade.get("core", {}).items()):
+        return upgrade.get("voice", {})
+    return {}
+
+
 def check_ovos_python(report: Report, python: Path | None) -> None:
     if python is None:
         report.fail(
@@ -268,6 +277,7 @@ print(json.dumps({
             f"OVOS wake-word entry point {wakeword_policy['module']!r} is missing.",
         )
 
+    reviewed_upgrade = reviewed_voice_versions(data["versions"])
     for label, policy_name, entry_key in (
         ("vad", "vad", "opm_vad_names"),
         ("stt", "stt", "opm_stt_names"),
@@ -275,13 +285,14 @@ print(json.dumps({
     ):
         policy = POLICY["ovos"][policy_name]
         version = data["versions"].get(policy["package"])
-        if version == policy["validated_version"]:
+        expected = reviewed_upgrade.get(policy["package"], policy["validated_version"])
+        if version == expected:
             report.pass_(f"{label}-package", f"{policy['package']} {version} is installed.")
         elif version:
             report.warn(
                 f"{label}-package",
                 f"{policy['package']} {version} is installed; reviewed version is "
-                f"{policy['validated_version']}.",
+                f"{expected}.",
             )
         else:
             report.fail(f"{label}-package", f"Required package {policy['package']} is missing.")
@@ -307,16 +318,20 @@ print(json.dumps({
         ("numpy", "numpy_version"),
     ):
         installed_version = data["versions"].get(package)
-        expected_version = tts_policy[version_key]
+        expected_version = reviewed_upgrade.get(package, tts_policy[version_key])
         if installed_version == expected_version:
             report.pass_(
                 f"bella-{package}", f"{package} {installed_version} is installed."
             )
         else:
-            report.fail(
-                f"bella-{package}",
-                f"{package} must be {expected_version}; found {installed_version or 'missing'}.",
-            )
+            if installed_version:
+                report.warn(f"bella-{package}",
+                            f"{package} is {installed_version}; reviewed version is {expected_version}.")
+            else:
+                report.fail(f"bella-{package}", f"Required package {package} is missing.")
+    if reviewed_upgrade and str(data["versions"].get("numpy") or "").split(".")[0] == "2":
+        report.warn("openwakeword-numpy-metadata",
+                    "Installed OpenWakeWord declares numpy<2; Brain's ONNX engine was tested with NumPy 2, but this metadata conflict remains.")
 
 
 def check_wakeword_config(

@@ -194,3 +194,14 @@ Examples:
 - `Minimise window`
 - `Maximise window`
 - `Restore window`
+
+
+### Keyboard aliases (local patch)
+
+- "New line", "newline", "insert new line" and "add a new line" use the
+  existing Press Enter action. They send Return, with the same effect as
+  pressing Enter in the focused application.
+- "Press Escape", "press Esc", "hit Escape" and "Escape key" send Escape
+  to the focused application, for example to dismiss a search field or dialog
+  when the application supports that key. This is separate from browser Back.
+- Explicit Hermes new-line commands retain their existing Shift+Return action.
