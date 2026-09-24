@@ -1,6 +1,6 @@
 # Historical README · 2.3.1
 
-**HISTORICAL:** captured from Git `3afc733` before the V3 rewrite. Paths, tray menus and version numbers here describe the earlier release, not current behaviour.
+**HISTORICAL:** captured from Git `3afc733` before the V3 rewrite. Paths, tray menus and version numbers here describe the earlier release, not current behaviour. Internal links were adjusted for this archive location.
 
 # OVOS Commands
 
@@ -34,7 +34,7 @@ candidate independently. Treating the full `|`-joined value as one literal
 string caused an already-open Standard Notes window to be reported as missing.
 
 The validated diagnosis and portability rules are documented in
-[`docs/window-focus-and-app-integration.md`](docs/window-focus-and-app-integration.md).
+[`docs/window-focus-and-app-integration.md`](../window-focus-and-app-integration.md).
 
 ## Quick start
 
@@ -160,7 +160,7 @@ Only after focus succeeds should you test application-specific actions such as
 window currently owns focus, often the terminal, so it is not a valid app test
 unless the intended application is actually active.
 
-See [`docs/window-focus-and-app-integration.md`](docs/window-focus-and-app-integration.md)
+See [`docs/window-focus-and-app-integration.md`](../window-focus-and-app-integration.md)
 for the complete Brain/laptop comparison and troubleshooting procedure.
 
 ## Capabilities
@@ -177,7 +177,7 @@ for the complete Brain/laptop comparison and troubleshooting procedure.
 - State-aware Caps Lock
 - Safe personal phrase editor with no arbitrary command execution
 
-See the [command reference](docs/command-reference.md) for spoken forms.
+See the [command reference](../command-reference.md) for spoken forms.
 
 ## Universal reading
 
@@ -269,7 +269,7 @@ controls only `ovos-listener.service`.
 
 The tray icon reports `ready`, `starting`, `stopped` or `failed`. A small red
 badge means that a newer Jarvis release was detected. See the
-[troubleshooting guide](docs/troubleshooting.md) for the shortest safe checks
+[troubleshooting guide](../troubleshooting.md) for the shortest safe checks
 when a command or service is not behaving as expected.
 
 Wake-word capture tuning remains independent and reversible:
@@ -321,16 +321,16 @@ checksum before publishing, and never replace assets attached to an existing
 version. After the small user group has updated, the repository may be made
 private again.
 
-See the [maintenance guide](docs/maintenance.md) before changing inventory or
+See the [maintenance guide](../maintenance.md) before changing inventory or
 deployment, the
-[window focus/integration guide](docs/window-focus-and-app-integration.md) for
+[window focus/integration guide](../window-focus-and-app-integration.md) for
 cross-machine GUI diagnosis, the
-[troubleshooting guide](docs/troubleshooting.md) for normal operational checks,
+[troubleshooting guide](../troubleshooting.md) for normal operational checks,
 and the
-[repository audit](docs/repository-audit.md) for the v21 cleanup decisions.
+[repository audit](../repository-audit.md) for the v21 cleanup decisions.
 Earlier implementation reports are retained under
-[`docs/history/`](docs/history/README.md) as historical records only.
-The [security and update policy](docs/security-and-updates.md) defines the
+[`docs/history/`](../history/README.md) as historical records only.
+The [security and update policy](../security-and-updates.md) defines the
 supported platform, privilege boundary, checksum limits and supervised OVOS
 update procedure.
 
@@ -346,7 +346,7 @@ jarvis-report --issue "Describe what failed"
 The resulting archive contains a safe source snapshot, versions, validation,
 service state, integrity hashes and its own AI instructions. It excludes raw
 logs, audio, transcripts, clipboard contents and messages by default, and it is
-never uploaded automatically. See [AI-assisted maintenance](docs/ai-maintenance.md).
+never uploaded automatically. See [AI-assisted maintenance](../ai-maintenance.md).
 
 ## Repository map
 
