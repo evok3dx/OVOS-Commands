@@ -723,7 +723,11 @@ def register_skill_vocabulary(self, include_custom=True):
             "read this two times speed",
             "read this at two x",
             "read this two x",
+            "read this at 2x",
+            "read this 2x",
+            "read this and double the speed",
             "read selected text at double speed",
+            "read selected text at 2x",
             "read selected text at two times speed"
         ],
         "ReadVisiblePageDoubleSpeedCommand": [
@@ -733,6 +737,8 @@ def register_skill_vocabulary(self, include_custom=True):
             "read this page two times speed",
             "read this page at two x",
             "read this page two x",
+            "read this page at 2x",
+            "read page at 2x",
             "read page at double speed",
             "read page at two times speed"
         ],

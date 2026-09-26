@@ -330,12 +330,12 @@ case "$mode" in
     if ! xclip -selection primary -o \
          > "$captured_text" 2>/dev/null; then
         echo "No selected text" >&2
-        exit 1
+        exit 20
     fi
 
     if [[ ! -s "$captured_text" ]]; then
         echo "No selected text" >&2
-        exit 1
+        exit 20
     fi
     ;;
 
@@ -384,6 +384,13 @@ set_speech_note_speed() {
     fi
 }
 
+speech_note_running() {
+    gdbus call --session --dest net.mkiol.SpeechNote \
+      --object-path /net/mkiol/SpeechNote \
+      --method org.freedesktop.DBus.Properties.Get \
+      net.mkiol.SpeechNote TaskState >/dev/null 2>&1
+}
+
 mkdir -p "$(dirname "$fast_marker")"
 
 if [[ "$reading_speed" == "2" ]]; then
@@ -399,14 +406,19 @@ if [[ "$reading_speed" == "2" ]]; then
         echo "Speech Note speed setting needs review" >&2
         exit 1
     fi
-    flatpak kill net.mkiol.SpeechNote >/dev/null 2>&1 || true
-    sleep 1
+    if [[ "$configured_speed" != 20 ]] && speech_note_running; then
+        flatpak kill net.mkiol.SpeechNote >/dev/null 2>&1 || true
+        sleep 1
+    fi
 
     set_speech_note_speed 20
-    : > "$fast_marker"
+    marker="$$-$RANDOM"
+    printf '%s\n' "$marker" > "$fast_marker"
 elif [[ -f "$fast_marker" ]]; then
-    flatpak kill net.mkiol.SpeechNote >/dev/null 2>&1 || true
-    sleep 1
+    if speech_note_running; then
+        flatpak kill net.mkiol.SpeechNote >/dev/null 2>&1 || true
+        sleep 1
+    fi
 
     set_speech_note_speed "$normal_speed"
     rm -f -- "$fast_marker"
@@ -416,17 +428,41 @@ xclip -selection clipboard -i < "$captured_text"
 
 flatpak run net.mkiol.SpeechNote \
   --action start-reading-clipboard \
-  >/dev/null 2>&1
+  >/dev/null 2>&1 &
+launcher_pid=$!
 
-result="$?"
+# Flatpak may wait for the entire reading task before it exits. Recognise an
+# accepted reader request from the live task state or a successful launcher
+# exit, without waiting for the passage to finish.
+accepted=0
+for ((attempt=0; attempt<30; attempt++)); do
+    if ! kill -0 "$launcher_pid" 2>/dev/null; then
+        if wait "$launcher_pid"; then accepted=1; fi
+        break
+    fi
+    state="$(gdbus call --session --dest net.mkiol.SpeechNote \
+      --object-path /net/mkiol/SpeechNote \
+      --method org.freedesktop.DBus.Properties.Get \
+      net.mkiol.SpeechNote TaskState 2>/dev/null |
+      sed -n 's/.*<\([0-9][0-9]*\)>.*/\1/p')"
+    if [[ "$state" == 4 || "$state" == 5 || "$state" == 6 ]]; then
+        accepted=1
+        break
+    fi
+    sleep 0.2
+done
+
+if (( accepted == 0 )) && kill -0 "$launcher_pid" 2>/dev/null; then
+    echo "Speech Note did not confirm reading started" >&2
+fi
 
 if [[ "$reading_speed" == "2" ]]; then
     # The active task already received speed 20. Restore the saved setting
     # immediately so an unexpected shutdown cannot make 2x permanent.
     set_speech_note_speed "$normal_speed"
-    if [[ "$result" -ne 0 ]]; then
-        rm -f -- "$fast_marker"
-        exit "$result"
+    if (( accepted == 0 )); then
+        [[ "$(cat "$fast_marker" 2>/dev/null)" == "$marker" ]] && rm -f -- "$fast_marker"
+        exit 22
     fi
 
     (
@@ -434,6 +470,7 @@ if [[ "$reading_speed" == "2" ]]; then
         startup_checks=0
 
         while (( startup_checks < 150 || saw_playback == 1 )); do
+            [[ "$(cat "$fast_marker" 2>/dev/null)" == "$marker" ]] || exit 0
             state="$(
                 gdbus call \
                   --session \
@@ -470,9 +507,13 @@ if [[ "$reading_speed" == "2" ]]; then
 
         flatpak kill net.mkiol.SpeechNote >/dev/null 2>&1 || true
         set_speech_note_speed "$normal_speed"
-        rm -f -- "$fast_marker"
+        [[ "$(cat "$fast_marker" 2>/dev/null)" == "$marker" ]] && rm -f -- "$fast_marker"
     ) >/dev/null 2>&1 &
 fi
 
+(( accepted == 1 )) || exit 22
+
+# Speech Note reads the clipboard asynchronously even after accepting the
+# request. Allow it a moment to copy the text before restoring the user's data.
 sleep 1
-exit "$result"
+exit 0

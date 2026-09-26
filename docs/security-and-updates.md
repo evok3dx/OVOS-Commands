@@ -63,7 +63,7 @@ created or silently managed by this repository.
 Before installing a downloaded archive:
 
 ```bash
-version=3.0.0
+version=3.1.0
 sha256sum --check "ovos-commands-$version.tar.gz.sha256"
 tar -tzf "ovos-commands-$version.tar.gz"
 ```
@@ -84,9 +84,10 @@ deployment.
 On an existing installation, the transaction updates release-managed Jarvis
 code and helpers but preserves machine-owned OVOS configuration, selected
 applications, personal commands, keyboard shortcuts, listening sound and
-unlisted private helpers. An existing voice stack and its downloaded models
-are reused rather than reinstalled. Fresh installations still receive the
-complete reviewed setup.
+unlisted private helpers and downloaded models. V3.1 stages the tested
+Brain-compatible OVOS packages in a copy of the normal virtualenv and saves
+the previous entire virtualenv for rollback. Fresh installations use the same
+reviewed target; see [migration details](07-installer-updates.md).
 
 This experimental repository may be private between announced update windows.
 Scheduled checks fail quietly while it is private or the laptop is offline.

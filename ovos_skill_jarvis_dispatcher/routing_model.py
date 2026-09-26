@@ -129,6 +129,15 @@ def candidates_for(utterance, catalogue, profile):
             ids.add('mail.search')
         return {**{a: v for a, v in catalogue.items() if a in ids}, **file_candidate}
     text = normalise(utterance)
+    speed_fast = bool(re.search(
+        r'\b(?:2\s*x|two\s*x|twice|double(?:\s+the)?\s+speed|'
+        r'two\s+times(?:\s+(?:the\s+)?speed)?)\b',
+        utterance, re.I,
+    ))
+    reading_target = ('page' if re.search(
+        r'\b(?:page|webpage|window|screen|article)\b', text,
+    ) else 'selection')
+    reading_action = 'reading.' + reading_target + ('_fast' if speed_fast else '')
     current_window = bool(re.search(
         r'\b(?:this|current|active|focused) (?:(?:maximised|maximized|normal|resizable) )?window\b'
         r'|\bwhat i am looking at\b|\bthe window i am (?:using|looking at)\b', text))
@@ -138,6 +147,8 @@ def candidates_for(utterance, catalogue, profile):
     # to an unrelated focused window.
     return {a: v for a, v in catalogue.items()
             if not a.startswith('application.')
+            and (not a.startswith(('reading.selection', 'reading.page'))
+                 or a == reading_action)
             and (a != 'files.search' or file_candidate)
             and a not in {'browser.search_brave', 'browser.search_firefox', 'notes.search', 'mail.search'}
             and (not a.startswith('window.') or current_window)

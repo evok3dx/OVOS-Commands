@@ -212,7 +212,8 @@ class RouterRuntime:
 
     def reply_token(self, utterance, epoch, *, command=False):
         skill = self.skill()
-        if self.closed or not skill or self.busy(skill) or not settings():
+        if (self.closed or not skill or self.busy(skill) or not settings()
+                or not isinstance(utterance, str) or not utterance.strip()):
             return None
         with self.lock:
             token = secrets.token_urlsafe(24)
@@ -233,7 +234,7 @@ class RouterRuntime:
                 or proposal['epoch'] != self.epoch or self.closed
                 or time.monotonic() > proposal['expires'] or self.busy(skill) or not settings()):
             return
-        text = "I didn't catch that command."
+        text = "Please repeat."
         if proposal['kind'] == 'chat' and routing_chat.question_like(proposal['utterance']):
             # An interrupted inference releases its socket and lock promptly.
             # A busy model never creates a queue of spoken answers.

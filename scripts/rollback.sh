@@ -179,6 +179,24 @@ elif [[ ! -f "$backup_root/target-root.missing" ]]; then
   exit 1
 fi
 
+restored_venv=false
+if [[ -d "$backup_root/ovos-venv" ]]; then
+  [[ "$ovos_python" == "$jarvis_home/.venvs/ovos/bin/python" &&
+     ! -L "$backup_root/ovos-venv" ]] || {
+    echo "Unsafe OVOS virtualenv rollback path." >&2
+    exit 1
+  }
+  if [[ "${JARVIS_TEST_MODE:-0}" != 1 ]]; then
+    systemctl --user stop ovos-core.service ovos-listener.service ovos-audio.service
+  fi
+  mkdir -p "$retired_root"
+  if [[ -d "$jarvis_home/.venvs/ovos" ]]; then
+    mv -- "$jarvis_home/.venvs/ovos" "$retired_root/ovos-venv"
+  fi
+  mv -- "$backup_root/ovos-venv" "$jarvis_home/.venvs/ovos"
+  restored_venv=true
+fi
+
 restore_file "$backup_root/profile.json" "$target_profile" 0600
 restore_file "$backup_root/capabilities.json" "$target_capabilities" 0600
 if [[ -f "$backup_root/router.json" || -f "$backup_root/router.json.missing" ]]; then
@@ -240,6 +258,7 @@ if [[ "${JARVIS_TEST_MODE:-0}" != 1 ]]; then
     "$ovos_python" -m pip uninstall --yes ovos-skill-jarvis-dispatcher >/dev/null
   fi
 
+  if ! "$restored_venv"; then
   mapfile -t restore_requirements < <(python3 - "$backup_root/managed-packages.json" <<'PY'
 import json
 import sys
@@ -288,6 +307,7 @@ PY
         -f "$backup_root/pronunciation/mul.py" ]]; then
     pronunciation_source="$(<"$backup_root/pronunciation-source")"
     install -m 0644 "$backup_root/pronunciation/mul.py" "$pronunciation_source"
+  fi
   fi
 
   systemctl --user daemon-reload

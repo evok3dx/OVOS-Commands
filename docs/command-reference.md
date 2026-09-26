@@ -90,8 +90,10 @@ Claude wording controls the ordinary graphical chat application:
 - `Focus Claude`
 - `Message Claude`
 
-`Message Claude` focuses or opens Claude Desktop, verifies that its window owns
-focus, then asks what to send and types the response into its chat.
+`Message Claude` opens a fresh Claude Desktop chat and checks focus. Jarvis says
+“Ready”; dictate one message and it sends it, then says “Message sent.”
+`Message Claude agent` and `Message Codex agent` use the same spoken flow but
+submit through the private allowlisted agent helper, when installed.
 
 - `New Claude chat`: open a fresh Claude Desktop conversation.
 - `Open Claude website` or `Open Claude online`: open `claude.ai` in the
@@ -171,7 +173,9 @@ Examples:
 - `Read the full page`
 - `Read selected text`
 - `Read this at double speed`
+- `Read this at 2x`
 - `Read this page at double speed`
+- `Read this page at 2x`
 - `Read window`
 - `Read it back`
 - `Read the latest response`
@@ -199,6 +203,14 @@ allowlisted actions.
 Speech Note is optional. Run `jarvis-speechnote-setup` to install it for the
 current user, inspect active models or open its model browser. Existing Speech
 Note settings are preserved.
+
+## Hermes messages
+
+`Message Hermes` focuses Hermes Desktop, starts a fresh chat with Ctrl+N, then
+focuses the composer. Jarvis says “Ready”; dictate one message and it sends it,
+then says “Message sent.” Say `cancel` to stop. An empty response or a native
+media command is not sent as a message. If focus changes before submission,
+Jarvis cancels the send. Other Hermes composer commands keep their shortcuts.
 
 ## Window control
 

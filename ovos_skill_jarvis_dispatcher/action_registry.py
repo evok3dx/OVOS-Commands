@@ -83,7 +83,13 @@ BASE_ACTIONS = {
     "reading.selection": _action(
         "Reading", "Read selected text", "read selected text"
     ),
+    "reading.selection_fast": _action(
+        "Reading", "Read selected text at 2×", "read this at 2x"
+    ),
     "reading.page": _action("Reading", "Read visible page", "read this page"),
+    "reading.page_fast": _action(
+        "Reading", "Read visible page at 2×", "read this page at 2x"
+    ),
     "text.select_all": _action("Writing", "Select all text", "select all"),
     "text.delete": _action(
         "Writing", "Delete selected text", "delete selected text"
@@ -226,7 +232,8 @@ def action_catalog(profile=None):
 # Exposure is an explicit allowlist. New actions remain hidden until reviewed.
 ROUTER_ACTIONS = frozenset({
     "window.minimize", "window.maximize", "window.restore",
-    "reading.page", "reading.selection",
+    "reading.page", "reading.selection", "reading.page_fast",
+    "reading.selection_fast",
     "media.play", "media.pause", "media.stop", "media.next", "media.previous",
     "browser.scroll_down", "browser.scroll_up", "browser.page_down",
     "browser.page_up", "browser.top", "browser.bottom", "browser.back",
@@ -312,7 +319,9 @@ def dispatch_action(skill, action_id, message, *, source="personal"):
         "window.restore": "handle_restore_focused_window",
         "reading.last_typed": "handle_read_last_typed_text",
         "reading.selection": "handle_read_selected_text",
+        "reading.selection_fast": "handle_read_selected_text_double_speed",
         "reading.page": "handle_read_visible_page",
+        "reading.page_fast": "handle_read_visible_page_double_speed",
         "text.select_all": "handle_select_all_text",
         "text.delete": "handle_delete_selected_text",
         "text.clear": "handle_clear_focused_text",

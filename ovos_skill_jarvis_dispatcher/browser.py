@@ -456,77 +456,40 @@ class BrowserActionsMixin:
             )
             return
 
-        query = self.get_response(
-            "What should I search for?",
-            message=message,
-            num_retries=1,
-            wait=True
-        )
+        # Workshop interprets get_response(dialog=...) as a dialog-file key.
+        # Use the existing short converse flow for literal spoken prompts.
+        with self._message_lock:
+            if self._message_stage:
+                self.speak("Please finish or cancel the current request.")
+                return
+            self._message_stage = ("browser_search_firefox" if browser == "firefox"
+                                   else "browser_search")
+            self._pending_window_id = target_window
+            self._message_retries = 1
+        self.activate(duration_minutes=1)
+        self.speak("What should I search for?", expect_response=True, wait=True)
+        self._arm_message_timeout(20)
 
-        query = str(query or "").strip()
-
-        cancelled = {
-            "cancel",
-            "cancel it",
-            "never mind",
-            "nevermind",
-            "stop",
-            "wait"
-        }
-
-        if not query or query.lower().strip(" .") in cancelled:
-            self.speak("Cancelled.")
+    def _submit_prompted_browser_search(self, query, browser, window_id):
+        """Submit only into the same browser window prepared for the prompt."""
+        query = str(query or "").strip(" .")
+        if not query or len(query) > 500:
+            self.speak("I could not use that search.")
             return
-
-        # Do not type into a different application if focus changed while the
-        # response was being captured.
-        if (
-            self._active_window_id() != target_window
-            or self._active_browser() != browser
-        ):
-            self.speak("The focused window changed, so I cancelled.")
-            return
-
-        if len(query) > 500:
-            self.speak("That search is too long.")
-            return
-
-        url = (
-            "https://search.brave.com/search?q="
-            + quote_plus(query.strip(" ."))
-        )
-
+        url = "https://search.brave.com/search?q=" + quote_plus(query)
         try:
-            subprocess.run(
-                [
-                    "/usr/bin/xdotool", "key",
-                    "--clearmodifiers", "ctrl+a"
-                ],
-                check=True,
-                timeout=5,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL
-            )
-            subprocess.run(
-                [
-                    "/usr/bin/xdotool", "type",
-                    "--clearmodifiers", "--delay", "10", "--", url
-                ],
-                check=True,
-                timeout=15,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL
-            )
-            subprocess.run(
-                [
-                    "/usr/bin/xdotool", "key",
-                    "--clearmodifiers", "Return"
-                ],
-                check=True,
-                timeout=5,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL
-            )
+            for action in (
+                ("key", "--clearmodifiers", "ctrl+a"),
+                ("type", "--clearmodifiers", "--delay", "10", "--", url),
+                ("key", "--clearmodifiers", "Return"),
+            ):
+                if self._active_window_id() != window_id or self._active_browser() != browser:
+                    self.speak("The focused window changed, so I cancelled.")
+                    return
+                subprocess.run(
+                    ["/usr/bin/xdotool", *action], check=True, timeout=15,
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                )
         except Exception:
             self.log.exception("Browser search submission failed")
             self.speak("I could not submit that search.")

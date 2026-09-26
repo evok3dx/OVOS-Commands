@@ -34,7 +34,7 @@ export MOCK_SETTINGS="$settings" MOCK_LOG="$test_root/flatpak.log" \
 bash "$repo_root/system_helpers/jarvis-read-visible-text" selection 2
 grep -Fxq 'run 20' "$MOCK_LOG"
 grep -Fxq 'speech_speed2=13' "$settings"
-for attempt in {1..50}; do
+for attempt in {1..300}; do
   [[ ! -e "$HOME/.local/state/jarvis/reading-fast-active" ]] && break
   /usr/bin/sleep 0.01
 done

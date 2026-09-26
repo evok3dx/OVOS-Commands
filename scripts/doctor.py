@@ -118,7 +118,7 @@ def run_json(command: list[str], timeout: int = 20) -> dict[str, object]:
 
 
 def reviewed_voice_versions(versions: dict[str, str | None]) -> dict[str, str]:
-    """Keep legacy install pins; recognise the already tested Brain upgrade."""
+    """Select the voice versions matching the reviewed Brain core stack."""
     upgrade = POLICY["ovos"].get("preserved_alpha_stack", {})
     if upgrade and all(versions.get(name) == value
                        for name, value in upgrade.get("core", {}).items()):

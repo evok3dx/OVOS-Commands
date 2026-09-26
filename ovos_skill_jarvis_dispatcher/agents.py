@@ -77,7 +77,7 @@ class AgentActionsMixin:
         self.speak(responses[action])
 
     def _send_agent_message(self, agent: str, prompt: str) -> None:
-        """Submit a confirmed message through the allowlisted helper."""
+        """Submit a dictated message through the allowlisted agent helper."""
 
         display = self.AGENT_NAMES[agent]
 
@@ -115,7 +115,7 @@ class AgentActionsMixin:
         except Exception:
             self.log.exception("Agent window display failed")
 
-        self.speak(f"Sent to {display}.")
+        self.speak("Message sent.")
 
     def _read_agent_response(self, agent=None):
         sources = {

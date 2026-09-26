@@ -405,7 +405,7 @@ def main():
     fake = FakeSkill()
     fake._jarvis_profile = brain_profile
     namespace["register_skill_vocabulary"](fake, include_custom=False)
-    assert len(fake.registrations) == 1924, len(fake.registrations)
+    assert len(fake.registrations) == 1930, len(fake.registrations)
     assert len(fake.registrations) == len(set(fake.registrations)), (
         "Duplicate vocabulary registrations are present"
     )

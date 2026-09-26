@@ -1,3 +1,4 @@
+import re
 import subprocess
 import time
 
@@ -14,7 +15,17 @@ class ClaudeDesktopIntegrationMixin:
         self._run_desktop_app_action("claude", action)
 
     def _route_claude_message(self, message):
-        self._message_claude_desktop()
+        data = getattr(message, "data", {}) or {}
+        utterances = data.get("utterances") or []
+        phrase = str(data.get("utterance") or (utterances[0] if utterances else ""))
+        if re.search(r"\b(?:claude|cloud|clawed|called)\s+agent\b", phrase, re.I):
+            if not (getattr(self, "_jarvis_profile", {})
+                    .get("private_extensions", {}).get("agents") is True):
+                self.speak("Claude agent is not enabled on this computer.")
+                return
+            self._message_agent("claude")
+        else:
+            self._message_claude_desktop()
 
     def _open_claude_desktop_new_chat(self):
         """Open and verify a clean Claude Desktop chat."""
@@ -74,7 +85,7 @@ class ClaudeDesktopIntegrationMixin:
 
         self.activate(duration_minutes=1)
         self.speak(
-            "What should I send to Claude?",
+            "Ready.",
             expect_response=True,
             wait=True,
         )
@@ -103,7 +114,6 @@ class ClaudeDesktopIntegrationMixin:
                 check=True,
                 timeout=5,
             )
-
             subprocess.run(
                 [
                     "/usr/bin/xdotool",
@@ -118,6 +128,11 @@ class ClaudeDesktopIntegrationMixin:
                 timeout=30,
             )
 
+            current_window, current_class = self._focused_window_details()
+            if str(current_window) != str(window_id) or not self._is_claude_desktop_window(current_class):
+                self.speak("Claude focus changed, so I did not send it.")
+                return
+
             subprocess.run(
                 [
                     "/usr/bin/xdotool",
@@ -128,6 +143,7 @@ class ClaudeDesktopIntegrationMixin:
                 check=True,
                 timeout=5,
             )
+            self.speak("Message sent.")
         except Exception:
             self.log.exception("Claude message failed")
             self.speak("I could not send the Claude message.")

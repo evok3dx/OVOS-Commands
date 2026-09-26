@@ -39,6 +39,8 @@ def payload_for(utterance, catalogue, profile=None):
         'window.restore': 'Unmaximise the current window to its normal resizable size; keep it visible',
         'reading.page': 'Read aloud the visible page or content of the current window',
         'reading.selection': 'Read aloud only explicitly selected or highlighted text',
+        'reading.page_fast': 'Read aloud the visible page at 2x speed',
+        'reading.selection_fast': 'Read aloud only selected text at 2x speed',
         'media.play': 'Resume currently paused music or video playback',
         'media.pause': 'Pause currently playing music or video playback',
         'media.stop': 'Stop music or video playback; NOT listening, microphone, dictation or speech',
@@ -91,9 +93,10 @@ def payload_for(utterance, catalogue, profile=None):
         "closing; maximise enlarges it. Interpret the entire phrase, not its first "
         "verb. 'Background' alone is ambiguous between lowering and minimising a "
         "window: return none. Restore/normal size means UNMAXIMISE, not minimise.\n"
-        "5. reading.selection means read ALOUD the selected/highlighted text, "
-        "including requests to speak it. reading.page means read ALOUD the visible "
-        "page. mail.search means initiate search in Proton Mail; it is different "
+        "5. reading.selection and reading.page read ALOUD the selected text or "
+        "visible page at normal speed. The _fast variants read at 2x. Keep both "
+        "the target and the requested speed; never turn 2x into normal speed. "
+        "mail.search means initiate search in Proton Mail; it is different "
         "from focusing the mail window. notes.search initiates search in Notes. "
         "files.search finds local filenames in Documents, Downloads and Desktop; "
         "requests to look in my Documents search that folder only. Choose files.search "

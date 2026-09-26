@@ -43,7 +43,8 @@ class ConversationMixin:
             self._confirmation_retries = 0
 
         self.deactivate()
-        self.speak("Message cancelled.")
+        # A missed follow-up should release converse mode without another
+        # spoken prompt. Otherwise the next unrelated command is swallowed.
 
     def _clear_message_state(self) -> None:
         """Clear all temporary message data and leave converse mode."""
@@ -66,8 +67,6 @@ class ConversationMixin:
     def _message_agent(self, agent: str) -> None:
         """Begin a non-blocking, time-limited messaging conversation."""
 
-        display = self.AGENT_NAMES[agent]
-
         with self._message_lock:
             if self._message_stage:
                 self.speak("Please finish or cancel the current message.")
@@ -82,7 +81,7 @@ class ConversationMixin:
 
         self.activate(duration_minutes=1)
         self.speak(
-            f"What should I send to {display}?",
+            "Ready.",
             expect_response=True,
             wait=True
         )
@@ -160,8 +159,18 @@ class ConversationMixin:
             "stop"
         }
 
+        # Leave ordinary transport commands with the native intent pipeline,
+        # even if a previous "message ..." prompt is still waiting. This also
+        # keeps a short spurious STT result from being sent to an external app.
+        media_commands = {
+            "pause music", "pause the music", "pause media",
+            "play music", "play the music", "stop music", "stop the music",
+            "next track", "previous track",
+        }
+
         send_payload = None
         browser_payload = None
+        browser_window_id = None
         claude_payload = None
         hermes_payload = None
         typing_payload = None
@@ -182,6 +191,10 @@ class ConversationMixin:
                 self._clear_message_state()
                 self.speak("Cancelled.")
                 return True
+
+            if stage in {"message", "claude_message", "hermes_message"} and token in media_commands:
+                self._clear_message_state()
+                return False
 
             if stage == "dictation":
                 if not re.search(r"[A-Za-z0-9]", utterance):
@@ -308,13 +321,11 @@ class ConversationMixin:
                 "hermes_message",
             }:
                 if not re.search(r"[A-Za-z0-9]", utterance):
-                    if self._message_retries > 0:
+                    if stage in {"hermes_message", "claude_message"}:
+                        self._arm_message_timeout(20)
+                    elif self._message_retries > 0:
                         self._message_retries -= 1
-                        self.speak(
-                            "I did not hear that. Please say it again.",
-                            expect_response=True,
-                            wait=True
-                        )
+                        self.speak("Please repeat.", expect_response=True, wait=True)
                         self._arm_message_timeout(20)
                     else:
                         self._clear_message_state()
@@ -332,17 +343,17 @@ class ConversationMixin:
                         self._pending_window_id,
                     )
                 elif stage == "hermes_message":
-                    hermes_payload = (
-                        utterance,
-                        self._pending_window_id,
-                    )
+                    hermes_payload = (utterance, self._pending_window_id)
                 else:
                     browser_payload = (stage, utterance)
+                    browser_window_id = self._pending_window_id
                 self._clear_message_state()
 
             if stage in {"message", "search"}:
                 if not re.search(r"[A-Za-z0-9]", utterance):
-                    if self._message_retries > 0:
+                    if stage == "message":
+                        self._arm_message_timeout(20)
+                    elif self._message_retries > 0:
                         self._message_retries -= 1
                         self.speak(
                             "I did not hear the message. Please say it again.",
@@ -387,27 +398,20 @@ class ConversationMixin:
                         "facts from inference."
                     )
 
-                    spoken_query = query
-
-                    confirmation = (
-                        f"I heard. Search for: "
-                        f"{spoken_query}. "
+                    self._message_stage = "confirmation"
+                    self.speak(
+                        f"I heard. Search for: {query}. "
+                        "Say send it to confirm, or cancel.",
+                        expect_response=True,
+                        wait=True,
                     )
+                    self._arm_message_timeout(15)
+                    return True
                 else:
-                    self._pending_message = utterance
-                    confirmation = (
-                        f"I heard: {utterance}. "
-                    )
-
-                self._message_stage = "confirmation"
-
-                self.speak(
-                    confirmation + "Say send it to confirm, or cancel.",
-                    expect_response=True,
-                    wait=True
-                )
-                self._arm_message_timeout(15)
-                return True
+                    send_payload = (self._pending_agent, utterance, self._pending_window_id)
+                    self._clear_message_state()
+                    # Agents are enabled only on reviewed installations; the
+                    # allowlisted helper still decides whether submission works.
 
             if stage == "confirmation":
                 if token in accepted:
@@ -419,12 +423,8 @@ class ConversationMixin:
                     self._clear_message_state()
                 elif self._confirmation_retries > 0:
                     self._confirmation_retries -= 1
-                    self.speak(
-                        "I did not hear you. "
-                        "Please say that again.",
-                        expect_response=True,
-                        wait=True
-                    )
+                    self.speak("I did not hear you. Please say that again.",
+                               expect_response=True, wait=True)
                     self._arm_message_timeout(15)
                     return True
                 else:
@@ -447,19 +447,15 @@ class ConversationMixin:
 
         if browser_payload:
             stage, browser_text = browser_payload
+            if stage in {"browser_search", "browser_search_firefox"}:
+                browser = "firefox" if stage == "browser_search_firefox" else "brave"
+                if (self._active_window_id() != browser_window_id
+                        or self._active_browser() != browser):
+                    self.speak("The focused window changed, so I cancelled.")
+                    return True
 
-            if stage == "browser_search":
-                self._run_browser_action(
-                    "search",
-                    browser_text,
-                    browser="brave"
-                )
-            elif stage == "browser_search_firefox":
-                self._run_browser_action(
-                    "search",
-                    browser_text,
-                    browser="firefox"
-                )
+            if stage in {"browser_search", "browser_search_firefox"}:
+                self._submit_prompted_browser_search(browser_text, browser, browser_window_id)
             else:
                 self._run_browser_action(
                     "navigate",

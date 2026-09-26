@@ -27,6 +27,8 @@ PY
 mapfile -t helpers < <(manifest_list runtime_helpers)
 
 python3 "$repo_root/scripts/test-v3-routing.py"
+python3 "$repo_root/scripts/test-reading-qwen-routing.py"
+python3 "$repo_root/scripts/test-browser-search-focus.py"
 bash "$repo_root/scripts/test-speech-note-speed.sh"
 python3 "$repo_root/extras/whisper-hints/test_update.py"
 PYTHONPATH="$repo_root/plugins/jarvis-file-search" \
@@ -915,4 +917,42 @@ for helper in "${helpers[@]}"; do
   grep -q "legacy $helper" "$upgrade_home/.local/bin/$helper"
 done
 
-echo "PASS: fresh install, reports, failure recovery, upgrade and rollback"
+# The V3.1 migration must retain a complete previous OVOS virtualenv. These
+# small stand-ins exercise the real move and rollback logic without modifying
+# a running host or downloading the large voice models.
+for scenario in success interrupted; do
+  stack_home="$test_root/stack-$scenario"
+  stack_target="$stack_home/.local/src/ovos-skill-jarvis-dispatcher"
+  stack_venv="$stack_home/.venvs/ovos"
+  mkdir -p "$stack_target" "$stack_venv/bin" "$stack_home/.config/jarvis"
+  printf 'old deployment\n' > "$stack_target/old.txt"
+  cp "$repo_root/profiles/default.json" "$stack_home/.config/jarvis/profile.json"
+  printf '#!/bin/sh\nexit 0\n' > "$stack_venv/bin/python"
+  chmod 0755 "$stack_venv/bin/python"
+  printf 'original venv\n' > "$stack_venv/host-marker"
+  if [[ "$scenario" == interrupted ]]; then
+    if JARVIS_HOME="$stack_home" JARVIS_TEST_MODE=1 JARVIS_TEST_STACK_MODE=1 \
+      JARVIS_TEST_FAIL_AFTER_STACK_SWAP=1 \
+      bash "$repo_root/scripts/install.sh" --profile brain; then
+      echo "Injected stack migration failure unexpectedly succeeded." >&2
+      exit 1
+    fi
+    test -f "$stack_venv/host-marker"
+    test ! -e "$stack_venv/jarvis-stack-test-marker"
+    test -f "$stack_target/old.txt"
+  else
+    JARVIS_HOME="$stack_home" JARVIS_TEST_MODE=1 JARVIS_TEST_STACK_MODE=1 \
+      bash "$repo_root/scripts/install.sh" --profile brain
+    test -f "$stack_venv/jarvis-stack-test-marker"
+    test -f "$stack_venv/host-marker"
+    test -f "$stack_target/pyproject.toml"
+    JARVIS_HOME="$stack_home" JARVIS_TEST_MODE=1 \
+      bash "$stack_target/scripts/rollback.sh" --no-restart
+    test -f "$stack_venv/host-marker"
+    test ! -e "$stack_venv/jarvis-stack-test-marker"
+    test -f "$stack_target/old.txt"
+  fi
+  cmp "$repo_root/profiles/default.json" "$stack_home/.config/jarvis/profile.json"
+done
+
+echo "PASS: fresh install, reports, failure recovery, upgrade, staged stack and rollback"

@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "release_version": "3.0.0",
-  "validated_on": "2026-09-16",
+  "release_version": "3.1.0",
+  "validated_on": "2026-09-24",
   "support": {
     "operating_system": "Linux",
     "validated_distributions": [
@@ -15,7 +15,7 @@
     "architectures": [
       "x86_64"
     ],
-    "python": ">=3.10"
+    "python": ">=3.11"
   },
   "ovos": {
     "deployment_method": "virtualenv",
@@ -37,12 +37,12 @@
     "custom_wakeword": {
       "module": "ovos-ww-plugin-vosk",
       "package": "ovos-ww-plugin-vosk",
-      "validated_version": "0.1.10"
+      "validated_version": "0.1.11a3"
     },
     "vad": {
       "module": "ovos-vad-plugin-silero",
       "package": "ovos-vad-plugin-silero",
-      "validated_version": "0.1.0",
+      "validated_version": "0.1.3a2",
       "threshold": 0.2
     },
     "stt": {
@@ -58,13 +58,13 @@
     "tts": {
       "module": "ovos-tts-plugin-phoonnx",
       "package": "phoonnx",
-      "validated_version": "1.90.0a1",
+      "validated_version": "1.93.0a1",
       "voice": "kokoro/af_bella",
       "repository": "https://github.com/TigreGotico/phoonnx.git",
-      "reference_commit": "d1149fa470bfd1428a9dbf5ba243d7637ff39f9b",
-      "archive_sha256": "8f1ba4c3a7570dacee692d9858630e5188f305438db0a1b636ef1c5baeb549ab",
+      "reference_commit": "ce0568ae7a552bce79ccf40d13b785c61dbb9e77",
+      "archive_sha256": "b680c039c4e764f741652eb6fac7ce64c475414852342393e9fcef5eba90ec04",
       "misaki_version": "0.9.4",
-      "scriptconv_version": "0.0.4a23",
+      "scriptconv_version": "0.0.4a31",
       "espeakng_loader_version": "0.2.4",
       "phonemizer_fork_version": "3.3.2",
       "num2words_version": "0.5.14",
@@ -72,16 +72,21 @@
       "spacy_model_version": "3.8.0",
       "spacy_model_url": "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl",
       "spacy_model_sha256": "1932429db727d4bff3deed6b34cfc05df17794f4a52eeb26cf8928f7c1a0fb85",
-      "onnxruntime_version": "1.29.0",
-      "numpy_version": "1.26.4"
+      "onnxruntime_version": "1.30.0",
+      "numpy_version": "2.4.6"
     },
     "validated_package_versions": {
-      "ovos-core": "2.1.1",
-      "ovos-workshop": "7.0.6",
-      "ovos-config": "2.1.1",
-      "ovos-plugin-manager": "2.11.1a2",
-      "ovos-audio": "1.2.0",
-      "ovos-dinkum-listener": "0.5.0"
+      "ovos-core": "3.7.0a1",
+      "ovos-workshop": "9.8.7a1",
+      "ovos-config": "3.6.0a2",
+      "ovos-plugin-manager": "2.12.4a1",
+      "ovos-audio": "2.2.8a1",
+      "ovos-dinkum-listener": "0.10.5a1",
+      "ovos-bus-client": "2.11.19a1",
+      "ovos-messagebus": "0.2.1a5",
+      "ovos-skill-boot-finished": "0.7.0a2",
+      "ovos-skill-volume": "0.11.0a2",
+      "ovos-utils": "0.15.2a1"
     },
     "latest_stable_compatibility": {
       "validated_on": "2026-09-17",
@@ -121,7 +126,7 @@
     ],
     "preserved_alpha_stack": {
       "verified_on": "2026-09-23",
-      "scope": "Preserve a working Brain upgrade; do not use these versions for a fresh install.",
+      "scope": "Recorded Brain target for V3.1 fresh install and staged upgrade.",
       "core": {
         "ovos-core": "3.7.0a1",
         "ovos-workshop": "9.8.7a1",

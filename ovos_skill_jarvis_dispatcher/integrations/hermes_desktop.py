@@ -53,7 +53,7 @@ class HermesDesktopIntegrationMixin:
             self.speak("I could not control Hermes.")
 
     def _message_hermes_desktop(self):
-        """Focus the Hermes composer and begin a direct message flow."""
+        """Open a fresh Hermes chat before collecting a message."""
         with self._message_lock:
             if self._message_stage:
                 self.speak("Please finish or cancel the current message.")
@@ -66,9 +66,17 @@ class HermesDesktopIntegrationMixin:
             window_id, window_class = self._focused_window_details()
             if not self._is_hermes_desktop_window(window_class):
                 raise RuntimeError("Hermes is not focused")
+            # A menu or old conversation may own focus. Open a fresh chat
+            # before focusing the composer; do not clear an unknown control.
+            self._send_focused_keys("ctrl+n")
+            time.sleep(0.2)
+            window_id, window_class = self._focused_window_details()
+            if not window_id or not self._is_hermes_desktop_window(window_class):
+                raise RuntimeError("Hermes lost focus after opening a new chat")
             self._send_focused_keys("ctrl+l")
-            self._send_focused_keys("ctrl+a")
-            self._send_focused_keys("BackSpace")
+            focused_id, focused_class = self._focused_window_details()
+            if focused_id != window_id or not self._is_hermes_desktop_window(focused_class):
+                raise RuntimeError("Hermes composer focus could not be verified")
         except Exception:
             self.log.exception("Could not prepare the Hermes composer")
             self.speak("I could not prepare Hermes.")
@@ -80,18 +88,18 @@ class HermesDesktopIntegrationMixin:
             self._pending_message = None
             self._pending_window_id = window_id
             self._message_retries = 1
-            self._confirmation_retries = 0
+            self._confirmation_retries = 1
 
         self.activate(duration_minutes=1)
         self.speak(
-            "What should I send to Hermes?",
+            "Ready.",
             expect_response=True,
             wait=True,
         )
         self._arm_message_timeout(20)
 
     def _send_hermes_desktop_message(self, prompt, window_id):
-        """Clear, type and send in the same verified Hermes composer."""
+        """Type dictated text only in the same verified Hermes window."""
         try:
             current_window, current_class = self._focused_window_details()
             if str(current_window) != str(window_id):
@@ -102,10 +110,17 @@ class HermesDesktopIntegrationMixin:
                 return
 
             self._send_focused_keys("ctrl+l")
-            self._send_focused_keys("ctrl+a")
-            self._send_focused_keys("BackSpace")
+            current_window, current_class = self._focused_window_details()
+            if str(current_window) != str(window_id) or not self._is_hermes_desktop_window(current_class):
+                self.speak("Hermes focus changed, so I cancelled.")
+                return
             self._type_focused_text(str(prompt))
+            current_window, current_class = self._focused_window_details()
+            if str(current_window) != str(window_id) or not self._is_hermes_desktop_window(current_class):
+                self.speak("Hermes focus changed, so I did not send it.")
+                return
             self._send_focused_keys("Return")
+            self.speak("Message sent.")
         except Exception:
             self.log.exception("Hermes message failed")
             self.speak("I could not send the Hermes message.")

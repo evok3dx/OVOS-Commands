@@ -15,25 +15,29 @@ class DispatcherHelpersMixin:
 
         helper = Path.home() / ".local/bin/jarvis-read-visible-text"
 
-        if mode == "selection":
-            failure = "I could not find any selected text."
-        else:
-            failure = "I could not read content from that window."
-
-        # Speech Note plays through the same speakers heard by the microphone.
-        # Mute only the OVOS listener before playback starts so that page text
-        # cannot be mistaken for the wake word. The physical microphone and
-        # desktop audio remain unchanged.
+        # Keep the existing wake-word barge-in path available during playback.
+        # Any self-trigger diagnosis needs a real microphone test.
         self._mute_listener_for_speech_note()
 
         try:
-            subprocess.run(
+            result = subprocess.run(
                 [str(helper), mode, str(speed)],
-                check=True,
+                check=False,
                 timeout=12,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL
             )
+            if result.returncode != 0:
+                self._restore_listener_after_speech_note()
+                self.log.warning("Reading request failed: mode=%s code=%s",
+                                 mode, result.returncode)
+                if mode == "selection" and result.returncode == 20:
+                    self.speak("I could not find any selected text.")
+                elif result.returncode == 22:
+                    self.speak("Speech Note could not start reading.")
+                else:
+                    self.speak("I could not read content from that window.")
+                return
             self._speech_note_reading = True
             self._watch_speech_note_reading()
         except Exception:
@@ -41,7 +45,7 @@ class DispatcherHelpersMixin:
             self.log.exception(
                 f"Visible text reading failed: {mode}"
             )
-            self.speak(failure)
+            self.speak("Speech Note could not start reading.")
 
     @staticmethod
     def _confirmation_token(response) -> str:

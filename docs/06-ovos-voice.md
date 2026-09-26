@@ -1,9 +1,10 @@
 # OVOS voice and media on Brain
 
 This page records the **24 September 2026 Brain snapshot** from the supplied
-local progress notes and raw audio log. These versions describe an existing
-working installation. They are not new-machine installer pins, and V3 updates
-do not replace installed OVOS packages, voice models or personal configuration.
+local progress notes and raw audio log. V3.1 uses the reviewed core and voice
+versions as installer targets; it preserves existing downloaded models and
+personal configuration. The wider package inventory contains optional skills
+that Jarvis does not install automatically.
 
 | Component | Reported Brain version or state |
 |---|---|
@@ -17,8 +18,8 @@ do not replace installed OVOS packages, voice models or personal configuration.
 `compatibility.json` and `scripts/doctor.py` recognise the reported Brain alpha
 versions. A separate dependency metadata warning concerning OpenWakeWord and
 NumPy 2 remains visible; it is not a reason to downgrade the working voice
-stack. Fresh installations still use the distinct reviewed baseline described
-in [installer and updates](07-installer-updates.md).
+stack. The staged upgrade and fresh setup use the same reviewed targets in
+[installer and updates](07-installer-updates.md).
 
 ## Media status
 

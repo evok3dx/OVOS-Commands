@@ -14,7 +14,8 @@ CHAT_PIPELINE_LOADED = False
 def current_runtime(utterances, lang, message):
     if message.msg_type not in UTTERANCE_EVENTS or not str(lang).lower().startswith('en'):
         return None, None
-    if not utterances or not isinstance(utterances[0], str):
+    if (not utterances or not isinstance(utterances[0], str)
+            or not utterances[0].strip()):
         return None, None
     skill = get_dispatcher()
     return skill, getattr(skill, '_qwen_router', None) if skill else None
@@ -49,12 +50,14 @@ class JarvisQwenPipeline(PipelinePlugin):
                                           skill_id=skill.skill_id, utterance=text)
         except RequestCancelled:
             runtime.last = 'cancelled'
+            return None
         except Exception as error:
             runtime.last = 'unavailable'
             skill.log.warning('Qwen router unavailable (%s)', type(error).__name__)
-        # Commands that fail routing do not become open-ended persona requests.
-        return reply_match(skill, runtime.reply_token(text, message.context.get('jarvis_qwen_epoch', -1),
-                                                      command=True), text)
+            message.context['jarvis_qwen_unavailable'] = True
+        # Let later native pipelines inspect commands when the local model
+        # abstains or times out. The chat fallback handles only unmatched text.
+        return None
 
 
 class JarvisQwenChatPipeline(PipelinePlugin):
@@ -66,6 +69,8 @@ class JarvisQwenChatPipeline(PipelinePlugin):
     def match(self, utterances, lang, message):
         skill, runtime = current_runtime(utterances, lang, message)
         if runtime is None:
+            return None
+        if message.context.get('jarvis_qwen_unavailable'):
             return None
         text = utterances[0]
         try:

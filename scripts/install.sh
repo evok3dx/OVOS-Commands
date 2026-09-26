@@ -264,7 +264,7 @@ import urllib.request
 from pathlib import Path
 
 url, destination, expected = sys.argv[1:]
-request = urllib.request.Request(url, headers={"User-Agent": "OVOS-Commands/2.3.1"})
+request = urllib.request.Request(url, headers={"User-Agent": "OVOS-Commands/3.1.0"})
 digest = hashlib.sha256()
 try:
     with urllib.request.urlopen(request, timeout=60) as response, Path(destination).open("wb") as output:
@@ -514,7 +514,17 @@ ensure_voice_stack() {
   source_dir="$jarvis_home/.local/share/jarvis/sources"
   cached_archive="$source_dir/phoonnx-$commit.tar.gz"
   requirements=(
+    "ovos-core==$(read_compatibility_value ovos.validated_package_versions.ovos-core)"
+    "ovos-workshop==$(read_compatibility_value ovos.validated_package_versions.ovos-workshop)"
+    "ovos-config==$(read_compatibility_value ovos.validated_package_versions.ovos-config)"
     "ovos-plugin-manager==$(read_compatibility_value ovos.validated_package_versions.ovos-plugin-manager)"
+    "ovos-audio==$(read_compatibility_value ovos.validated_package_versions.ovos-audio)"
+    "ovos-dinkum-listener==$(read_compatibility_value ovos.validated_package_versions.ovos-dinkum-listener)"
+    "ovos-bus-client==$(read_compatibility_value ovos.validated_package_versions.ovos-bus-client)"
+    "ovos-messagebus==$(read_compatibility_value ovos.validated_package_versions.ovos-messagebus)"
+    "ovos-skill-boot-finished==$(read_compatibility_value ovos.validated_package_versions.ovos-skill-boot-finished)"
+    "ovos-skill-volume==$(read_compatibility_value ovos.validated_package_versions.ovos-skill-volume)"
+    "ovos-utils==$(read_compatibility_value ovos.validated_package_versions.ovos-utils)"
     "$(read_compatibility_value ovos.wakeword.package)==$(read_compatibility_value ovos.wakeword.validated_version)"
     "$(read_compatibility_value ovos.wakeword.engine_package)==$(read_compatibility_value ovos.wakeword.engine_version)"
     "$(read_compatibility_value ovos.custom_wakeword.package)==$(read_compatibility_value ovos.custom_wakeword.validated_version)"
@@ -530,7 +540,6 @@ ensure_voice_stack() {
     "spacy==$(read_compatibility_value ovos.tts.spacy_version)"
     "en-core-web-sm @ $(read_compatibility_value ovos.tts.spacy_model_url)#sha256=$(read_compatibility_value ovos.tts.spacy_model_sha256)"
     "onnxruntime==$(read_compatibility_value ovos.tts.onnxruntime_version)"
-    "numpy==$(read_compatibility_value ovos.tts.numpy_version)"
   )
 
   mkdir -p "$source_dir"
@@ -567,6 +576,10 @@ ensure_voice_stack() {
     cleanup_voice_stack_work "$work"
     return 1
   fi
+  # OpenWakeWord 0.4.5a2 still declares numpy<2, whereas Brain's tested
+  # ONNX/Bella environment uses 2.4.6. Keep this mismatch visible to doctor
+  # and install the exact reviewed version after resolving other dependencies.
+  pip_install --no-deps "numpy==$(read_compatibility_value ovos.tts.numpy_version)"
   cleanup_voice_stack_work "$work"
 
   printf '%s\n' "Preparing the local Hey Jarvis, small.en and Bella models..."
@@ -592,6 +605,70 @@ manager.merge_default_voices()
 if not manager.download_voice_by_id(voice):
     raise SystemExit(f"PhōnNX voice is not in the reviewed catalogue: {voice}")
 PY
+}
+
+stack_matches_target() {
+  "$ovos_python" - "$repo_root/compatibility.json" <<'PY'
+import importlib.metadata as metadata
+import json
+import sys
+
+ovos = json.load(open(sys.argv[1], encoding="utf-8"))["ovos"]
+expected = dict(ovos["validated_package_versions"])
+for key, field in (("phoonnx", "validated_version"),
+                   ("scriptconv", "scriptconv_version"),
+                   ("onnxruntime", "onnxruntime_version"),
+                   ("numpy", "numpy_version")):
+    expected[key] = ovos["tts"][field]
+expected[ovos["vad"]["package"]] = ovos["vad"]["validated_version"]
+expected[ovos["custom_wakeword"]["package"]] = ovos["custom_wakeword"]["validated_version"]
+for component in ("wakeword", "stt"):
+    details = ovos[component]
+    expected[details["package"]] = details["validated_version"]
+    expected[details["engine_package"]] = details["engine_version"]
+expected[ovos["stt"]["runtime_package"]] = ovos["stt"]["runtime_version"]
+try:
+    matched = all(metadata.version(name) == version for name, version in expected.items())
+except metadata.PackageNotFoundError:
+    matched = False
+if not matched:
+    raise SystemExit(1)
+PY
+}
+
+stage_ovos_stack() {
+  local old_python="$ovos_python" venv_root="$jarvis_home/.venvs/ovos"
+  local stage_venv="$stage_root/ovos-venv" used free
+  [[ "$old_python" == "$venv_root/bin/python" && -d "$venv_root" &&
+     ! -L "$venv_root" ]] || {
+    echo "V3.1 stack migration requires the normal ~/.venvs/ovos virtualenv." >&2
+    return 1
+  }
+  [[ "$(stat -c %d "$venv_root")" == "$(stat -c %d "$stage_root")" ]] || {
+    echo "OVOS virtualenv and backup must be on the same filesystem." >&2
+    return 1
+  }
+  used="$(du -sb "$venv_root" | cut -f1)"
+  free="$(df -B1 --output=avail "$stage_root" | tail -n 1 | tr -d ' ')"
+  if ((free < used + 4294967296)); then
+    echo "Not enough free disk space to stage OVOS and retain rollback." >&2
+    return 1
+  fi
+  echo "Copying OVOS into a separate environment for the Brain-stack upgrade."
+  cp -a -- "$venv_root" "$stage_venv"
+  if [[ "${JARVIS_TEST_MODE:-0}" == 1 ]]; then
+    printf 'reviewed\n' > "$stage_venv/jarvis-stack-test-marker"
+  else
+    ovos_python="$stage_venv/bin/python"
+    if ! ensure_voice_stack ||
+       ! "$ovos_python" "$repo_root/scripts/patch-pronunciation.py" ||
+       ! stack_matches_target; then
+      ovos_python="$old_python"
+      return 1
+    fi
+    ovos_python="$old_python"
+  fi
+  stack_staged=true
 }
 
 [[ -x "$desktop_python" ]] || {
@@ -691,8 +768,8 @@ fi
 
 if "$existing_deployment"; then
   printf '%s\n' \
-    "Existing OVOS voice packages and models will be left untouched." \
-    "Existing Jarvis configuration and keyboard shortcuts will be preserved."
+    "Existing OVOS configuration, models, Jarvis shortcuts and private helpers will be preserved." \
+    "If the OVOS stack differs from Brain's tested set, its virtualenv will be staged and kept for rollback."
 fi
 
 stamp="$(date +%Y%m%d-%H%M%S-%N)"
@@ -933,6 +1010,25 @@ PY
   fi
 fi
 
+stack_staged=false
+if [[ "${JARVIS_TEST_MODE:-0}" == 1 ]]; then
+  if [[ "${JARVIS_TEST_STACK_MODE:-0}" == 1 ]]; then
+    stage_ovos_stack
+  fi
+else
+  tts_commit="$(read_compatibility_value ovos.tts.reference_commit)"
+  tts_version="$(read_compatibility_value ovos.tts.validated_version)"
+  tts_archive="$jarvis_home/.local/share/jarvis/sources/phoonnx-$tts_commit.tar.gz"
+  if ! "$existing_deployment" || ! stack_matches_target || \
+     ! installed_phoonnx_is_reviewed "$tts_version" "$tts_commit" "$tts_archive"; then
+    if ! "$restart"; then
+      echo "An OVOS stack change needs a service restart; remove --no-restart." >&2
+      exit 1
+    fi
+    stage_ovos_stack
+  fi
+fi
+
 transaction_active=true
 if [[ -d "$target_root" ]]; then
   mv -- "$target_root" "$backup_root/target-root"
@@ -952,6 +1048,19 @@ done
 
 mv -- "$stage_release" "$target_root"
 
+if "$stack_staged"; then
+  if [[ "${JARVIS_TEST_MODE:-0}" != 1 ]]; then
+    systemctl --user stop ovos-core.service ovos-listener.service ovos-audio.service
+  fi
+  mv -- "$jarvis_home/.venvs/ovos" "$backup_root/ovos-venv"
+  mv -- "$stage_root/ovos-venv" "$jarvis_home/.venvs/ovos"
+fi
+
+if [[ "${JARVIS_TEST_MODE:-0}" == 1 && "${JARVIS_TEST_FAIL_AFTER_STACK_SWAP:-0}" == 1 ]]; then
+  echo "Injecting a test-only failure after the OVOS stack switch." >&2
+  false
+fi
+
 if [[ "${JARVIS_TEST_MODE:-0}" == 1 && "${JARVIS_TEST_FAIL_AFTER_DEPLOY:-0}" == 1 ]]; then
   echo "Injecting a test-only deployment failure." >&2
   false
@@ -968,8 +1077,6 @@ if [[ "${JARVIS_TEST_MODE:-0}" != 1 ]]; then
     exit 1
   fi
   if ! "$existing_deployment"; then
-    ensure_voice_stack
-    "$ovos_python" "$target_root/scripts/patch-pronunciation.py"
     "$ovos_python" - <<'PY'
 from scriptconv.phonemizers.mul import MisakiEnPhonemizer
 
@@ -991,7 +1098,10 @@ PY
 fi
 
 if "$existing_deployment"; then
-  echo "Preserved the existing OVOS voice packages and models."
+  echo "Preserved the existing OVOS configuration and downloaded models."
+  if "$stack_staged"; then
+    echo "Staged Brain-compatible OVOS packages; the old virtualenv is in the Jarvis rollback backup."
+  fi
 fi
 
 if ! "$existing_deployment"; then
