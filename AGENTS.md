@@ -1,8 +1,24 @@
 # Jarvis contributor and AI-agent guide
 
-This file applies to the whole repository. Code and passing tests describe
-current behaviour; `docs/12-decisions.md` records approved intent and security
-constraints. Do not infer either from chat history or historical release notes.
+This file applies to the whole repository and is the canonical instruction
+file for human and AI contributors. `CLAUDE.md`, `GEMINI.md` and
+`.github/copilot-instructions.md` are pointers back here; never copy the rules
+into those files. Code and passing tests describe current behaviour;
+`docs/12-decisions.md` records approved intent and security constraints. Do not
+infer either from chat history or historical release notes.
+
+## Mandatory reading order
+
+Before proposing or changing code, read:
+
+1. this file;
+2. `docs/releases.md` for the current release delta and open verification;
+3. `docs/12-decisions.md` for durable constraints;
+4. `docs/troubleshooting.md` for current known problems and proven solutions;
+5. the code, tests and manifest governing the affected feature.
+
+Use `docs/history/` only for background. Historical observations never
+override current code, tests, decisions or the current release record.
 
 ## Authoritative sources
 
@@ -19,6 +35,27 @@ constraints. Do not infer either from chat history or historical release notes.
 The Control Centre command list is generated from the action registry and
 registered vocabulary. Do not create another hand-maintained command list.
 
+## Command-system update map
+
+Every spoken command change must be traced through this whole path:
+
+1. `action_registry.py` defines the allowlisted action ID, user-facing label,
+   examples, risk and whether Qwen may see it.
+2. `vocabulary.py` defines deterministic phrases. Risky actions remain strict.
+3. `custom_commands.py` maps built-in vocabulary entities to action IDs.
+4. `__init__.py` registers the OVOS intent and handler; a focused module owns
+   the implementation.
+5. `router_catalog()` exposes only reviewed low-risk actions plus enabled app
+   operations. Qwen returns an action ID only; it never returns executable
+   text. Newly enabled apps and saved spoken names flow into this catalogue and
+   Whisper hints through the existing capability profile.
+6. The Control Centre Commands page derives its list from the registry and
+   vocabulary. Update those sources; do not patch a second GUI command list.
+7. Update routing, collision, inventory and failure-regression tests, then the
+   current command reference and `docs/releases.md`.
+
+If any one of these layers is missing, the command change is incomplete.
+
 ## Non-negotiable boundaries
 
 - Never execute model output, arbitrary spoken shell text, arbitrary URLs or
@@ -32,9 +69,14 @@ registered vocabulary. Do not create another hand-maintained command list.
   dispatcher merely for convenience.
 - Preserve user configuration, models, enabled apps, spoken names, personal
   commands, shortcuts and private helpers during updates.
-- Use private user-owned staging under `~/.local/state/jarvis`. No launcher may
-  retain a staging-directory shebang. Administrator access is only for missing
-  operating-system packages or an upstream system-preparation step.
+- Run normal build, install, update, test and repair work as the desktop user.
+  Never run the repository, pip, tar extraction or a whole upstream installer
+  with `sudo`, and never use a root-owned checkout or temporary directory.
+- Use private user-owned staging under `~/.local/state/jarvis`; release builds
+  use a private temporary path beside the output. No launcher may retain a
+  staging, `/tmp`, root-temporary or deleted-interpreter shebang. Administrator
+  access is only for a missing operating-system package or an explicitly
+  bounded upstream system-preparation step.
 - Do not publish machine names, usernames, paths, IP addresses, credentials,
   logs or private helper contents.
 
@@ -51,6 +93,10 @@ registered vocabulary. Do not create another hand-maintained command list.
 6. Show meaningful proposed documentation deletions separately.
 7. Do not push, tag, publish, install on a live machine or change repository
    settings without explicit approval immediately before that action.
+8. Record each release once in `docs/releases.md`. Put reusable fixes in
+   `docs/troubleshooting.md`, durable choices in `docs/12-decisions.md` and old
+   investigation detail in `docs/history/`; link to them instead of repeating
+   the same update narrative across multiple current documents.
 
 ## Required validation
 
@@ -79,3 +125,6 @@ as live tests; never relabel offline simulation as live evidence.
 - Pin CI actions to immutable commits.
 - Publish only the validated archive, checksum and independently versioned
   plugin wheels. Verify the public tag, commit and asset digests afterwards.
+- Preserve OVOS configuration, models, application selection, defaults, spoken
+  names, personal commands, shortcuts, listening sound and private unlisted
+  helpers in both success and rollback tests.

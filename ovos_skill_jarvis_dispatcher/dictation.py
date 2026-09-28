@@ -225,3 +225,20 @@ class DictationActionsMixin:
             )
         else:
             self.speak("I could not start dictation.")
+
+    def _finish_speech_note_dictation(self):
+        """Stop active dictation and leave one separator after its punctuation."""
+
+        was_dictating = self._speech_note_dictating
+        stopped = True
+        if was_dictating:
+            stopped = self._speech_note_action("stop-listening")
+
+        self._speech_note_dictating = False
+        self._speech_note_dictation_paused = False
+        if was_dictating and stopped:
+            # Speech Note finalises its own punctuation. Add only the separator
+            # expected before the user's next sentence, never a second period.
+            time.sleep(0.15)
+            self._press_space()
+        return stopped

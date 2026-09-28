@@ -49,7 +49,7 @@ roots = (
     "plugins", "profiles", "scripts", "system_helpers", "systemd", "tray", "voice",
 )
 files = (
-    ".gitignore", "AGENTS.md", "COMMAND-EDITOR.md", "README.md", "compatibility.json",
+    ".gitignore", "AGENTS.md", "CLAUDE.md", "GEMINI.md", "COMMAND-EDITOR.md", "README.md", "compatibility.json",
     "deployment-manifest.json", "pyproject.toml", "LAUNCHER.md", "LICENSE", "NOTICE.md",
 )
 excluded = {".git", "__pycache__", "build", "dist"}

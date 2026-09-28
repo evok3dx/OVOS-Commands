@@ -246,6 +246,18 @@ class JarvisDispatcherSkill(
         self._insert_period()
 
     @intent_handler(
+        IntentBuilder("PressSpaceIntent").require("PressSpaceCommand")
+    )
+    def handle_press_space(self, _message):
+        self._press_space()
+
+    @intent_handler(
+        IntentBuilder("ShowDesktopIntent").require("ShowDesktopCommand")
+    )
+    def handle_show_desktop(self, _message):
+        self._show_desktop()
+
+    @intent_handler(
         IntentBuilder("PressEscapeIntent").require("PressEscapeCommand")
     )
     def handle_press_escape(self, _message):
@@ -501,11 +513,7 @@ class JarvisDispatcherSkill(
         .require("StopSpeechNoteDictationCommand")
     )
     def handle_stop_speech_note_dictation(self, _message):
-        if self._speech_note_dictating:
-            self._speech_note_action("stop-listening")
-
-        self._speech_note_dictating = False
-        self._speech_note_dictation_paused = False
+        self._finish_speech_note_dictation()
         self.speak("Dictation stopped.")
 
     @intent_handler(

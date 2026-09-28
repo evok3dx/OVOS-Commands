@@ -66,6 +66,7 @@ for relative in EXPECTED_SYSTEMD_TEMPLATES:
 project_source = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
 version_match = re.search(r'^version = "([^"]+)"$', project_source, re.MULTILINE)
 assert version_match, "Project version is missing"
+PROJECT_VERSION = version_match.group(1)
 assert MANIFEST["release_version"] == version_match.group(1)
 assert COMPATIBILITY["release_version"] == version_match.group(1)
 assert COMPATIBILITY["ovos"]["entry_point_group"] == "opm.skill"
@@ -181,8 +182,8 @@ assert "does **not** test Whisper" in routing_benchmark
 benchmark_scope = runpy.run_path(ROOT / "scripts/routing-benchmark.py",
                                  run_name="jarvis_benchmark_validation")
 benchmark_cases = benchmark_scope["cases"]()
-assert len(benchmark_cases) == 340
-assert len({phrase.casefold() for phrase, _expected in benchmark_cases}) == 340
+assert len(benchmark_cases) == 360
+assert len({phrase.casefold() for phrase, _expected in benchmark_cases}) == 360
 setup_helper = (ROOT / 'system_helpers/jarvis-setup').read_text(encoding='utf-8')
 assert '[[ "$argument" == --gui && -x "$tray" ]]' in setup_helper
 assert 'nohup "$tray"' in setup_helper
@@ -382,6 +383,7 @@ EXPECTED_INTENTS = {
     "MuteSystemAudioIntent",
     "MuteJarvisIntent",
     "PressEnterIntent", "InsertNewLineIntent", "InsertPeriodIntent",
+    "PressSpaceIntent", "ShowDesktopIntent",
     "PressEscapeIntent",
     "PlayMediaIntent", "PromptMusicIntent", "PauseMediaIntent", "StopMediaIntent",
     "NextMediaIntent", "PreviousMediaIntent",
@@ -561,7 +563,7 @@ def main():
     fake = FakeSkill()
     fake._jarvis_profile = reference_profile
     namespace["register_skill_vocabulary"](fake, include_custom=False)
-    assert len(fake.registrations) == 1996, len(fake.registrations)
+    assert len(fake.registrations) == 2010, len(fake.registrations)
     assert len(fake.registrations) == len(set(fake.registrations)), (
         "Duplicate vocabulary registrations are present"
     )
@@ -817,6 +819,8 @@ def main():
         assert (phrase, "ReadVisiblePageCommand") in registrations
 
     assert ("go back one track", "PreviousMediaCommand") in registrations
+    assert ("send the message", "PressEnterCommand") in registrations
+    assert ("submit", "PressEnterCommand") in registrations
 
     profiles = sorted((ROOT / "profiles").glob("*.json"))
     assert {path.name for path in profiles} == EXPECTED_PROFILES
@@ -914,6 +918,43 @@ def main():
                 assert (document.parent / relative).resolve().exists(), (
                     f"Broken link in {document.relative_to(ROOT)}: {target}"
                 )
+
+    agents_guide = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
+    for required in (
+        "## Mandatory reading order",
+        "## Command-system update map",
+        "action_registry.py",
+        "vocabulary.py",
+        "custom_commands.py",
+        "router_catalog()",
+        "Control Centre Commands page",
+        "never use a root-owned checkout or temporary directory",
+        "docs/releases.md",
+        "docs/troubleshooting.md",
+        "docs/12-decisions.md",
+    ):
+        assert required in agents_guide, f"AGENTS.md is missing: {required}"
+
+    instruction_adapters = {
+        "CLAUDE.md": "AGENTS.md",
+        "GEMINI.md": "AGENTS.md",
+        ".github/copilot-instructions.md": "AGENTS.md",
+    }
+    for relative, canonical in instruction_adapters.items():
+        adapter = (ROOT / relative).read_text(encoding="utf-8")
+        assert canonical in adapter
+        assert len(adapter.splitlines()) <= 6, (
+            f"{relative} must remain a pointer, not a duplicate policy"
+        )
+
+    release_record = (ROOT / "docs/releases.md").read_text(encoding="utf-8")
+    assert f"## {PROJECT_VERSION}" in release_record
+    assert "docs/releases.md" in agents_guide
+    ai_report_source = (ROOT / "scripts/create_ai_report.py").read_text(
+        encoding="utf-8"
+    )
+    assert '"AGENTS.md"' in ai_report_source
+    assert "Start with `source/AGENTS.md`" in ai_report_source
 
     print(f"PASS: {len(python_files)} Python modules compile")
     print(f"PASS: {len(intents)} intents match the expected inventory")

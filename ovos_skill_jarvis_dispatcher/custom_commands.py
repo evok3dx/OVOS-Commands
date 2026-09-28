@@ -20,6 +20,8 @@ ENTITY_ACTIONS = {
     "PressEnterCommand": "system.press_enter",
     "InsertNewLineCommand": "system.insert_new_line",
     "InsertPeriodCommand": "system.insert_period",
+    "PressSpaceCommand": "system.press_space",
+    "ShowDesktopCommand": "system.show_desktop",
     "PressEscapeCommand": "system.press_escape",
     "PlayMediaCommand": "media.play",
     "PromptMusicCommand": "media.prompt",

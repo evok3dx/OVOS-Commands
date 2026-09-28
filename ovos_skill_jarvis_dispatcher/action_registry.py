@@ -30,6 +30,12 @@ BASE_ACTIONS = {
     "system.insert_period": _action(
         "Writing", "Insert a full stop in the focused app", "full stop", "period"
     ),
+    "system.press_space": _action(
+        "Writing", "Insert a space in the focused app", "press space"
+    ),
+    "system.show_desktop": _action(
+        "Windows", "Show the desktop", "show desktop", "minimize all"
+    ),
     "system.caps_lock_on": _action(
         "System", "Turn Caps Lock on", "caps lock on"
     ),
@@ -212,6 +218,18 @@ BASE_ACTIONS = {
 # it never receives or emits the dictated message and cannot bypass the
 # existing focus checks or two-turn capture flow.
 STRICT_SPOKEN_ACTIONS = {
+    "press space": "system.press_space",
+    "press the space bar": "system.press_space",
+    "hit space": "system.press_space",
+    "hit the space bar": "system.press_space",
+    "show desktop": "system.show_desktop",
+    "show the desktop": "system.show_desktop",
+    "go to desktop": "system.show_desktop",
+    "go to the desktop": "system.show_desktop",
+    "minimize all": "system.show_desktop",
+    "minimise all": "system.show_desktop",
+    "minimize all windows": "system.show_desktop",
+    "minimise all windows": "system.show_desktop",
     "message hermes": "hermes.message",
     "ask hermes": "hermes.message",
     "tell hermes": "hermes.message",
@@ -287,6 +305,7 @@ def action_catalog(profile=None):
 
 # Exposure is an explicit allowlist. New actions remain hidden until reviewed.
 ROUTER_ACTIONS = frozenset({
+    "system.show_desktop",
     "window.minimize", "window.maximize", "window.restore",
     "reading.last_typed", "reading.page", "reading.selection",
     "reading.page_fast", "reading.selection_fast",
@@ -391,6 +410,8 @@ def dispatch_action(skill, action_id, message, *, source="personal"):
         "system.press_enter": "handle_press_enter",
         "system.insert_new_line": "handle_insert_new_line",
         "system.insert_period": "handle_insert_period",
+        "system.press_space": "handle_press_space",
+        "system.show_desktop": "handle_show_desktop",
         "system.press_escape": "handle_press_escape",
         "system.caps_lock_on": "handle_caps_lock_on",
         "system.caps_lock_off": "handle_caps_lock_off",

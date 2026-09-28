@@ -33,6 +33,7 @@ SOURCE_ROOTS = (
 )
 SOURCE_FILES = (
     ".gitignore",
+    "AGENTS.md",
     "COMMAND-EDITOR.md",
     "README.md",
     "compatibility.json",
@@ -300,8 +301,10 @@ def main() -> int:
             """# Jarvis AI maintenance handoff
 
 This bundle is a privacy-first diagnostic snapshot for the OVOS Jarvis command
-repository. Start with `ISSUE.md`, then inspect `diagnostics/report.json`, the
-check results, and `source/`.
+repository. Start with `source/AGENTS.md`, then read `ISSUE.md`,
+`source/docs/releases.md`, `source/docs/12-decisions.md` and
+`source/docs/troubleshooting.md` before inspecting `diagnostics/report.json`,
+the check results and affected source.
 
 ## Your task
 

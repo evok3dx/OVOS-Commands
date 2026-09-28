@@ -11,6 +11,10 @@ NAME_LIMIT = 40
 PROPER_NAMES = {'standard_notes':'Standard Notes', 'onlyoffice':'ONLYOFFICE',
                 'claude_desktop':'Claude', 'chatgpt_desktop':'ChatGPT',
                 'hermes_desktop':'Hermes', 'proton_calendar':'Proton Calendar'}
+# Added only after repeated live substitutions of “Send it” as ordinary words.
+# Cues bias transcription; they never execute an action or bypass strict intent
+# matching.
+RECOGNITION_CUES = ('Send it',)
 _lock = threading.RLock()
 _cached_key = None
 _cached_names = ()
@@ -29,7 +33,7 @@ def clean_name(value):
 
 def names_from_profile(profile):
     apps = profile['applications']
-    names = ['Jarvis']
+    names = ['Jarvis', *RECOGNITION_CUES]
     # Prefer saved spoken names over menu names when the list needs limiting.
     ordered = sorted(apps.items())
     names.extend(value.get('spoken_name') for _, value in ordered)

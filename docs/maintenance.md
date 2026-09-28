@@ -6,6 +6,13 @@
 profiles and optional desktop assets that make up a complete release.
 Installation and validation consume the same inventory.
 
+Release changes and open acceptance checks are recorded once in
+[`releases.md`](releases.md). Put reusable problem/solution guidance in
+[`troubleshooting.md`](troubleshooting.md), approved constraints in
+[`12-decisions.md`](12-decisions.md), and completed investigation detail under
+[`history/`](history/README.md). Current documents should link to those records
+instead of copying a release narrative.
+
 When adding a capability:
 
 1. Put reusable behaviour in a standard module.
@@ -15,6 +22,11 @@ When adding a capability:
 5. Update the manifest only when the file inventory changes.
 6. Update the explicit intent and vocabulary regression totals.
 7. Run validation before deployment.
+
+For a spoken action, follow the complete command-system update map in the root
+[`AGENTS.md`](../AGENTS.md). This keeps deterministic phrases, Qwen exposure,
+custom-command collisions and the generated Control Centre Commands list in
+sync.
 
 When adding or changing an application window signature, also:
 
@@ -138,4 +150,4 @@ class.
 `docs/window-focus-and-app-integration.md` describe current operation. Files
 under `docs/history/` preserve implementation rationale and old observed
 baselines; their installer names and counts must not be treated as current
-instructions.
+instructions. `docs/releases.md` is the only current per-release ledger.

@@ -35,6 +35,7 @@ required = {
     "reading.selection_fast", "reading.page", "reading.page_fast",
     "browser.search_firefox", "browser.search_brave", "media.search",
     "media.prompt",
+    "system.show_desktop",
     "hermes.message", "claude_desktop.message", "codex.message",
     "claude_agent.message",
 }
@@ -63,6 +64,7 @@ cases = (
     ("Let me ask the Claude agent something", "claude_agent.message"),
     ("Put on Get Lucky", "media.search"),
     ("Could you play some music?", "media.prompt"),
+    ("Would you take me to the desktop?", "system.show_desktop"),
 )
 for spoken, expected in cases:
     payload, allowed = routing_model.payload_for(spoken, catalogue, configured)

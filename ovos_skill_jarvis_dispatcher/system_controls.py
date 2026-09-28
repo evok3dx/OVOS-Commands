@@ -33,6 +33,29 @@ class SystemControlsMixin:
             self.log.exception("Full-stop action failed")
             self.speak("I could not insert a full stop.")
 
+    def _press_space(self):
+        """Insert one literal space in the currently focused application."""
+        try:
+            self._focused_window_details()
+            self._send_focused_keys("space")
+        except Exception:
+            self.log.exception("Space key action failed")
+            self.speak("I could not insert a space.")
+
+    def _show_desktop(self):
+        """Use Linux Mint's standard Super+D show-desktop shortcut."""
+        try:
+            subprocess.run(
+                ["/usr/bin/xdotool", "key", "--clearmodifiers", "super+d"],
+                check=True,
+                timeout=5,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        except Exception:
+            self.log.exception("Show-desktop action failed")
+            self.speak("I could not show the desktop.")
+
     def _press_escape(self):
         """Press Escape in the focused app, for example to dismiss its search."""
         try:

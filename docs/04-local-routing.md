@@ -35,7 +35,7 @@ diagnostic:** seven actions completed without an eight-second timeout; the warm
 median was 2.66 seconds. Ollama reported the model resident indefinitely and
 every `load_duration` was zero. Warm singleton prompt evaluation was usually
 below 0.4 seconds, while generation was the larger remaining variable. This is
-a small latency diagnostic, not the required 340-case accuracy benchmark.
+a small latency diagnostic, not the required 360-case accuracy benchmark.
 
 The first V3.5 singleton prompt incorrectly treated polite action requests such
 as “Can I search through Brave?” as information-seeking questions. Rc2 now
@@ -53,7 +53,7 @@ but deliberately executes nothing. Profile-disabled private agents are shown
 as skipped rather than treated as failures.
 
 For broader release testing, `python3 scripts/routing-benchmark.py` generates
-340 command variations across writing, continuous dictation, 1×/2× reading,
+360 command variations across writing, continuous dictation, 1×/2× reading,
 browser search, safe message starters, media, files and deliberately rejected
 requests. It checks the request-specific allowlist and then the real local Qwen
 model without dispatching any action. `--quick` runs a representative 40-case

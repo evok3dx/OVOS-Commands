@@ -24,7 +24,7 @@ Download the archive and matching `.sha256` from
 [Releases](https://github.com/evok3dx/OVOS-Commands/releases/latest):
 
 ```bash
-version=3.7.0
+version=3.7.1
 sha256sum --check "ovos-commands-$version.tar.gz.sha256"
 tar -xzf "ovos-commands-$version.tar.gz"
 cd "ovos-commands-$version"
@@ -70,7 +70,8 @@ replace full desktop and voice acceptance testing.
 |---|---|---|
 | Applications | “Open Firefox”, “Open notes”, “Open mail” | Apps & Commands |
 | Defaults | Choose Browser, Notes, Mail, Calendar and Office | Defaults |
-| Writing | “Write this”, “Start writing”, “New line”, “Full stop” | Commands |
+| Writing | “Write this”, “Start writing”, “Full stop”, “Press space” | Commands |
+| Windows | “Show desktop”, “Minimize all”, “Close window” | Commands |
 | Reading | “Read this”, “Read this at 2x” | Voice and Speech Note |
 | Media | “Play {title}”, “Play music”, “Pause music” | Media plugin |
 | Files | “Find {filename}”, “Search my documents” | File Search plugin |
@@ -121,7 +122,7 @@ X11 itself is not treated as a security boundary. See
 - [Backups and settings export](docs/09-backup-export.md)
 - [Media and filename search](docs/10-media-files.md)
 - [Troubleshooting](docs/troubleshooting.md) and [maintenance](docs/maintenance.md)
-- [Security](docs/security-and-updates.md), [decisions](docs/12-decisions.md) and [release record](docs/v3.7-release-checklist.md)
+- [Security](docs/security-and-updates.md), [decisions](docs/12-decisions.md) and [release record](docs/releases.md)
 - [Contributor and AI-agent rules](AGENTS.md)
 
 ## Licence and thanks

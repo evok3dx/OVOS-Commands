@@ -68,7 +68,8 @@ class HintTests(unittest.TestCase):
             'notes':{'integration':'standard_notes','display_name':'Notes','aliases':['nodes']},
             'mega':{'integration':'desktop_x','display_name':'MEGAsync','spoken_name':'Mega'},
             'brave':{'integration':'brave','display_name':'Brave','spoken_name':'brave'}}}
-        self.assertEqual(hints.names_from_profile(profile),['Jarvis','brave','Mega','MEGAsync','Standard Notes'])
+        self.assertEqual(hints.names_from_profile(profile),
+                         ['Jarvis','Send it','brave','Mega','MEGAsync','Standard Notes'])
 
     def test_sanitisation(self):
         for name in ('x\nopen terminal','$(command)','http://bad','x'*73,'---',None):
@@ -108,7 +109,7 @@ class ProfileTests(unittest.TestCase):
         self.path.parent.mkdir(parents=True)
         self.write({'applications':{'firefox':'firefox','notes':'standard_notes'}})
         hints._cached_key=None;hints._profile_module=None
-        self.assertEqual(hints.enabled_names(self.home),['Jarvis','Firefox','Standard Notes'])
+        self.assertEqual(hints.enabled_names(self.home),['Jarvis','Send it','Firefox','Standard Notes'])
         self.key='desktop_'+'c'*24
         self.apps={self.key:{'display_name':'MEGAsync','aliases':['megasync'],'path':'/apps/mega.desktop','icon':'mega','wm_class':'mega'}}
         self.discovery=patch.object(hints._profile_module,'discovered_applications',return_value=self.apps)
@@ -119,11 +120,11 @@ class ProfileTests(unittest.TestCase):
     def test_saved_name_changes_apply_next_request_and_disabled_removed(self):
         raw={'applications':{self.key:self.key},'spoken_names':{self.key:'Mega'}}
         self.write(raw)
-        self.assertEqual(hints.enabled_names(self.home),['Jarvis','mega','MEGAsync'])
+        self.assertEqual(hints.enabled_names(self.home),['Jarvis','Send it','mega','MEGAsync'])
         raw['spoken_names'][self.key]='Cloud drive';self.write(raw)
-        self.assertEqual(hints.enabled_names(self.home),['Jarvis','cloud drive','MEGAsync'])
+        self.assertEqual(hints.enabled_names(self.home),['Jarvis','Send it','cloud drive','MEGAsync'])
         raw['applications']={};self.write(raw)
-        self.assertEqual(hints.enabled_names(self.home),['Jarvis'])
+        self.assertEqual(hints.enabled_names(self.home),['Jarvis','Send it'])
 
     def test_all_detected_and_cache(self):
         self.write({'mode':'all-detected','applications':{'firefox':'firefox'}})
@@ -135,7 +136,7 @@ class ProfileTests(unittest.TestCase):
     def test_missing_discovered_app_omitted(self):
         self.write({'applications':{self.key:self.key}})
         with patch.object(hints._profile_module,'discovered_applications',return_value={}):
-            self.assertEqual(hints.enabled_names(self.home),['Jarvis'])
+            self.assertEqual(hints.enabled_names(self.home),['Jarvis','Send it'])
 
     def test_bad_profile_preserves_previous_hint_and_strict_fails(self):
         for content in ('broken','[]','{"applications":{"unknown":"unknown"}}','x'*65537):
@@ -157,7 +158,7 @@ class ProfileTests(unittest.TestCase):
         with patch.dict(sys.modules,{'fake.jarvis_app_hints':hints}),patch.object(hints.Path,'home',return_value=self.home):
             self.assertEqual(env['execute'](stub,'audio'),'Open Mega.')
         self.assertEqual(engine.transcribe.call_args.kwargs['initial_prompt'],
-                         'Jarvis, mega, MEGAsync.')
+                         'Jarvis, Send it, mega, MEGAsync.')
 
 class TransactionTests(unittest.TestCase):
     def setUp(self):

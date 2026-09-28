@@ -32,6 +32,7 @@ controls_spec.loader.exec_module(system_controls)
 class FakeControls(system_controls.SystemControlsMixin):
     def __init__(self):
         self.typed = []
+        self.keys = []
         self.spoken = []
         self.log = type("Log", (), {"exception": lambda *_args: None})()
 
@@ -41,18 +42,72 @@ class FakeControls(system_controls.SystemControlsMixin):
     def _type_focused_text(self, text):
         self.typed.append(text)
 
+    def _send_focused_keys(self, keys):
+        self.keys.append(keys)
+
     def speak(self, text):
         self.spoken.append(text)
 
 controls = FakeControls()
 controls._insert_period()
 assert controls.typed == ["."] and controls.spoken == []
+controls._press_space()
+assert controls.keys == ["space"] and controls.spoken == []
+
+with patch("subprocess.run") as run:
+    controls._show_desktop()
+    run.assert_called_once_with(
+        ["/usr/bin/xdotool", "key", "--clearmodifiers", "super+d"],
+        check=True,
+        timeout=5,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+
+dictation_spec = importlib.util.spec_from_file_location(
+    "jarvis_dictation", ROOT / "ovos_skill_jarvis_dispatcher/dictation.py",
+)
+dictation = importlib.util.module_from_spec(dictation_spec)
+dictation_spec.loader.exec_module(dictation)
+
+class FakeDictation(dictation.DictationActionsMixin):
+    def __init__(self, running=True, action_result=True):
+        self._speech_note_dictating = running
+        self._speech_note_dictation_paused = not running
+        self.action_result = action_result
+        self.actions = []
+        self.spaces = 0
+
+    def _speech_note_action(self, action):
+        self.actions.append(action)
+        return self.action_result
+
+    def _press_space(self):
+        self.spaces += 1
+
+with patch.object(dictation.time, "sleep"):
+    active_dictation = FakeDictation()
+    assert active_dictation._finish_speech_note_dictation()
+    assert active_dictation.actions == ["stop-listening"]
+    assert active_dictation.spaces == 1
+    assert not active_dictation._speech_note_dictating
+    assert not active_dictation._speech_note_dictation_paused
+
+    failed_dictation = FakeDictation(action_result=False)
+    assert not failed_dictation._finish_speech_note_dictation()
+    assert failed_dictation.spaces == 0
+
+    paused_dictation = FakeDictation(running=False)
+    assert paused_dictation._finish_speech_note_dictation()
+    assert paused_dictation.actions == [] and paused_dictation.spaces == 0
 
 strict_profile = {"private_extensions": {"agents": True}, "applications": {}}
 assert strict_spoken_action("Message Hermes.", strict_profile) == "hermes.message"
 assert strict_spoken_action("message Claude", strict_profile) == "claude_desktop.message"
 assert strict_spoken_action("message Claude agent", strict_profile) == "claude_agent.message"
 assert strict_spoken_action("search Firefox", strict_profile) == "browser.search_firefox"
+assert strict_spoken_action("press space", strict_profile) == "system.press_space"
+assert strict_spoken_action("go to desktop", strict_profile) == "system.show_desktop"
 assert strict_spoken_action("message Hermes with private data", strict_profile) is None
 disabled_agents = {"private_extensions": {"agents": False}, "applications": {}}
 assert strict_spoken_action("message Claude agent", disabled_agents) is None

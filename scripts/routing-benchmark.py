@@ -26,7 +26,7 @@ WRAPPERS = (
     "Would you kindly {}",
 )
 
-# Four variations of 85 imperative bases produce 340 deterministic cases.
+# Four variations of 90 imperative bases produce 360 deterministic cases.
 BASE_CASES = {
     "text.write": (
         "write this", "type this", "write something here",
@@ -47,6 +47,10 @@ BASE_CASES = {
     "dictation.stop": (
         "stop dictation", "finish dictation now", "stop writing",
         "end continuous writing", "finish taking dictation",
+    ),
+    "system.show_desktop": (
+        "show desktop", "go to the desktop", "minimize all windows",
+        "hide every window", "take me to the desktop",
     ),
     "reading.selection": (
         "read this", "read this text", "read this sentence aloud",

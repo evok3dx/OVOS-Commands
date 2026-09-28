@@ -279,7 +279,7 @@ import urllib.request
 from pathlib import Path
 
 url, destination, expected = sys.argv[1:]
-request = urllib.request.Request(url, headers={"User-Agent": "OVOS-Commands/3.7.0"})
+request = urllib.request.Request(url, headers={"User-Agent": "OVOS-Commands/3.7.1"})
 digest = hashlib.sha256()
 try:
     with urllib.request.urlopen(request, timeout=60) as response, Path(destination).open("wb") as output:
@@ -984,7 +984,7 @@ release_roots=(
   scripts system_helpers systemd tray voice
 )
 release_files=(
-  .gitignore AGENTS.md COMMAND-EDITOR.md LAUNCHER.md LICENSE NOTICE.md README.md
+  .gitignore AGENTS.md CLAUDE.md GEMINI.md COMMAND-EDITOR.md LAUNCHER.md LICENSE NOTICE.md README.md
   compatibility.json deployment-manifest.json pyproject.toml
 )
 tar --create --file=- \

@@ -206,11 +206,16 @@ Examples:
 - `Pause writing`
 - `Continue writing`
 - `Stop writing`
+- `Press space`
 - `Write this`
 - `Type the following`
 
 Speech Note performs dictation and reading while the dispatcher controls its
 allowlisted actions.
+
+Stopping active continuous dictation keeps Speech Note's final full stop and
+adds one trailing space, ready for the next sentence. `Press space` inserts a
+single space separately without submitting the focused field.
 
 One-shot writing types the captured words without Enter and removes only
 Whisper's automatic final period. For a period in the same capture, say the
@@ -248,6 +253,12 @@ Examples:
 - `Minimise window`
 - `Maximise window`
 - `Restore window`
+- `Show desktop`
+- `Go to desktop`
+- `Minimize all`
+
+The three desktop phrases use Linux Mint's fixed `Super+D` shortcut. They do
+not minimize windows one by one or accept a model-generated key sequence.
 
 
 ### Keyboard actions
@@ -257,7 +268,9 @@ Examples:
   window without submitting a message.
 - "Full stop" or "period" inserts one literal `.` in the focused field without
   pressing Enter. "Insert a full stop" and "add a period" work too.
-- "Press Enter" sends Return to the verified focused window and may submit.
+- "Press Enter", "Send it", "Send the message" and "Submit" send Return to
+  the verified focused window and may submit.
+- "Press space" sends one Space to the verified focused window.
 - "Press Escape", "press Esc", "hit Escape" and "Escape key" send Escape
   to the focused application, for example to dismiss a search field or dialog
   when the application supports that key. This is separate from browser Back.

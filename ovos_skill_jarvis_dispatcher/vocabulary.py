@@ -279,7 +279,8 @@ def register_skill_vocabulary(self, include_custom=True):
     system_controls = {
         "PressEnterCommand": [
             "press enter", "press return", "press send",
-            "hit enter", "hit return", "enter", "send it", "submit it",
+            "hit enter", "hit return", "enter", "send it", "send the message",
+            "submit", "submit it",
         ],
         "InsertNewLineCommand": [
             "new line", "newline", "insert new line", "add a new line",
@@ -287,6 +288,14 @@ def register_skill_vocabulary(self, include_custom=True):
         "InsertPeriodCommand": [
             "full stop", "period", "insert full stop", "insert a full stop",
             "insert period", "insert a period", "add a full stop", "add a period",
+        ],
+        "PressSpaceCommand": [
+            "press space", "press the space bar", "hit space", "hit the space bar",
+        ],
+        "ShowDesktopCommand": [
+            "show desktop", "show the desktop", "go to desktop",
+            "go to the desktop", "minimize all", "minimise all",
+            "minimize all windows", "minimise all windows",
         ],
         "PressEscapeCommand": [
             "press escape", "press esc", "hit escape", "escape key",

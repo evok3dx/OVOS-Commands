@@ -1,6 +1,6 @@
 # OVOS voice stack
 
-This page records the stable voice-stack boundary for Jarvis 3.7.0. It contains
+This page records the stable voice-stack boundary for Jarvis 3.7.1. It contains
 portable behaviour and reviewed versions, not workstation logs or private
 machine configuration.
 
@@ -67,7 +67,9 @@ audio outside transcription.
 ## Whisper hints
 
 The hint adapter supplies enabled application names and a short reviewed cue
-set to `small.en`. It patches only a recognised plugin source revision and
+set to `small.en`. The `Send it` cue is retained because live logs showed
+repeated `Standard`/`Present` substitutions; those unsafe ordinary-word aliases
+are not registered. The adapter patches only a recognised plugin source revision and
 fails closed on an unfamiliar revision. Names are sanitised and bounded by
 count and byte length. Saving app choices or personal spoken names updates the
 next request without sending data elsewhere.

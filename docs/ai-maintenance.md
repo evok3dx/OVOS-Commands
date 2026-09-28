@@ -14,6 +14,8 @@ patch format, so the handoff does not depend on a long custom prompt.
 
 The normal bundle contains:
 
+- the canonical `AGENTS.md` contract and current release/decision/support
+  records;
 - the exact safe source snapshot;
 - the supplied problem description;
 - repository validation and compatibility results;
