@@ -48,7 +48,7 @@ CSS = b'''
 .jarvis-mode:checked { background-color: #2D8CFF; border-color: #1673D3; color: #FFFFFF; }
 .jarvis-mode-note { opacity: 0.70; }
 .jarvis-default-label { font-weight: 600; }
-.jarvis-default-combo { padding: 9px 13px; border-radius: 7px; }
+.jarvis-default-combo { padding: 6px 11px; border-radius: 7px; }
 .jarvis-default-choice { padding: 8px 10px; border-radius: 6px; }
 combobox menu menuitem { padding: 9px 14px; min-height: 24px; }
 '''

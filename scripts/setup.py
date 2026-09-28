@@ -196,7 +196,7 @@ def choose_with_gui(detected, existing=None, on_save=None, *, output=None,
         raise RuntimeError(f'GTK 3 is unavailable: {error}') from error
 
     class DefaultAppPicker(Gtk.MenuButton):
-        """Spacious click-to-open picker for one enabled default app."""
+        """Compact click-to-open picker with a clear dropdown affordance."""
 
         def __init__(self):
             super().__init__()
@@ -205,10 +205,21 @@ def choose_with_gui(detected, existing=None, on_save=None, *, output=None,
             self._group = None
             self._updating = False
             self._changed = None
-            self.set_hexpand(True)
-            self.set_size_request(360, 42)
-            self.set_label('No compatible app enabled')
+            self.set_hexpand(False)
+            self.set_halign(Gtk.Align.START)
+            self.set_size_request(380, 38)
             self.get_style_context().add_class('jarvis-default-combo')
+
+            display = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+            display.set_hexpand(True)
+            self._display_label = Gtk.Label(
+                label='No compatible app enabled', xalign=0)
+            self._display_label.set_hexpand(True)
+            arrow = Gtk.Image.new_from_icon_name(
+                'pan-down-symbolic', Gtk.IconSize.BUTTON)
+            display.pack_start(self._display_label, True, True, 0)
+            display.pack_end(arrow, False, False, 0)
+            self.add(display)
 
             self._popover = Gtk.Popover.new(self)
             outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
@@ -232,7 +243,7 @@ def choose_with_gui(detected, existing=None, on_save=None, *, output=None,
             self._active_id = None
             self._choices.clear()
             self._group = None
-            self.set_label('No compatible app enabled')
+            self._display_label.set_text('No compatible app enabled')
 
         def append(self, identifier, text):
             choice = Gtk.RadioButton.new_with_label_from_widget(self._group, text)
@@ -250,7 +261,7 @@ def choose_with_gui(detected, existing=None, on_save=None, *, output=None,
             if not choice.get_active():
                 return
             self._active_id = identifier
-            self.set_label(text)
+            self._display_label.set_text(text)
             if not self._updating and self._changed:
                 callback, args = self._changed
                 callback(self, *args)
@@ -268,7 +279,7 @@ def choose_with_gui(detected, existing=None, on_save=None, *, output=None,
             try:
                 choice.set_active(True)
                 self._active_id = identifier
-                self.set_label(choice.get_label())
+                self._display_label.set_text(choice.get_label())
             finally:
                 self._updating = False
 
@@ -283,7 +294,7 @@ def choose_with_gui(detected, existing=None, on_save=None, *, output=None,
                 for choice in self._choices.values():
                     choice.set_active(False)
                 self._active_id = None
-                self.set_label('No compatible app enabled')
+                self._display_label.set_text('No compatible app enabled')
             finally:
                 self._updating = False
 

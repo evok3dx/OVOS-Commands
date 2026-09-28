@@ -7,10 +7,30 @@ acceptance work. Durable design choices belong in
 under [`history/`](history/README.md). Other current documents link here rather
 than repeating release narratives.
 
+## 3.7.3
+
+Status: **VERIFIED in code and automated tests; published with live visual
+acceptance still recommended.**
+
+Changes:
+
+- the Default Apps selector keeps the click-open popover and roomy choices but
+  is compact again, left-aligns the selected application and displays an
+  explicit downward chevron;
+- native and Flatpak ONLYOFFICE detection, recommendation and friendly Office
+  routing remain covered by the preferred-app regression test;
+- no voice, Qwen, Whisper, installer, application selection or model behaviour
+  changed.
+
+Release gates:
+
+- [x] focused Default Apps and ONLYOFFICE tests pass;
+- [ ] live compact selector, chevron and click-open acceptance passes;
+- [x] public main, tag, archive and checksums identify the same release.
+
 ## 3.7.2
 
-Status: **VERIFIED in code and focused automated tests; live laptop acceptance
-and publication remain pending.**
+Status: **HISTORICAL — published and superseded by the 3.7.3 visual correction.**
 
 Changes:
 

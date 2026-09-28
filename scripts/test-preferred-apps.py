@@ -121,4 +121,14 @@ assert "desktop_" + "3" * 24 in recommended
 assert "desktop_" + "4" * 24 not in recommended
 assert "desktop_" + "5" * 24 not in recommended
 
+setup_source = (ROOT / "scripts" / "setup.py").read_text(encoding="utf-8")
+for required in (
+    "self.set_hexpand(False)",
+    "self.set_size_request(380, 38)",
+    "pan-down-symbolic",
+    "self._choices_box.set_size_request(340, 88)",
+    "'onlyoffice': ('onlyoffice-desktopeditors', 'x-office-document')",
+):
+    assert required in setup_source, f"Default Apps picker is missing: {required}"
+
 print("PASS: preferred app roles are compatible, unique and safely defaulted")
