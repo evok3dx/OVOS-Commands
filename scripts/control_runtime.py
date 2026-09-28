@@ -8,10 +8,13 @@ import os
 from pathlib import Path
 import re
 import subprocess
+import tempfile
 import time
 
 UNITS = ('ovos-audio.service', 'ovos-listener.service', 'ovos-core.service')
 CORE, LISTENER = UNITS[2], UNITS[1]
+SPEECH_NOTE_HELPER = Path.home() / '.local/bin/jarvis-speechnote-setup'
+UNINSTALL_HELPER = Path.home() / '.local/bin/jarvis-uninstall'
 MARKERS = {CORE: ('Jarvis configuration ready', 'Skill ovos-skill-jarvis-dispatcher.openvoiceos loaded successfully'),
            LISTENER: ('DinkumVoiceService is ready.',)}
 
@@ -45,6 +48,38 @@ def run(args, timeout=15, check=True):
     if check and result.returncode:
         raise RuntimeError((result.stderr or result.stdout or 'Command failed').strip()[-3000:])
     return result
+
+
+def speech_note_status():
+    """Inspect the bounded per-user Speech Note integration."""
+    result = run([SPEECH_NOTE_HELPER, '--status'], timeout=30, check=False)
+    detail = (result.stdout or result.stderr or 'Speech Note status unavailable.').strip()
+    return {'installed': result.returncode == 0, 'detail': detail}
+
+
+def speech_note_action(action):
+    """Open or explicitly install Speech Note through the packaged helper."""
+    if action not in {'open', 'install'}:
+        raise ValueError('Unknown Speech Note action')
+    arguments = [SPEECH_NOTE_HELPER, '--' + action]
+    if action == 'install':
+        arguments.append('--yes')
+    result = run(arguments, timeout=1800)
+    text = result.stdout.strip() or 'Speech Note setup complete.'
+    if action == 'install':
+        opened = run([SPEECH_NOTE_HELPER, '--open'], timeout=30)
+        text += '\n' + (opened.stdout.strip() or 'Speech Note opened.')
+    return text
+
+
+def uninstall_jarvis(remove_model=False, remove_settings=False, remove_ovos=False):
+    """Run the fixed local uninstaller with only explicit destructive options."""
+    arguments=[UNINSTALL_HELPER,'--yes']
+    if remove_model:arguments.append('--remove-model')
+    if remove_settings:arguments.append('--remove-settings')
+    if remove_ovos:arguments.append('--remove-ovos')
+    result=run(arguments,timeout=1800)
+    return result.stdout.strip() or 'Jarvis was removed.'
 
 
 def snapshot():
@@ -195,7 +230,31 @@ def read_json(path):
     except (OSError, ValueError):return {}
 
 
-def update_available(home=None):
+def audio_settings():
+    listener=read_json(Path.home()/'.config/mycroft/mycroft.conf').get('listener',{})
+    listener=listener if isinstance(listener,dict) else {}
+    value=listener.get('barge_in_volume',20)
+    try:value=int(value)
+    except (TypeError,ValueError):value=20
+    return {'enabled':listener.get('fake_barge_in',True) is True,
+            'volume':min(50,max(10,value))}
+
+
+def atomic_json(path,value,mode=None):
+    path=Path(path);path.parent.mkdir(parents=True,exist_ok=True)
+    mode=mode if mode is not None else (path.stat().st_mode & 0o777 if path.exists() else 0o600)
+    descriptor,name=tempfile.mkstemp(prefix='.'+path.name+'.',suffix='.new',dir=path.parent)
+    temporary=Path(name)
+    try:
+        with os.fdopen(descriptor,'w',encoding='utf-8') as output:
+            json.dump(value,output,indent=2,sort_keys=True);output.write('\n')
+            output.flush();os.fsync(output.fileno())
+        temporary.chmod(mode);temporary.replace(path)
+    except BaseException:
+        temporary.unlink(missing_ok=True);raise
+
+
+def update_status(home=None):
     home=Path(home or Path.home())
     state=home/'.local/state/jarvis'
     current=read_json(state/'current.json'); latest=read_json(state/'updates/latest.json')
@@ -205,8 +264,18 @@ def update_available(home=None):
         major,minor,patch,candidate=match.groups()
         return (int(major),int(minor),int(patch),0 if candidate else 1,
                 int(candidate) if candidate else 0)
+    installed=str(current.get('version','Unknown'))
+    newest=str(latest.get('latest','Not checked'))
     old,new=version(current.get('version')),version(latest.get('latest'))
-    return str(latest['latest']) if latest.get('update_available') is True and old and new and new>old else None
+    available=bool(latest.get('update_available') is True and old and new and new>old)
+    return {'installed':installed, 'latest':newest,
+            'release_date':str(latest.get('release_date','')),
+            'available':available}
+
+
+def update_available(home=None):
+    information=update_status(home)
+    return information['latest'] if information['available'] else None
 
 
 def speech_stop():
@@ -274,8 +343,42 @@ def maintenance(action):
 
 @exclusive
 def voice_setting(kind, values, report=lambda text: None):
-    if kind not in {'wake','shortcuts'}:raise ValueError('Unknown voice setting')
+    if kind not in {'wake','shortcuts','audio'}:raise ValueError('Unknown voice setting')
     before=snapshot()
+    if kind=='audio':
+        if len(values)!=2 or not isinstance(values[0],bool):
+            raise ValueError('Invalid background-audio setting')
+        try:volume=int(values[1])
+        except (TypeError,ValueError):raise ValueError('Listening volume must be a number')
+        if volume<10 or volume>50 or volume%5:
+            raise ValueError('Listening volume must be 10–50% in five-point steps')
+        path=Path.home()/'.config/mycroft/mycroft.conf'
+        original=path.read_bytes();mode=path.stat().st_mode & 0o777
+        try:config=json.loads(original)
+        except (TypeError,ValueError):raise ValueError('OVOS configuration is not valid JSON')
+        if not isinstance(config,dict):raise ValueError('OVOS configuration root is invalid')
+        listener=config.setdefault('listener',{})
+        if not isinstance(listener,dict):raise ValueError('OVOS listener settings are invalid')
+        listener['fake_barge_in']=values[0]
+        listener['barge_in_volume']=volume
+        listener['instant_listen']=False
+        if listener.get('barge_in_delay')==0.25:listener.pop('barge_in_delay')
+        report('Saving background-audio settings…')
+        try:
+            atomic_json(path,config,mode)
+            if before[LISTENER].get('ActiveState')=='active':
+                run(['systemctl','--user','restart',LISTENER],timeout=45)
+                restore_active(before);wait_ready([LISTENER],report)
+        except Exception:
+            descriptor,name=tempfile.mkstemp(prefix='.'+path.name+'.',suffix='.restore',dir=path.parent)
+            with os.fdopen(descriptor,'wb') as output:
+                output.write(original);output.flush();os.fsync(output.fileno())
+            temporary=Path(name);temporary.chmod(mode);temporary.replace(path)
+            if before[LISTENER].get('ActiveState')=='active':
+                run(['systemctl','--user','restart',LISTENER],timeout=45)
+            restore_active(before)
+            raise
+        return 'Background audio while listening saved.'
     helper=Path.home()/'.local/bin'/('jarvis-wake-phrase' if kind=='wake' else 'jarvis-listen-shortcut')
     args=['--phrase',values[0]] if kind=='wake' else ['--shortcut',values[0],'--microphone-shortcut',values[1]]
     report('Applying voice settings…')

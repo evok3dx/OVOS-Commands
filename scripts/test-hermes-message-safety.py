@@ -40,6 +40,7 @@ class FakeSkill(integration.HermesDesktopIntegrationMixin,
         self._confirmation_retries = 0
         self.keys = []
         self.typed = []
+        self.window_typed = []
         self.spoken = []
         self.window = ("123", 'WM_CLASS(STRING) = "hermes", "Hermes"')
         self.windows = []
@@ -59,6 +60,9 @@ class FakeSkill(integration.HermesDesktopIntegrationMixin,
 
     def _type_focused_text(self, text):
         self.typed.append(text)
+
+    def _type_into_window(self, window_id, text, press_enter):
+        self.window_typed.append((window_id, text, press_enter))
 
     def activate(self, **_kwargs):
         pass
@@ -207,4 +211,35 @@ with patch.object(integration.time, "sleep"):
     skill._route_claude_message(SimpleNamespace(data={"utterance": "Message Claude"}))
     assert skill._message_stage == "claude_message"
 
-print("PASS: one-turn Hermes, Claude and private agent messages; focus and native escapes")
+    # One-shot writing removes Whisper's automatic final full stop and never
+    # adds a trailing space or Enter. Spoken punctuation remains deliberate.
+    skill = FakeSkill()
+    skill._message_stage = "dictation"
+    skill._pending_window_id = "123"
+    assert reply(skill, "Hello world.")
+    assert skill.window_typed == [("123", "Hello world", False)]
+
+    skill = FakeSkill()
+    skill._message_stage = "dictation"
+    skill._pending_window_id = "123"
+    assert reply(skill, "Hello world full stop.")
+    assert skill.window_typed == [("123", "Hello world.", False)]
+
+    skill = FakeSkill()
+    skill._message_stage = "dictation"
+    skill._pending_window_id = "123"
+    assert reply(skill, "Hello world insert a period.")
+    assert skill.window_typed == [("123", "Hello world.", False)]
+
+    # Address-bar follow-up is consumed once, submitted without confirmation,
+    # and never escapes to DDG or another broad fallback.
+    skill = FakeSkill()
+    skill._message_stage = "browser_address"
+    skill._pending_window_id = "123"
+    skill.browser_actions = []
+    skill._run_browser_action = lambda *args: skill.browser_actions.append(args)
+    assert reply(skill, "example.com")
+    assert skill.browser_actions == [("navigate", "example.com")]
+    assert skill._message_stage is None and skill.spoken == []
+
+print("PASS: one-turn messages and exact one-shot writing; focus and native escapes")

@@ -36,6 +36,7 @@ class Reader(module.DispatcherHelpersMixin):
 for status, mode, expected in (
     (0, "selection", None),
     (20, "selection", "I could not find any selected text."),
+    (23, "selection", "Reading is already active."),
     (22, "selection", "Speech Note could not start reading."),
     (22, "page", "Speech Note could not start reading."),
     (1, "page", "I could not read content from that window."),
@@ -48,8 +49,8 @@ for status, mode, expected in (
     assert reader.restore.call_count == int(status != 0)
 
 reader = Reader()
-with patch.object(module.subprocess, "run", side_effect=subprocess.TimeoutExpired("reader", 12)):
+with patch.object(module.subprocess, "run", side_effect=subprocess.TimeoutExpired("reader", 15)):
     reader._read_visible_text("selection")
 assert reader.spoken == ["Speech Note could not start reading."]
 assert reader.restore.call_count == 1
-print("PASS: Speech Note startup, empty selection and timeout have distinct feedback")
+print("PASS: Speech Note lock, startup, empty selection and timeout have distinct feedback")

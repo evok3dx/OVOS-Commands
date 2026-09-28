@@ -1,5 +1,12 @@
 # Release history
 
+## 0.3.0 — bundled with Jarvis 3.6
+
+- A bare “search my files” request asks which file to find.
+- A bare “search my documents” request asks which document to find and keeps
+  the search inside `~/Documents`.
+- The follow-up remains filename-only and local.
+
 ## 0.2.0
 
 - Packages the clickable filename search as a complete OVOS skill release.

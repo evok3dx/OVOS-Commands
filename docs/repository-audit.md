@@ -39,8 +39,8 @@ working command behaviour as the regression baseline.
 
 ## Compatibility retained
 
-- Existing Brain-specific agent vocabulary can remain active only when an
-  already-customised legacy Brain profile is migrated.
+- Existing reference system-specific agent vocabulary can remain active only when an
+  already-customised legacy reference system profile is migrated.
 - Every enabled application alias has open, focus, minimise, maximise and close
   coverage.
 - Hermes rootless Podman isolation and secure launcher repair.

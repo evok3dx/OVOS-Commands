@@ -1,55 +1,91 @@
-# OVOS voice and media on Brain
+# OVOS voice stack
 
-This page records the **24 September 2026 Brain snapshot** from the supplied
-local progress notes and raw audio log. V3.1 uses the reviewed core and voice
-versions as installer targets; it preserves existing downloaded models and
-personal configuration. The wider package inventory contains optional skills
-that Jarvis does not install automatically.
+This page records the stable voice-stack boundary for Jarvis 3.6. It contains
+portable behaviour and reviewed versions, not workstation logs or private
+machine configuration.
 
-| Component | Reported Brain version or state |
+## Reviewed local stack
+
+| Component | Reviewed state |
 |---|---|
-| Core, Workshop, plugin manager | `3.7.0a1`, `9.8.7a1`, `2.12.4a1` |
-| Audio, Dinkum listener | `2.2.8a1`, `0.10.5a1` |
-| Silero VAD, PhōnNX/Bella | `0.1.3a2`, `1.93.0a1` |
-| Scriptconv, ONNX Runtime, NumPy | `0.0.4a31`, `1.30.0`, `2.4.6` |
-| Faster Whisper | Existing `small.en`; reviewed dynamic app-name prompt active on Brain |
-| Local routing | Existing Ollama with reviewed Qwen 4B instruct; V3 setup requires the model on other PCs and asks before downloading it |
+| OVOS Core / Workshop / plugin manager | `3.7.0a1` / `9.8.7a1` / `2.12.4a1` |
+| Audio / Dinkum listener | `2.2.8a1` / `0.10.5a1` |
+| Faster-Whisper | `small.en`, local CPU int8 baseline |
+| VAD | Silero `0.1.3a2` |
+| Speech output | phoonnx `1.93.0a1`, reviewed Bella voice |
+| Wake word | OpenWakeWord ONNX, explicit Hey Jarvis model |
+| Natural-language fallback | local Qwen 4B instruct through Ollama |
 
-`compatibility.json` and `scripts/doctor.py` recognise the reported Brain alpha
-versions. A separate dependency metadata warning concerning OpenWakeWord and
-NumPy 2 remains visible; it is not a reason to downgrade the working voice
-stack. The staged upgrade and fresh setup use the same reviewed targets in
-[installer and updates](07-installer-updates.md).
+The complete package set and exact hashes live in `compatibility.json` and
+`voice/reviewed-stack.json`. The installer stages this set in a clean
+virtualenv, validates entry points and launchers, then switches atomically.
+Existing models and machine configuration remain outside that switch.
 
-## Media status
+## OpenWakeWord review, 27 September 2026
 
-The Brain retained `ovos-audio` with Common Play/OCP and VLC. The standalone
-`ovos-media` daemon was trialled and rolled back. The reported modern providers
-included YouTube Music `0.0.1a3`, PyRadios `0.0.1a5`, SomaFM `0.0.1a5`, News
-`0.0.1a6` and Local `0.0.1a5`; VLC's Python plugin was `0.2.1a1`. A successful
-YouTube Music song and spoken stop were heard on Brain. Later requests failed
-provider timeouts and Google bot checks, so playback remains best effort. News
-was disabled in the Brain's effective media routing after it scored unrelated
-music searches. Do not turn it on implicitly during a Jarvis upgrade.
+The upstream `openWakeWord` stable release remains `0.6.0`, already the engine
+pin in `compatibility.json`. The stable OVOS plugin release is `0.4.1`; the
+reviewed stack uses the later tested `0.4.5a2` build with an explicit ONNX
+model path. Upstream continues to document ONNX support, so no demonstrably
+better replacement was adopted for 3.6.
 
-**Open failure:** the supplied 24 September `ovos-audio` log shows two
-`NPR News Now` requests rejected by `ovos_plugin_common_play.ocp.player.play()`
-at 01:47:14 and 01:49:53. Each rejection caused the spoken `skill.error`.
-At 01:46:44 a VLC callback tried to call `ocp_stop` on `None`; at 01:50:07
-Common Play timed out after 300 seconds. The excerpt establishes the failure
-path, but does not show who requeued the NPR item. The Brain's installed media
-source and effective queue settings need inspection before a fix can be
-claimed. The supplied stack traces name Common Play and VLC; they do not
-establish Qwen or tray polling as the source of the repeated request.
+Sources: [openWakeWord releases](https://github.com/dscripka/openWakeWord/releases),
+[openWakeWord on PyPI](https://pypi.org/project/openwakeword/), and
+[OVOS OpenWakeWord plugin](https://github.com/OpenVoiceOS/ovos-ww-plugin-openwakeword).
 
-The Brain notes also record local compatibility edits for the older audio
-backend's `meta` field and for the YouTube extractor's Node and audio format
-selection. They were made inside installed third-party packages; this
-repository does not currently manage or reapply them. An upgrade that replaces
-those packages needs its own exact-source check and reversible patch. The
-reviewed [Whisper app-name patch](../extras/whisper-hints/README.md)
-similarly refuses to modify an unknown installed plugin revision.
+The plugin's NumPy metadata warning remains visible. Jarvis does not call the
+environment dependency-clean merely because the tested ONNX runtime works;
+the installer proves the actual ONNX model can load before switching.
 
-For the full chronology, retain the two supplied local progress notes and
-chat exports with the machine records. This page records only release-relevant
-verified state; [the living audit](v2.4-audit.md) tracks what remains open.
+## Microphone and listening cue
+
+Fresh installations use the reviewed SoundDevice path with ALSA fallback.
+Any explicit microphone module or device is machine-owned and preserved.
+Service readiness alone is not accepted as proof of capture; the release
+procedure includes wake-word and manual-listen tests.
+
+Jarvis plays the listening cue at the user's current volume. Cue completion
+controls only when background playback is ducked; it never delays microphone
+capture. The listener takes a fresh volume snapshot for each activation,
+restores it at record end and has a bounded emergency restore. The portable
+default is 20%, adjustable from the Voice page. Existing custom values remain
+untouched.
+
+Empty/noisy captures are silent. A real `Pause music` request remains valid;
+Jarvis does not solve false speech by blacklisting useful commands. The
+managed Faster-Whisper setup enables its supported VAD filter and keeps cue
+audio outside transcription.
+
+## Whisper hints
+
+The hint adapter supplies enabled application names and a short reviewed cue
+set to `small.en`. It patches only a recognised plugin source revision and
+fails closed on an unfamiliar revision. Names are sanitised and bounded by
+count and byte length. Saving app choices or personal spoken names updates the
+next request without sending data elsewhere.
+
+## Speech Note
+
+Jarvis uses Speech Note's supported local actions for one-shot writing,
+continuous dictation and reading. It preserves the user's normal reading
+speed; an explicit 2× request is a temporary transaction and restores the
+exact prior setting. Lock contention, empty selection and startup failure have
+different results.
+
+Speech Note's transformation-rule list is opaque and machine-owned. Setup
+therefore explains one additive regular-expression rule for filtering the
+wake phrase during continuous dictation instead of rewriting existing rules.
+
+## Evidence status
+
+- **VERIFIED:** clean-stack staging, ONNX load, model preparation, launcher
+  relocation, rollback, microphone preservation, cue/volume guard, Whisper
+  hint transactions and reading-speed restoration pass isolated tests.
+- **VERIFIED live:** wake, manual listen, cue, speech output, volume restore
+  and ordinary commands worked in the recorded acceptance trial.
+- **PLANNED compatibility evidence:** latency on an older 16 GB computer and a
+  complete login-autostart cycle remain useful post-release checks.
+
+Historical failures and their durable fixes are summarised in
+[the 3.1.1 incident record](v3.1.1-checklist.md). Raw machine logs are not
+published in this repository.

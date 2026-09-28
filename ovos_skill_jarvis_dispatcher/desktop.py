@@ -94,7 +94,7 @@ class DesktopActionsMixin:
                 if not success:
                     self.speak(f"I could not {action} {display_name}.")
                 elif action == 'open':
-                    self.speak(f"Opening {display_name}.")
+                    self.speak("Opening.")
                 elif action == 'close':
                     self.speak(f"{display_name} closed.")
             return success
@@ -135,7 +135,7 @@ class DesktopActionsMixin:
             return False
 
         if announce and action == "open":
-            self.speak(f"Opening {display_name}.")
+            self.speak("Opening.")
         elif announce and action == "close":
             self.speak(f"{display_name} closed.")
         return True

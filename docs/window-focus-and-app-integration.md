@@ -3,7 +3,7 @@
 **Validated:** 16 September 2026  
 **Platform:** Linux Mint 22.3 / Cinnamon X11
 
-This document records the exact window-focus behaviour used by Jarvis desktop integrations and the troubleshooting process validated across the Brain and a second laptop.
+This document records the exact window-focus behaviour used by Jarvis desktop integrations and the troubleshooting process validated across the reference system and a second laptop.
 
 ## Why this exists
 
@@ -64,7 +64,7 @@ This proved the application and shortcuts were healthy. The fault was in the hel
 
 ## The multi-pattern bug
 
-An older Brain deployment used one exact Standard Notes match:
+An older reference system deployment used one exact Standard Notes match:
 
 ```text
 standard notes.Standard Notes
@@ -114,12 +114,12 @@ match A OR match B OR match C
 
 not one literal string.
 
-## Why the Brain worked while the laptop failed
+## Why the reference system worked while the laptop failed
 
-The Brain and laptop were not actually exercising identical helper data:
+The reference system and laptop were not actually exercising identical helper data:
 
 ```text
-Brain
+reference system
 single exact Standard Notes class
 + single-literal matcher
 = works
@@ -248,7 +248,7 @@ Before adding another X11 signature:
 
 Do not use broad title-only matching when a stable application class exists. Do not accept arbitrary window-match strings from speech or capability files.
 
-## Brain/laptop comparison checklist
+## reference system/laptop comparison checklist
 
 When behaviour differs between machines, compare the actual deployed helpers instead of assuming the application differs:
 

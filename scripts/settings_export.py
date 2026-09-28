@@ -14,7 +14,8 @@ MAX_TOTAL = 24 * 1024 * 1024
 FIXED = ('.config/mycroft/mycroft.conf', '.config/ovos/ovos.conf',
          '.config/ovos/mycroft.conf', '.local/share/ovos/sounds/jarvis-ready.wav')
 FIXED += tuple('.config/jarvis/'+name for name in ('capabilities.json', 'profile.json',
-    'custom-commands.json', 'listen-shortcut.json', 'router.json', 'update.json'))
+    'custom-commands.json', 'listen-shortcut.json', 'router.json', 'update.json',
+    'reading-normal-speed'))
 GROUPS = ('.config/ovos/personas', '.local/share/ovos/personas')
 
 

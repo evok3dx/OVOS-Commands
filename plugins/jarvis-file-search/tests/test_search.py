@@ -1,5 +1,7 @@
 import tempfile
 import signal
+import sys
+import types
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -8,8 +10,48 @@ from subprocess import CompletedProcess
 from jarvis_file_search.search import search_filenames
 from jarvis_file_search.results import show_results, run_window
 
+decorators = types.ModuleType("ovos_workshop.decorators")
+decorators.intent_handler = lambda _name: (lambda function: function)
+skills = types.ModuleType("ovos_workshop.skills.ovos")
+skills.OVOSSkill = object
+sys.modules.setdefault("ovos_workshop", types.ModuleType("ovos_workshop"))
+sys.modules["ovos_workshop.decorators"] = decorators
+sys.modules.setdefault("ovos_workshop.skills", types.ModuleType("ovos_workshop.skills"))
+sys.modules["ovos_workshop.skills.ovos"] = skills
+
+from jarvis_file_search.skill import JarvisFileSearchSkill
+
 
 class SearchTests(unittest.TestCase):
+    def test_file_and_document_prompts_keep_their_scope(self):
+        class PromptHarness:
+            responses = {
+                "which.filename": "holiday photo",
+                "which.document": "quarterly report",
+            }
+
+            def __init__(self):
+                self.searches = []
+
+            def get_response(self, dialog, num_retries=0):
+                self.asserted = (dialog, num_retries)
+                return self.responses[dialog]
+
+            def _search(self, query, documents_only=False):
+                self.searches.append((query, documents_only))
+
+            def _prompt_search(self, dialog, *, documents_only):
+                return JarvisFileSearchSkill._prompt_search(
+                    self, dialog, documents_only=documents_only
+                )
+
+        harness = PromptHarness()
+        JarvisFileSearchSkill.handle_search_prompt(harness, None)
+        JarvisFileSearchSkill.handle_documents_prompt(harness, None)
+        self.assertEqual(harness.searches, [
+            ("holiday photo", False), ("quarterly report", True),
+        ])
+
     def test_matches_filename_but_not_document_content(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)

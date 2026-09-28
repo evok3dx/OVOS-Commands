@@ -113,8 +113,8 @@ CATEGORY_INTEGRATIONS = {
     "calendar": {"proton_calendar"},
 }
 
-BRAIN_COMPATIBILITY_PROFILE = {
-    "name": "brain-compatibility",
+REFERENCE_COMPATIBILITY_PROFILE = {
+    "name": "reference-compatibility",
     "conversation": True,
     "wake_phrase": "hey_jarvis",
     "applications": {
@@ -279,7 +279,7 @@ def resolve_profile(raw_profile):
 
 
 def load_profile(path=None, logger=None):
-    """Load the user profile, falling back to current Brain behaviour."""
+    """Load the user profile, falling back to current reference system behaviour."""
 
     if path is None:
         capabilities = Path.home() / ".config/jarvis/capabilities.json"

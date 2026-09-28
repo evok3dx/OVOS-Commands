@@ -13,6 +13,7 @@ target_profile="$jarvis_home/.config/jarvis/profile.json"
 target_capabilities="$jarvis_home/.config/jarvis/capabilities.json"
 systemd_dir="$jarvis_home/.config/systemd/user"
 launcher="$jarvis_home/.local/share/applications/hermes.desktop"
+jarvis_launcher="$jarvis_home/.local/share/applications/jarvis-ovos.desktop"
 tray_icon_dir="$jarvis_home/.local/share/icons/ovos-tray"
 tray_autostart="$jarvis_home/.config/autostart/ovos-tray.desktop"
 mic_icon_dir="$jarvis_home/.local/share/jarvis"
@@ -132,6 +133,7 @@ for unit in \
   validate_restore_entry "$backup_root/systemd/$unit"
 done
 validate_restore_entry "$backup_root/hermes.desktop"
+validate_restore_entry "$backup_root/jarvis-ovos.desktop"
 validate_restore_entry "$backup_root/tray/ovos-tray"
 validate_restore_entry "$backup_root/tray/ovos-tray.desktop"
 for icon in \
@@ -215,6 +217,7 @@ for unit in \
   restore_file "$backup_root/systemd/$unit" "$systemd_dir/$unit" 0644
 done
 restore_file "$backup_root/hermes.desktop" "$launcher" 0644
+restore_file "$backup_root/jarvis-ovos.desktop" "$jarvis_launcher" 0644
 restore_file "$backup_root/tray/ovos-tray" "$target_bin/ovos-tray" 0755
 restore_file "$backup_root/tray/ovos-tray.desktop" "$tray_autostart" 0644
 for icon in \
@@ -310,8 +313,35 @@ PY
   fi
   fi
 
+  if ! "$restored_venv" && [[ -f "$backup_root/listener-service.py" && \
+        -f "$backup_root/listener-service.path" ]]; then
+    listener_service_path="$(<"$backup_root/listener-service.path")"
+    case "$listener_service_path" in
+      "$jarvis_home"/.venvs/ovos/lib/python*/site-packages/ovos_dinkum_listener/service.py)
+        install -m 0644 "$backup_root/listener-service.py" "$listener_service_path"
+        ;;
+      *)
+        echo "Unsafe Dinkum listener rollback path: $listener_service_path" >&2
+        exit 1
+        ;;
+    esac
+  fi
+  if ! "$restored_venv" && [[ -f "$backup_root/listener-voice-loop.py" && \
+        -f "$backup_root/listener-voice-loop.path" ]]; then
+    listener_voice_loop_path="$(<"$backup_root/listener-voice-loop.path")"
+    case "$listener_voice_loop_path" in
+      "$jarvis_home"/.venvs/ovos/lib/python*/site-packages/ovos_dinkum_listener/voice_loop/voice_loop.py)
+        install -m 0644 "$backup_root/listener-voice-loop.py" "$listener_voice_loop_path"
+        ;;
+      *)
+        echo "Unsafe Dinkum voice-loop rollback path: $listener_voice_loop_path" >&2
+        exit 1
+        ;;
+    esac
+  fi
+
   systemctl --user daemon-reload
-  for unit in hermes-launcher-repair.path jarvis-health-check.timer jarvis-update-check.timer; do
+  for unit in ovos.service hermes-launcher-repair.path jarvis-health-check.timer jarvis-update-check.timer; do
     state_file="$backup_root/$unit.state"
     if [[ "$unit" == hermes-launcher-repair.path && ! -f "$state_file" ]]; then
       state_file="$backup_root/hermes-path-unit-state"

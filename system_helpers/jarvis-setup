@@ -3,10 +3,23 @@ set -euo pipefail
 
 jarvis_home="${JARVIS_HOME:-$HOME}"
 setup="$jarvis_home/.local/src/ovos-skill-jarvis-dispatcher/scripts/setup.py"
+tray="$jarvis_home/.local/bin/ovos-tray"
+tray_log="$jarvis_home/.local/state/jarvis/ovos-tray.log"
 
 [[ -f "$setup" ]] || {
   echo "Jarvis setup was not found: $setup" >&2
   exit 1
 }
+
+# The Start Menu entry uses this helper with --gui. Recreate the combined tray
+# if the user previously chose Quit tray. The tray owns a non-blocking file
+# lock, so launching this while it is already running never creates two icons.
+for argument in "$@"; do
+  if [[ "$argument" == --gui && -x "$tray" ]]; then
+    mkdir -p "$(dirname "$tray_log")"
+    nohup "$tray" >> "$tray_log" 2>&1 &
+    break
+  fi
+done
 
 exec /usr/bin/python3 "$setup" "$@"

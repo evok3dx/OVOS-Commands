@@ -1,5 +1,7 @@
 """Single allowlisted catalogue and dispatcher shared by personal phrases and AI."""
 
+import re
+
 def _action(category, label, *examples):
     return {
         "category": category,
@@ -25,6 +27,9 @@ BASE_ACTIONS = {
     "system.insert_new_line": _action(
         "Writing", "Insert a new line in the focused app", "new line"
     ),
+    "system.insert_period": _action(
+        "Writing", "Insert a full stop in the focused app", "full stop", "period"
+    ),
     "system.caps_lock_on": _action(
         "System", "Turn Caps Lock on", "caps lock on"
     ),
@@ -37,6 +42,9 @@ BASE_ACTIONS = {
     "media.next": _action("Media", "Play next track", "next track"),
     "media.previous": _action(
         "Media", "Play previous track", "previous track"
+    ),
+    "media.search": _action(
+        "Media", "Find and play a named song", "play a song called Get Lucky"
     ),
     "hermes.focus_composer": _action(
         "Hermes", "Focus the composer", "focus Hermes composer"
@@ -195,6 +203,51 @@ BASE_ACTIONS = {
 }
 
 
+# These are exact, reviewed interaction phrases, not model classifications.
+# They provide a deterministic fast path when Adapt declines a multi-entity
+# command. Qwen may also recognise the same bounded interaction starters, but
+# it never receives or emits the dictated message and cannot bypass the
+# existing focus checks or two-turn capture flow.
+STRICT_SPOKEN_ACTIONS = {
+    "message hermes": "hermes.message",
+    "ask hermes": "hermes.message",
+    "tell hermes": "hermes.message",
+    "write to hermes": "hermes.message",
+    "type into hermes": "hermes.message",
+    "talk to hermes": "hermes.message",
+    "message claude": "claude_desktop.message",
+    "ask claude": "claude_desktop.message",
+    "tell claude": "claude_desktop.message",
+    "write to claude": "claude_desktop.message",
+    "type into claude": "claude_desktop.message",
+    "talk to claude": "claude_desktop.message",
+    "message codex agent": "codex.message",
+    "ask codex agent": "codex.message",
+    "tell codex agent": "codex.message",
+    "message claude agent": "claude_agent.message",
+    "ask claude agent": "claude_agent.message",
+    "tell claude agent": "claude_agent.message",
+    "search firefox": "browser.search_firefox",
+    "search fire fox": "browser.search_firefox",
+    "firefox search": "browser.search_firefox",
+    "fire fox search": "browser.search_firefox",
+    "search brave": "browser.search_brave",
+    "brave search": "browser.search_brave",
+}
+
+
+def strict_spoken_action(utterance, profile):
+    """Resolve only an exact allowlisted phrase available on this profile."""
+
+    if not isinstance(utterance, str) or not utterance.strip():
+        return None
+    token = " ".join(re.findall(r"[a-z0-9]+", utterance.casefold()))
+    action = STRICT_SPOKEN_ACTIONS.get(token)
+    if action not in action_catalog(profile):
+        return None
+    return action
+
+
 def action_catalog(profile=None):
     """Return friendly actions, including profile-approved applications."""
     catalog = dict(BASE_ACTIONS)
@@ -232,14 +285,24 @@ def action_catalog(profile=None):
 # Exposure is an explicit allowlist. New actions remain hidden until reviewed.
 ROUTER_ACTIONS = frozenset({
     "window.minimize", "window.maximize", "window.restore",
-    "reading.page", "reading.selection", "reading.page_fast",
-    "reading.selection_fast",
+    "reading.last_typed", "reading.page", "reading.selection",
+    "reading.page_fast", "reading.selection_fast",
     "media.play", "media.pause", "media.stop", "media.next", "media.previous",
+    "media.search",
+    "text.write", "dictation.start", "dictation.pause", "dictation.resume",
+    "dictation.stop",
     "browser.scroll_down", "browser.scroll_up", "browser.page_down",
     "browser.page_up", "browser.top", "browser.bottom", "browser.back",
-    "browser.forward", "browser.new_tab", "browser.search_brave",
+    "browser.forward", "browser.new_tab", "browser.refresh", "browser.address",
+    "browser.youtube_shorts", "browser.search_brave",
     "browser.search_firefox", "browser.search_youtube", "notes.search", "mail.search",
-    "files.search",
+    "notes.new", "mail.new", "files.search", "response.read_latest", "date.today",
+    "hermes.message", "codex.message", "claude_agent.message",
+    "claude_desktop.message",
+})
+MESSAGE_ROUTER_ACTIONS = frozenset({
+    "hermes.message", "codex.message", "claude_agent.message",
+    "claude_desktop.message",
 })
 APP_ROUTER_OPERATIONS = frozenset({"open", "focus", "minimize", "maximize"})
 
@@ -254,6 +317,7 @@ def action_policy(action_id):
 def router_catalog(profile):
     catalog = action_catalog(profile)
     apps = profile.get("applications", {})
+    integrations = {definition.get("integration") for definition in apps.values()}
     allowed = {}
     for action_id, details in catalog.items():
         policy = action_policy(action_id)
@@ -280,6 +344,11 @@ def router_catalog(profile):
             a.get("integration") == "proton_mail" for a in apps.values()
         ):
             continue
+        if action_id == "hermes.message" and "hermes_desktop" not in integrations:
+            continue
+        if (action_id == "claude_desktop.message"
+                and "claude_desktop" not in integrations):
+            continue
         allowed[action_id] = dict(details, **policy)
     return allowed
 
@@ -299,12 +368,23 @@ def dispatch_action(skill, action_id, message, *, source="personal"):
         from ovos_bus_client import Message
         skill.bus.emit(Message('jarvis.file.search', request))
         return True
+    if action_id == "media.search":
+        from .routing_model import media_search_request
+        query = media_search_request(
+            message.data.get('utterance'), model_approved=source == "router"
+        )
+        if not query:
+            return False
+        from ovos_bus_client import Message
+        skill.bus.emit(Message('jarvis.media.play_query', {"query": query}))
+        return True
     direct_handlers = {
         "system.mute_all_audio": "handle_mute_system_audio",
         "system.mute_microphone": "handle_mute_system_microphone",
         "system.mute_jarvis": "handle_mute_jarvis",
         "system.press_enter": "handle_press_enter",
         "system.insert_new_line": "handle_insert_new_line",
+        "system.insert_period": "handle_insert_period",
         "system.press_escape": "handle_press_escape",
         "system.caps_lock_on": "handle_caps_lock_on",
         "system.caps_lock_off": "handle_caps_lock_off",

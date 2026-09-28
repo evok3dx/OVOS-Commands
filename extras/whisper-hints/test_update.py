@@ -77,19 +77,19 @@ class HintTests(unittest.TestCase):
 
     def test_old_prompt_replaced_custom_prompt_preserved(self):
         self.assertEqual(hints.build_prompt(['Jarvis','Mega'],hints.ORIGINAL)[0],
-                         hints.MEDIA_HINT+' Jarvis, Mega.')
+                         'Jarvis, Mega.')
         self.assertEqual(hints.build_prompt(['Jarvis','Mega'],'My custom context.')[0],
-                         'My custom context. '+hints.MEDIA_HINT+' Jarvis, Mega.')
+                         'My custom context. Jarvis, Mega.')
         with self.assertRaises(ValueError):hints.build_prompt(['Mega'],'x'*193)
 
     def test_whole_names_byte_budget_unicode_and_name_cap(self):
         names=['Jarvis','Mega']+['Application '+str(n)+' Café'*8 for n in range(70)]
         prompt,info=hints.build_prompt(names)
         self.assertLessEqual(len((' '+prompt).encode()),192)
-        self.assertTrue(prompt.startswith(hints.MEDIA_HINT+' Jarvis, Mega'))
+        self.assertTrue(prompt.startswith('Jarvis, Mega'))
         self.assertTrue(info['limited'])
-        self.assertTrue(info['media'])
-        selected=prompt.removeprefix(hints.MEDIA_HINT+' ')
+        self.assertFalse(info['media'])
+        selected=prompt
         self.assertTrue(all(n in names for n in selected[:-1].split(', ')))
         tokenizer=SimpleNamespace(encode=lambda text:SimpleNamespace(ids=text.split()))
         _,info=hints.build_prompt(['Name'+str(n) for n in range(80)],tokenizer=tokenizer)
@@ -157,7 +157,7 @@ class ProfileTests(unittest.TestCase):
         with patch.dict(sys.modules,{'fake.jarvis_app_hints':hints}),patch.object(hints.Path,'home',return_value=self.home):
             self.assertEqual(env['execute'](stub,'audio'),'Open Mega.')
         self.assertEqual(engine.transcribe.call_args.kwargs['initial_prompt'],
-                         hints.MEDIA_HINT+' Jarvis, mega, MEGAsync.')
+                         'Jarvis, mega, MEGAsync.')
 
 class TransactionTests(unittest.TestCase):
     def setUp(self):

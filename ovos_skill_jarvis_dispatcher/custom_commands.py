@@ -19,6 +19,7 @@ ENTITY_ACTIONS = {
     "MuteJarvisCommand": "system.mute_jarvis",
     "PressEnterCommand": "system.press_enter",
     "InsertNewLineCommand": "system.insert_new_line",
+    "InsertPeriodCommand": "system.insert_period",
     "PressEscapeCommand": "system.press_escape",
     "PlayMediaCommand": "media.play",
     "PauseMediaCommand": "media.pause",
@@ -311,14 +312,7 @@ class CustomCommandsMixin:
     """Dispatch personal phrases only to explicitly implemented actions."""
 
     def _custom_address_prompt(self):
-        self._run_browser_action("address")
-        with self._message_lock:
-            self._clear_message_state()
-            self._message_stage = "browser_address"
-            self._message_retries = 1
-        self.activate(duration_minutes=1)
-        self.speak("What should I enter?", expect_response=True, wait=True)
-        self._arm_message_timeout(20)
+        self._prompt_browser_address()
 
     def _run_custom_command(self, message):
         matched = next(

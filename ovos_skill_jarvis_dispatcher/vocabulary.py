@@ -284,6 +284,10 @@ def register_skill_vocabulary(self, include_custom=True):
         "InsertNewLineCommand": [
             "new line", "newline", "insert new line", "add a new line",
         ],
+        "InsertPeriodCommand": [
+            "full stop", "period", "insert full stop", "insert a full stop",
+            "insert period", "insert a period", "add a full stop", "add a period",
+        ],
         "PressEscapeCommand": [
             "press escape", "press esc", "hit escape", "escape key",
         ],
@@ -744,7 +748,13 @@ def register_skill_vocabulary(self, include_custom=True):
         ],
         "ReadSelectedTextCommand": [
             "read this",
+            "read this aloud",
+            "read this text",
+            "read this sentence",
+            "read this at normal speed",
+            "read this at one x",
             "read selected text",
+            "read selected text at normal speed",
             "read the selected text",
             "read this selection",
             "read the selection"
@@ -752,6 +762,8 @@ def register_skill_vocabulary(self, include_custom=True):
         "ReadVisiblePageCommand": [
             "read page",
             "read this page",
+            "read this page at normal speed",
+            "read this page at one x",
             "read the page",
             "read current page",
             "read the complete page",

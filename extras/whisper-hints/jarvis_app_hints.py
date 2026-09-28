@@ -6,7 +6,6 @@ from pathlib import Path
 import threading
 
 ORIGINAL = 'Jarvis, Brave, Claude, Hermes, ChatGPT, Proton Mail, Standard Notes, ONLYOFFICE, RustDesk.'
-MEDIA_HINT = 'Pause music. Next track. Previous track. Resume playback. Write this. Type this. Start writing. Start dictation.'
 TOKEN_LIMIT = 192
 NAME_LIMIT = 40
 PROPER_NAMES = {'standard_notes':'Standard Notes', 'onlyoffice':'ONLYOFFICE',
@@ -88,20 +87,20 @@ def build_prompt(names, base=None, tokenizer=None):
         return len((' ' + text.strip()).encode('utf-8'))
     if custom and count(custom) > TOKEN_LIMIT:
         raise ValueError('Existing custom prompt exceeds the dynamic hint budget')
-    prefix = (custom.rstrip() + ' ' if custom else '') + MEDIA_HINT
+    prefix = custom.rstrip()
     if count(prefix) > TOKEN_LIMIT:
-        raise ValueError('Media vocabulary exceeds the dynamic hint budget')
+        raise ValueError('Existing prompt exceeds the dynamic hint budget')
     selected = []
     result = prefix
     for name in names:
         if len(selected) >= NAME_LIMIT:
             break
         candidate_names = [*selected, name]
-        candidate = prefix.rstrip() + ' ' + ', '.join(candidate_names) + '.'
+        candidate = ((prefix + ' ') if prefix else '') + ', '.join(candidate_names) + '.'
         if count(candidate) <= TOKEN_LIMIT:
             selected = candidate_names
             result = candidate
-    return result, {'names':len(selected), 'available_names':len(names), 'media':True,
+    return result, {'names':len(selected), 'available_names':len(names), 'media':False,
                     'tokens':count(result) if result else 0,
                     'limited':len(selected) < len(names)}
 

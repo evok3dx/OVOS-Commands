@@ -362,14 +362,6 @@ if [[ "$reading_speed" != "1" && "$reading_speed" != "2" ]]; then
     exit 2
 fi
 
-normal_speed="$(
-    head -n 1 "$normal_speed_file" 2>/dev/null
-)"
-if [[ ! "$normal_speed" =~ ^([1-9]|1[0-9]|20)$ ]]; then
-    normal_speed="$(sed -n 's/^speech_speed2=//p' "$speech_note_settings" 2>/dev/null | head -n 1)"
-    [[ "$normal_speed" =~ ^([1-9]|1[0-9]|20)$ ]] || normal_speed=11
-fi
-
 set_speech_note_speed() {
     local value="$1"
 
@@ -391,7 +383,78 @@ speech_note_running() {
       net.mkiol.SpeechNote TaskState >/dev/null 2>&1
 }
 
-mkdir -p "$(dirname "$fast_marker")"
+save_user_speed() {
+    local value="$1"
+    local directory
+    local temporary
+
+    directory="$(dirname "$normal_speed_file")"
+    mkdir -p "$directory"
+    chmod 700 "$directory" 2>/dev/null || true
+    temporary="$(mktemp "$directory/.reading-normal-speed.XXXXXX")"
+    printf '%s\n' "$value" > "$temporary"
+    chmod 600 "$temporary"
+    mv -f -- "$temporary" "$normal_speed_file"
+}
+
+start_speech_note_in_tray() {
+    # Do not let the long-lived Speech Note process inherit this helper's
+    # transaction lock. Otherwise every later reading request is rejected
+    # until Speech Note itself exits.
+    nohup flatpak run net.mkiol.SpeechNote --start-in-tray \
+      9>&- >/dev/null 2>&1 &
+}
+
+speed_state_dir="$(dirname "$fast_marker")"
+mkdir -p "$speed_state_dir"
+chmod 700 "$speed_state_dir" 2>/dev/null || true
+exec 9>"$speed_state_dir/reading-speed.lock"
+if ! flock -n 9; then
+    echo "Another Jarvis reading request is still active" >&2
+    exit 23
+fi
+
+# Recover an interrupted temporary 2x transaction before starting another
+# request. New markers include the exact user-selected speed; the separate
+# baseline file supports recovery from pre-3.2 markers only.
+recovered_was_running=0
+if [[ -f "$fast_marker" && ! -L "$fast_marker" && -O "$fast_marker" ]]; then
+    marker_version=""
+    marker_token=""
+    restore_speed=""
+    marker_was_running=0
+    read -r marker_version marker_token restore_speed marker_was_running \
+      < "$fast_marker" || true
+    if [[ "$marker_version" != v2 || \
+          ! "$restore_speed" =~ ^([1-9]|1[0-9]|20)$ ]]; then
+        restore_speed="$(head -n 1 "$normal_speed_file" 2>/dev/null)"
+        marker_was_running=0
+    elif [[ "$marker_was_running" == 1 ]]; then
+        recovered_was_running=1
+    fi
+    if [[ ! "$restore_speed" =~ ^([1-9]|1[0-9]|20)$ ]]; then
+        restore_speed=10
+    fi
+    configured_speed="$(sed -n 's/^speech_speed2=//p' "$speech_note_settings" 2>/dev/null | head -n 1)"
+    if speech_note_running; then
+        flatpak kill net.mkiol.SpeechNote >/dev/null 2>&1 || true
+        sleep 1
+    fi
+    if [[ ! "$configured_speed" =~ ^([1-9]|1[0-9]|20)$ || \
+          "$configured_speed" == 20 ]]; then
+        set_speech_note_speed "$restore_speed"
+        save_user_speed "$restore_speed"
+    else
+        # A valid different value was chosen manually after Jarvis restored
+        # the file. Preserve that choice rather than overwriting it.
+        save_user_speed "$configured_speed"
+    fi
+    rm -f -- "$fast_marker"
+fi
+
+temporary_fast=0
+restore_speed=""
+was_running="$recovered_was_running"
 
 if [[ "$reading_speed" == "2" ]]; then
     # On another PC, leave Speech Note alone if its settings cannot be
@@ -406,36 +469,51 @@ if [[ "$reading_speed" == "2" ]]; then
         echo "Speech Note speed setting needs review" >&2
         exit 1
     fi
-    if [[ "$configured_speed" != 20 ]] && speech_note_running; then
-        flatpak kill net.mkiol.SpeechNote >/dev/null 2>&1 || true
-        sleep 1
+    restore_speed="$configured_speed"
+    save_user_speed "$restore_speed"
+    if [[ "$configured_speed" != 20 ]]; then
+        temporary_fast=1
+        if speech_note_running; then
+            was_running=1
+            flatpak kill net.mkiol.SpeechNote >/dev/null 2>&1 || true
+            sleep 1
+        fi
+        set_speech_note_speed 20
+        marker="$$-$RANDOM"
+        printf 'v2 %s %s %s\n' \
+          "$marker" "$restore_speed" "$was_running" > "$fast_marker"
+        chmod 600 "$fast_marker"
+    fi
+else
+    configured_speed="$(sed -n 's/^speech_speed2=//p' "$speech_note_settings" 2>/dev/null | head -n 1)"
+    if [[ -f "$speech_note_settings" ]] && {
+         [[ -L "$speech_note_settings" ]] ||
+         [[ ! -O "$speech_note_settings" ]] ||
+         [[ ! -w "$speech_note_settings" ]];
+       }; then
+        echo "Cannot safely restore Speech Note normal speed on this computer" >&2
+        exit 1
     fi
 
-    set_speech_note_speed 20
-    marker="$$-$RANDOM"
-    printf '%s\n' "$marker" > "$fast_marker"
-elif [[ -f "$fast_marker" ]]; then
-    if speech_note_running; then
-        flatpak kill net.mkiol.SpeechNote >/dev/null 2>&1 || true
-        sleep 1
+    # Ordinary reading uses the current Speech Note setting. This preserves a
+    # user's manual 1.5x, 1.8x or other supported preference.
+    if [[ "$configured_speed" =~ ^([1-9]|1[0-9]|20)$ ]]; then
+        save_user_speed "$configured_speed"
     fi
-
-    set_speech_note_speed "$normal_speed"
-    rm -f -- "$fast_marker"
 fi
 
 xclip -selection clipboard -i < "$captured_text"
 
 flatpak run net.mkiol.SpeechNote \
   --action start-reading-clipboard \
-  >/dev/null 2>&1 &
+  9>&- >/dev/null 2>&1 &
 launcher_pid=$!
 
 # Flatpak may wait for the entire reading task before it exits. Recognise an
 # accepted reader request from the live task state or a successful launcher
 # exit, without waiting for the passage to finish.
 accepted=0
-for ((attempt=0; attempt<30; attempt++)); do
+for ((attempt=0; attempt<50; attempt++)); do
     if ! kill -0 "$launcher_pid" 2>/dev/null; then
         if wait "$launcher_pid"; then accepted=1; fi
         break
@@ -456,12 +534,27 @@ if (( accepted == 0 )) && kill -0 "$launcher_pid" 2>/dev/null; then
     echo "Speech Note did not confirm reading started" >&2
 fi
 
-if [[ "$reading_speed" == "2" ]]; then
+if (( temporary_fast == 1 )); then
     # The active task already received speed 20. Restore the saved setting
     # immediately so an unexpected shutdown cannot make 2x permanent.
-    set_speech_note_speed "$normal_speed"
+    set_speech_note_speed "$restore_speed"
     if (( accepted == 0 )); then
-        [[ "$(cat "$fast_marker" 2>/dev/null)" == "$marker" ]] && rm -f -- "$fast_marker"
+        if kill -0 "$launcher_pid" 2>/dev/null; then
+            kill "$launcher_pid" 2>/dev/null || true
+            wait "$launcher_pid" 2>/dev/null || true
+        fi
+        # A late Flatpak start must not begin at 2x after Jarvis has already
+        # reported failure. Stop it before clearing the transaction marker.
+        flatpak kill net.mkiol.SpeechNote >/dev/null 2>&1 || true
+        set_speech_note_speed "$restore_speed"
+        if (( was_running == 1 )); then
+            start_speech_note_in_tray
+        fi
+        read -r current_version current_token _ \
+          < "$fast_marker" 2>/dev/null || true
+        if [[ "$current_version" == v2 && "$current_token" == "$marker" ]]; then
+            rm -f -- "$fast_marker"
+        fi
         exit 22
     fi
 
@@ -470,7 +563,9 @@ if [[ "$reading_speed" == "2" ]]; then
         startup_checks=0
 
         while (( startup_checks < 150 || saw_playback == 1 )); do
-            [[ "$(cat "$fast_marker" 2>/dev/null)" == "$marker" ]] || exit 0
+            read -r current_version current_token _ \
+              < "$fast_marker" 2>/dev/null || exit 0
+            [[ "$current_version" == v2 && "$current_token" == "$marker" ]] || exit 0
             state="$(
                 gdbus call \
                   --session \
@@ -506,8 +601,22 @@ if [[ "$reading_speed" == "2" ]]; then
         done
 
         flatpak kill net.mkiol.SpeechNote >/dev/null 2>&1 || true
-        set_speech_note_speed "$normal_speed"
-        [[ "$(cat "$fast_marker" 2>/dev/null)" == "$marker" ]] && rm -f -- "$fast_marker"
+        current_speed="$(sed -n 's/^speech_speed2=//p' "$speech_note_settings" 2>/dev/null | head -n 1)"
+        if [[ ! "$current_speed" =~ ^([1-9]|1[0-9]|20)$ ]]; then
+            set_speech_note_speed "$restore_speed"
+        else
+            # The file was restored before playback. Preserve any valid value
+            # selected manually while the temporary read was active.
+            save_user_speed "$current_speed"
+        fi
+        if (( was_running == 1 )); then
+            start_speech_note_in_tray
+        fi
+        read -r current_version current_token _ \
+          < "$fast_marker" 2>/dev/null || true
+        if [[ "$current_version" == v2 && "$current_token" == "$marker" ]]; then
+            rm -f -- "$fast_marker"
+        fi
     ) >/dev/null 2>&1 &
 fi
 

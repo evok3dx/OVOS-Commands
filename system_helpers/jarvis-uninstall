@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+exec "$HOME/.local/src/ovos-skill-jarvis-dispatcher/scripts/uninstall.sh" "$@"

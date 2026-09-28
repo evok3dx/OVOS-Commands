@@ -48,8 +48,8 @@ class AgentActionsMixin:
             "Help me create a new custom Claude Code subagent. Before writing "
             "or changing any files, ask me for its purpose, allowed tools, "
             "and the exact folders it may access. Keep it inside this "
-            "restricted agent workspace. Do not request access outside "
-            "/home/agent-claude/workspace or /srv/agent-inbox/claude."
+            "restricted agent workspace. Do not request access outside the "
+            "folders enforced by the configured agent helper."
         )
         self._send_agent_message("claude", prompt)
 

@@ -20,8 +20,7 @@ from ovos_skill_jarvis_dispatcher import action_registry, custom_commands, profi
 configured = profile.resolve_profile({"applications": {}})
 catalogue = action_registry.router_catalog(configured)
 assert {"reading.selection", "reading.selection_fast", "reading.page",
-        "reading.page_fast"} <= catalogue.keys()
-assert "reading.last_typed" not in catalogue
+        "reading.page_fast", "reading.last_typed"} <= catalogue.keys()
 
 # The single tray opens the Commands page; that page must list registered
 # phrases under the same 1x/2x actions that will actually run.
@@ -30,10 +29,23 @@ assert "read this at 2x" in inventory["reading.selection_fast"]
 assert "read selected text at double speed" in inventory["reading.selection_fast"]
 assert "read this page at 2x" in inventory["reading.page_fast"]
 assert "read this page" in inventory["reading.page"]
+for spoken in (
+    "read this aloud",
+    "read this text",
+    "read this sentence",
+    "read this at normal speed",
+    "read this at one x",
+    "read selected text at normal speed",
+):
+    assert spoken in inventory["reading.selection"]
+for spoken in ("read this page at normal speed", "read this page at one x"):
+    assert spoken in inventory["reading.page"]
 assert "read this at 2x" not in inventory["reading.selection"]
 
 for spoken, expected in (
     ("Could you read this for me?", "reading.selection"),
+    ("Please read this sentence", "reading.selection"),
+    ("Read this at normal speed", "reading.selection"),
     ("Please read this at 2x", "reading.selection_fast"),
     ("Read selected text at double speed", "reading.selection_fast"),
     ("Can you read this page at 2x?", "reading.page_fast"),
@@ -82,11 +94,14 @@ current = next(node for node in tree.body if isinstance(node, ast.FunctionDef)
 namespace = {
     "current_runtime": lambda *_: (skill, runtime),
     "question_like": lambda _: False,
+    "wake_only": lambda _: False,
+    "live_question": lambda _: False,
     "RequestCancelled": routing_model.RequestCancelled,
     "EVENT": "jarvis.qwen.execute",
 }
 skill = types.SimpleNamespace(log=Mock())
-runtime = types.SimpleNamespace(propose=Mock(side_effect=TimeoutError("model busy")),
+runtime = types.SimpleNamespace(propose_strict=Mock(return_value=None),
+                                propose=Mock(side_effect=TimeoutError("model busy")),
                                 last=None)
 current_globals = {"UTTERANCE_EVENTS": {"recognizer_loop:utterance"},
                    "get_dispatcher": lambda: skill}

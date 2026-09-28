@@ -29,7 +29,9 @@ cat > "$desktop_tmp" <<EOF
 Type=Application
 Name=Voice System Status
 Exec=$bin_dir/ovos-tray
+TryExec=$bin_dir/ovos-tray
 Terminal=false
+X-GNOME-Autostart-Delay=5
 X-GNOME-Autostart-enabled=true
 EOF
 install -m 0644 "$desktop_tmp" "$desktop_file"

@@ -3,12 +3,20 @@
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import subprocess
 from pathlib import Path
 
 
 SCHEMA_VERSION = 1
+
+RECOMMENDED_INTEGRATIONS = {
+    "brave", "firefox", "signal", "zoom", "terminal", "calculator",
+    "files", "settings", "standard_notes", "claude_desktop",
+    "hermes_desktop", "default_mail", "proton_mail", "proton_calendar",
+    "system_calendar",
+}
 
 # Detection only decides what setup may offer. Runtime execution remains fixed
 # and allowlisted in the desktop helpers.
@@ -59,6 +67,12 @@ INTEGRATIONS = {
                     "desktop_ids": ("proton-mail.desktop",)},
     "proton_calendar": {"category": "calendar", "desktop_contains": (
         "calendar.proton.me",)},
+    "system_calendar": {"category": "system_calendar", "commands": (
+        "gnome-calendar", "korganizer",
+    ), "desktop_ids": (
+        "org.gnome.Calendar.desktop", "gnome-calendar.desktop",
+        "org.kde.korganizer.desktop", "io.elementary.calendar.desktop",
+    )},
 }
 
 
@@ -145,6 +159,17 @@ def detect_applications(home: Path | None = None) -> dict[str, str]:
         for name, rule in INTEGRATIONS.items()
         if _integration_present(name, home)
     }
+    # Proton Calendar is a fixed web application rather than a separate Linux
+    # package. Offer it when the Proton desktop suite and reviewed Brave launch
+    # path are both present; launching never accepts a spoken URL.
+    if (detected.get("proton_mail") == "proton_mail"
+            and detected.get("brave") == "brave"):
+        detected.setdefault("calendar", "proton_calendar")
+    detected.update({key:key for key in _discovered_applications(home)})
+    return detected
+
+
+def _discovered_applications(home: Path) -> dict[str, dict[str, object]]:
     try:
         from .profile import discovered_applications
     except ImportError:
@@ -154,19 +179,65 @@ def detect_applications(home: Path | None = None) -> dict[str, str]:
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         discovered_applications = module.discovered_applications
-    detected.update({key:key for key in discovered_applications(home)})
-    return detected
+    return discovered_applications(home)
+
+
+def recommended_applications(
+    detected: dict[str, str], home: Path | None = None,
+) -> set[str]:
+    """Return a small detected everyday set; never install an application."""
+    selected = {
+        integration for integration in detected.values()
+        if integration in RECOMMENDED_INTEGRATIONS
+    }
+    dynamic = _discovered_applications(Path(home or Path.home()))
+    for integration in detected.values():
+        definition = dynamic.get(integration)
+        if not definition:
+            continue
+        identity = " ".join((
+            str(definition.get("display_name", "")),
+            str(definition.get("desktop_id", "")),
+            *map(str, definition.get("aliases", ())),
+        )).casefold()
+        words = set(re.findall(r"[a-z0-9]+", identity))
+        if "telegram" in words or (
+            "calendar" in words and "proton" not in words
+        ):
+            selected.add(integration)
+    return selected
+
+
+def private_agents_available(home: Path | None = None) -> bool:
+    """Recognise only the two fixed helpers used by the private agent bridge."""
+    if os.environ.get("JARVIS_TEST_MODE") == "1":
+        return os.environ.get("JARVIS_TEST_PRIVATE_AGENTS") == "1"
+    home = Path(home or Path.home())
+    return (
+        os.access(home / ".local/bin/jarvis-agent-window", os.X_OK)
+        and os.access("/usr/local/sbin/jarvis-agent-message", os.X_OK)
+    )
 
 
 def build_configuration(
     mode: str, detected: dict[str, str], selected: set[str] | None = None,
+    *, private_agents: bool = False, home: Path | None = None,
 ) -> dict[str, object]:
-    """Build a stable configuration from an all/core/custom selection."""
-    modes = {"all": "all-detected", "core": "core-only", "custom": "custom"}
+    """Build a stable configuration from a reviewed setup selection."""
+    modes = {
+        "all": "all-detected", "recommended": "recommended",
+        "core": "core-only", "custom": "custom",
+    }
     if mode not in modes:
         raise ValueError(f"Unsupported setup mode: {mode}")
     if mode == "all":
         applications = dict(detected)
+    elif mode == "recommended":
+        recommended = recommended_applications(detected, home)
+        applications = {
+            category: integration for category, integration in detected.items()
+            if integration in recommended
+        }
     elif mode == "core":
         applications = {}
     else:
@@ -178,6 +249,18 @@ def build_configuration(
         missing = selected - set(detected.values())
         if missing:
             raise ValueError(f"Applications were not detected: {sorted(missing)}")
+    preferred_apps = {}
+    if "brave" in applications or "firefox" in applications:
+        preferred_apps["browser"] = "brave" if "brave" in applications else "firefox"
+    for role, choices in {
+        "notes": ("notes",),
+        "mail": ("proton_mail", "mail"),
+        "calendar": ("calendar", "system_calendar"),
+        "office": ("office",),
+    }.items():
+        selected_role = next((key for key in choices if key in applications), None)
+        if selected_role:
+            preferred_apps[role] = selected_role
     return {
         "schema_version": SCHEMA_VERSION,
         "name": "jarvis",
@@ -188,5 +271,10 @@ def build_configuration(
         "listen_shortcut": "<Super>l",
         "microphone_shortcut": "<Shift><Super>l",
         "applications": applications,
-        "private_extensions": {"agents": False},
+        "default_browser": ("brave" if "brave" in applications else
+                            "firefox" if "firefox" in applications else None),
+        "preferred_apps": preferred_apps,
+        "private_extensions": {
+            "agents": bool(private_agents and mode in {"all", "recommended"}),
+        },
     }

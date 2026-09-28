@@ -4,6 +4,8 @@ import time
 from pathlib import Path
 from urllib.parse import quote_plus
 
+from .search_pacing import SearchCoolingDown, pace_search
+
 
 class BrowserActionsMixin:
     """Allowlisted browser discovery, focus, navigation and search actions."""
@@ -470,18 +472,39 @@ class BrowserActionsMixin:
         self.speak("What should I search for?", expect_response=True, wait=True)
         self._arm_message_timeout(20)
 
+    def _prompt_browser_address(self):
+        """Capture one address/search phrase for the verified active browser."""
+        with self._message_lock:
+            if self._message_stage:
+                self.speak("Please finish or cancel the current request.")
+                return
+
+        self._run_browser_action("address")
+        window_id = self._active_window_id()
+        if not window_id or not self._active_browser():
+            self.speak("I could not verify the browser window.")
+            return
+
+        with self._message_lock:
+            self._message_stage = "browser_address"
+            self._pending_window_id = window_id
+            self._message_retries = 1
+
+        self.activate(duration_minutes=1)
+        self.speak("What should I enter?", expect_response=True, wait=True)
+        self._arm_message_timeout(20)
+
     def _submit_prompted_browser_search(self, query, browser, window_id):
         """Submit only into the same browser window prepared for the prompt."""
         query = str(query or "").strip(" .")
         if not query or len(query) > 500:
             self.speak("I could not use that search.")
             return
-        url = "https://search.brave.com/search?q=" + quote_plus(query)
         try:
+            pace_search("browser")
             for action in (
                 ("key", "--clearmodifiers", "ctrl+a"),
-                ("type", "--clearmodifiers", "--delay", "10", "--", url),
-                ("key", "--clearmodifiers", "Return"),
+                ("type", "--clearmodifiers", "--delay", "55", "--", query),
             ):
                 if self._active_window_id() != window_id or self._active_browser() != browser:
                     self.speak("The focused window changed, so I cancelled.")
@@ -490,6 +513,17 @@ class BrowserActionsMixin:
                     ["/usr/bin/xdotool", *action], check=True, timeout=15,
                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                 )
+            time.sleep(0.45)
+            if self._active_window_id() != window_id or self._active_browser() != browser:
+                self.speak("The focused window changed, so I cancelled.")
+                return
+            subprocess.run(
+                ["/usr/bin/xdotool", "key", "--clearmodifiers", "Return"],
+                check=True, timeout=5, stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        except SearchCoolingDown:
+            self.speak("Search is paused for a moment. Please try again shortly.")
         except Exception:
             self.log.exception("Browser search submission failed")
             self.speak("I could not submit that search.")
@@ -592,6 +626,7 @@ class BrowserActionsMixin:
                 self.speak("That search is too long.")
                 return
 
+            pace_search("youtube")
             self._focus_browser(browser)
             subprocess.run(
                 [
@@ -616,7 +651,7 @@ class BrowserActionsMixin:
             subprocess.run(
                 [
                     "/usr/bin/xdotool", "type",
-                    "--clearmodifiers", "--delay", "10",
+                    "--clearmodifiers", "--delay", "55",
                     "--", query
                 ],
                 check=True,
@@ -624,6 +659,7 @@ class BrowserActionsMixin:
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL
             )
+            time.sleep(0.45)
             subprocess.run(
                 [
                     "/usr/bin/xdotool", "key",
@@ -634,6 +670,8 @@ class BrowserActionsMixin:
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL
             )
+        except SearchCoolingDown:
+            self.speak("Search is paused for a moment. Please try again shortly.")
         except Exception:
             self.log.exception("YouTube search failed")
             self.speak("I could not search YouTube.")

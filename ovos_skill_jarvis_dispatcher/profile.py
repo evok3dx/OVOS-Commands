@@ -39,7 +39,7 @@ APPLICATION_INTEGRATIONS = {
         "aliases": ["command line", "terminal app", "terminal", "console"],
     },
     "standard_notes": {
-        "display_name": "Notes",
+        "display_name": "Standard Notes",
         "aliases": [
             "standard notes", "standard note",
             "standard nodes", "standard node",
@@ -82,13 +82,17 @@ APPLICATION_INTEGRATIONS = {
             "proton calendar", "calendar app", "my calendar", "calendar",
         ],
     },
+    "system_calendar": {
+        "display_name": "System Calendar",
+        "aliases": ["system calendar", "desktop calendar", "calendar application"],
+    },
 }
 
 APPLICATION_CATEGORIES = {
     "calculator", "settings", "files",
     "brave", "firefox", "signal", "zoom", "terminal", "notes",
     "office", "claude", "chatgpt", "hermes", "mail", "proton_mail",
-    "calendar",
+    "calendar", "system_calendar",
 }
 
 # Keep each generic command category constrained to compatible integrations.
@@ -111,10 +115,90 @@ CATEGORY_INTEGRATIONS = {
     "mail": {"default_mail", "proton_mail"},
     "proton_mail": {"proton_mail"},
     "calendar": {"proton_calendar"},
+    "system_calendar": {"system_calendar"},
 }
 
-BRAIN_COMPATIBILITY_PROFILE = {
-    "name": "brain-compatibility",
+PREFERRED_APP_ROLES = ("browser", "notes", "mail", "calendar", "office")
+PREFERRED_ROLE_ALIASES = {
+    "browser": ("browser", "web browser"),
+    "notes": ("notes", "notes app", "a note", "note"),
+    "mail": ("mail", "email", "mail app", "email app"),
+    "calendar": ("calendar", "calendar app", "my calendar"),
+    "office": ("office", "office app"),
+}
+PREFERRED_ROLE_INTEGRATIONS = {
+    "browser": {"brave", "firefox"},
+    "notes": {"standard_notes"},
+    "mail": {"default_mail", "proton_mail"},
+    "calendar": {"proton_calendar", "system_calendar"},
+    "office": {"onlyoffice"},
+}
+PREFERRED_DYNAMIC_CATEGORIES = {
+    "notes": {"TextEditor"},
+    "mail": {"Email"},
+    "calendar": {"Calendar"},
+    "office": {"Office", "WordProcessor", "Spreadsheet", "Presentation"},
+}
+
+
+def preferred_app_candidates(applications, role):
+    """Return enabled application keys compatible with one friendly role."""
+    if role not in PREFERRED_APP_ROLES:
+        raise ValueError(f"Unknown preferred application role: {role}")
+    fixed = PREFERRED_ROLE_INTEGRATIONS[role]
+    categories = PREFERRED_DYNAMIC_CATEGORIES.get(role, set())
+    result = []
+    for key, definition in applications.items():
+        integration = definition.get("integration")
+        if integration in fixed:
+            result.append(key)
+            continue
+        if not str(integration).startswith("desktop_"):
+            continue
+        menu_categories = set(definition.get("menu_categories", ()))
+        if categories.intersection(menu_categories):
+            result.append(key)
+    return result
+
+
+def _preferred_defaults(applications):
+    preferred = {}
+    priorities = {
+        "browser": ("brave", "firefox"),
+        "notes": ("notes",),
+        "mail": ("proton_mail", "mail"),
+        "calendar": ("calendar", "system_calendar"),
+        "office": ("office",),
+    }
+    for role in PREFERRED_APP_ROLES:
+        candidates = preferred_app_candidates(applications, role)
+        selected = next((key for key in priorities[role] if key in candidates), None)
+        if selected is None and candidates:
+            selected = candidates[0]
+        if selected is not None:
+            preferred[role] = selected
+    return preferred
+
+
+def _apply_preferred_aliases(applications, preferred):
+    for definition in applications.values():
+        aliases = list(definition.get("aliases", ()))
+        definition["aliases"] = [
+            alias for alias in aliases
+            if alias not in {item for values in PREFERRED_ROLE_ALIASES.values()
+                             for item in values}
+        ]
+    for role, key in preferred.items():
+        definition = applications.get(key)
+        if not definition:
+            continue
+        for alias in PREFERRED_ROLE_ALIASES[role]:
+            if alias not in definition["aliases"]:
+                definition["aliases"].append(alias)
+
+
+REFERENCE_COMPATIBILITY_PROFILE = {
+    "name": "reference-compatibility",
     "conversation": True,
     "wake_phrase": "hey_jarvis",
     "applications": {
@@ -266,11 +350,45 @@ def resolve_profile(raw_profile):
     if not isinstance(private_extensions, dict):
         raise ValueError("private_extensions must be an object")
 
+    raw_preferred = raw_profile.get("preferred_apps", {})
+    if raw_preferred is None:
+        raw_preferred = {}
+    if not isinstance(raw_preferred, dict):
+        raise ValueError("Preferred applications must be an object")
+    unknown_roles = set(raw_preferred) - set(PREFERRED_APP_ROLES)
+    if unknown_roles:
+        raise ValueError(f"Unknown preferred application roles: {sorted(unknown_roles)}")
+    defaults = _preferred_defaults(resolved)
+    preferred = {}
+    for role in PREFERRED_APP_ROLES:
+        selected = raw_preferred.get(role)
+        candidates = preferred_app_candidates(resolved, role)
+        if selected is not None and not isinstance(selected, str):
+            raise ValueError(f"Preferred {role} application must be a string")
+        preferred[role] = selected if selected in candidates else defaults.get(role)
+    preferred = {role: key for role, key in preferred.items() if key is not None}
+
+    default_browser = raw_profile.get("default_browser")
+    if default_browser is not None and default_browser not in {"brave", "firefox"}:
+        raise ValueError("Default browser must be Brave or Firefox")
+    preferred_browser = preferred.get("browser")
+    if preferred_browser in {"brave", "firefox"}:
+        default_browser = preferred_browser
+    if default_browser not in resolved:
+        default_browser = "brave" if "brave" in resolved else (
+            "firefox" if "firefox" in resolved else None)
+    if default_browser is not None:
+        preferred["browser"] = default_browser
+
+    _apply_preferred_aliases(resolved, preferred)
+
     return {
         "name": str(raw_profile.get("name", "unnamed")),
         "conversation": bool(raw_profile.get("conversation", False)),
         "wake_phrase": wake_phrase.strip(),
         "applications": resolved,
+        "default_browser": default_browser,
+        "preferred_apps": preferred,
         "spoken_names": accepted_names,
         "private_extensions": {
             "agents": private_extensions.get("agents") is True,
@@ -279,7 +397,7 @@ def resolve_profile(raw_profile):
 
 
 def load_profile(path=None, logger=None):
-    """Load the user profile, falling back to current Brain behaviour."""
+    """Load the user profile, falling back to current reference system behaviour."""
 
     if path is None:
         capabilities = Path.home() / ".config/jarvis/capabilities.json"

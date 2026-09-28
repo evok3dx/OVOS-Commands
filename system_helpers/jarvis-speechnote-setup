@@ -82,6 +82,20 @@ active_model() {
   fi
 }
 
+show_dictation_rule_guide() {
+  printf '%s\n' \
+    "Continuous-dictation wake filter (additive; keep every existing rule):" \
+    "  Rule scope: STT" \
+    "  Rule type: Replace (Regular expression)" \
+    '  Pattern: \bhey\s*,?\s*jarvis\b\s*\.?\s*' \
+    "  Replace with: one space" \
+    "  Case sensitive: off" \
+    "Enable Speech Note's Rules feature if it is currently disabled." \
+    "This one rule covers Hey Jarvis and Hey, Jarvis, with or without a final full stop." \
+    "If you change Jarvis's wake phrase, update this Speech Note rule to match it." \
+    "This prevents the wake phrase used to stop dictation from being inserted into the document."
+}
+
 show_status() {
   if ! have_speechnote; then
     echo "Speech Note is not installed."
@@ -95,6 +109,7 @@ show_status() {
   printf '%s\n' \
     "Jarvis connects through Speech Note's supported local D-Bus/CLI actions." \
     "Existing Speech Note settings are preserved."
+  show_dictation_rule_guide
 }
 
 show_installation() {
@@ -104,6 +119,7 @@ show_installation() {
   printf '%s\n' \
     "Jarvis will connect through Speech Note's supported local D-Bus/CLI actions." \
     "Existing Speech Note settings are preserved."
+  show_dictation_rule_guide
 }
 
 open_speechnote() {
@@ -115,7 +131,9 @@ open_speechnote() {
   printf '%s\n' \
     "Speech Note opened." \
     "For a new setup, download an English STT model and a TTS voice in Models." \
-    "A Whisper model and a Kokoro or Piper voice are good local starting points." \
+    "A Whisper model and a Kokoro or Piper voice are good local starting points."
+  show_dictation_rule_guide
+  printf '%s\n' \
     "On X11, insertion into the focused window works without extra permissions." \
     "Choose acceleration inside Speech Note only after it detects your hardware."
 }

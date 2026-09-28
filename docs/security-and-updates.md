@@ -31,7 +31,7 @@ remain within the desktop user account.
 
 The local voice path is reproducible: wake word, VAD, Faster Whisper, PhōnNX,
 Bella and the supporting pronunciation/runtime packages use the versions
-recorded in `compatibility.json`. The installer deliberately omits the Brain's
+recorded in `compatibility.json`. The installer deliberately omits the reference system's
 unrelated CUDA and agent packages; they are neither required for Bella on CPU
 nor appropriate for a portable desktop installation.
 
@@ -45,7 +45,7 @@ bootstrap cannot leave root-owned debris in the user's temporary directory.
 Claude Desktop and ChatGPT Desktop are launched only into ordinary chat. Jarvis
 does not open Claude Code, Cowork, ChatGPT Codex or Work, approve their prompts,
 or install MCP tools. Hermes remains the intentional local assistant. Private
-Brain agent infrastructure is outside normal setup and updates.
+reference system agent infrastructure is outside normal setup and updates.
 
 X11 applications in the same session can generally observe or inject desktop
 input. The allowlists reduce what Jarvis itself can request, but they do not
@@ -85,7 +85,7 @@ On an existing installation, the transaction updates release-managed Jarvis
 code and helpers but preserves machine-owned OVOS configuration, selected
 applications, personal commands, keyboard shortcuts, listening sound and
 unlisted private helpers and downloaded models. V3.1 stages the tested
-Brain-compatible OVOS packages in a copy of the normal virtualenv and saves
+reference system-compatible OVOS packages in a clean staged virtualenv and saves
 the previous entire virtualenv for rollback. Fresh installations use the same
 reviewed target; see [migration details](07-installer-updates.md).
 

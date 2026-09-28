@@ -11,6 +11,7 @@ target_profile="$target_profile_dir/profile.json"
 target_capabilities="$target_profile_dir/capabilities.json"
 systemd_dir="$jarvis_home/.config/systemd/user"
 launcher="$jarvis_home/.local/share/applications/hermes.desktop"
+jarvis_launcher="$jarvis_home/.local/share/applications/jarvis-ovos.desktop"
 tray_icon_dir="$jarvis_home/.local/share/icons/ovos-tray"
 tray_autostart="$jarvis_home/.config/autostart/ovos-tray.desktop"
 mic_icon_dir="$jarvis_home/.local/share/jarvis"
@@ -44,7 +45,7 @@ usage() {
 Usage: scripts/install.sh [OPTIONS]
 
 Options:
-  --mode MODE          Initial selection: all, core or custom
+  --mode MODE          Application selection: recommended, all or custom
   --apps LIST          Comma-separated detected app IDs for custom mode
   --profile NAME       Migrate a legacy bundled profile
   --ovos-python PATH   OVOS virtualenv Python (default: ~/.venvs/ovos/bin/python)
@@ -143,6 +144,24 @@ value = data
 for key in sys.argv[2].split("."):
     value = value[key]
 print(value)
+PY
+}
+
+reviewed_stack_manifest="$repo_root/$(read_compatibility_value ovos.reviewed_stack_manifest)"
+
+read_reference_stack_requirements() {
+  python3 - "$reviewed_stack_manifest" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+packages = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))["packages"]
+for name, version in sorted(packages.items()):
+    # PhōnNX is installed from the checksum-verified source archive below.
+    # NumPy is installed after resolution because the reviewed ONNX runtime
+    # deliberately uses NumPy 2 while OpenWakeWord's metadata still says <2.
+    if name not in {"phoonnx", "numpy"}:
+        print(f"{name}=={version}")
 PY
 }
 
@@ -264,7 +283,7 @@ import urllib.request
 from pathlib import Path
 
 url, destination, expected = sys.argv[1:]
-request = urllib.request.Request(url, headers={"User-Agent": "OVOS-Commands/3.1.0"})
+request = urllib.request.Request(url, headers={"User-Agent": "OVOS-Commands/3.6.0"})
 digest = hashlib.sha256()
 try:
     with urllib.request.urlopen(request, timeout=60) as response, Path(destination).open("wb") as output:
@@ -443,7 +462,13 @@ PY
 
 pip_install() {
   if "$ovos_python" -m pip --version >/dev/null 2>&1; then
-    "$ovos_python" -m pip install --disable-pip-version-check "$@"
+    # Host-level OVOS testing constraints can pin the old major core. The
+    # staged environment installs this release's reviewed exact versions.
+    if [[ "$ovos_python" == "$stage_root/ovos-venv/bin/python" ]]; then
+      env -u PIP_CONSTRAINT "$ovos_python" -m pip install --disable-pip-version-check "$@"
+    else
+      "$ovos_python" -m pip install --disable-pip-version-check "$@"
+    fi
   elif command -v uv >/dev/null 2>&1; then
     uv pip install --python "$ovos_python" "$@"
   else
@@ -477,21 +502,20 @@ PY
 }
 
 managed_package_names() {
+  python3 - "$reviewed_stack_manifest" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+print(*json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))["packages"], sep="\n")
+PY
   printf '%s\n' \
     ovos-skill-jarvis-media \
     jarvis-file-search-skill \
     yt-dlp \
-    ovos-plugin-manager \
     "$(read_compatibility_value ovos.wakeword.package)" \
     "$(read_compatibility_value ovos.wakeword.engine_package)" \
-    "$(read_compatibility_value ovos.custom_wakeword.package)" \
-    "$(read_compatibility_value ovos.vad.package)" \
-    "$(read_compatibility_value ovos.stt.package)" \
-    "$(read_compatibility_value ovos.stt.engine_package)" \
-    "$(read_compatibility_value ovos.stt.runtime_package)" \
-    "$(read_compatibility_value ovos.tts.package)" \
-    misaki scriptconv espeakng-loader phonemizer-fork num2words spacy \
-    en-core-web-sm onnxruntime numpy
+    espeakng-loader phonemizer-fork num2words spacy en-core-web-sm
 }
 
 cleanup_voice_stack_work() {
@@ -513,27 +537,9 @@ ensure_voice_stack() {
   phoonnx_version="$(read_compatibility_value ovos.tts.validated_version)"
   source_dir="$jarvis_home/.local/share/jarvis/sources"
   cached_archive="$source_dir/phoonnx-$commit.tar.gz"
-  requirements=(
-    "ovos-core==$(read_compatibility_value ovos.validated_package_versions.ovos-core)"
-    "ovos-workshop==$(read_compatibility_value ovos.validated_package_versions.ovos-workshop)"
-    "ovos-config==$(read_compatibility_value ovos.validated_package_versions.ovos-config)"
-    "ovos-plugin-manager==$(read_compatibility_value ovos.validated_package_versions.ovos-plugin-manager)"
-    "ovos-audio==$(read_compatibility_value ovos.validated_package_versions.ovos-audio)"
-    "ovos-dinkum-listener==$(read_compatibility_value ovos.validated_package_versions.ovos-dinkum-listener)"
-    "ovos-bus-client==$(read_compatibility_value ovos.validated_package_versions.ovos-bus-client)"
-    "ovos-messagebus==$(read_compatibility_value ovos.validated_package_versions.ovos-messagebus)"
-    "ovos-skill-boot-finished==$(read_compatibility_value ovos.validated_package_versions.ovos-skill-boot-finished)"
-    "ovos-skill-volume==$(read_compatibility_value ovos.validated_package_versions.ovos-skill-volume)"
-    "ovos-utils==$(read_compatibility_value ovos.validated_package_versions.ovos-utils)"
-    "$(read_compatibility_value ovos.wakeword.package)==$(read_compatibility_value ovos.wakeword.validated_version)"
+  mapfile -t requirements < <(read_reference_stack_requirements)
+  requirements+=(
     "$(read_compatibility_value ovos.wakeword.engine_package)==$(read_compatibility_value ovos.wakeword.engine_version)"
-    "$(read_compatibility_value ovos.custom_wakeword.package)==$(read_compatibility_value ovos.custom_wakeword.validated_version)"
-    "$(read_compatibility_value ovos.vad.package)==$(read_compatibility_value ovos.vad.validated_version)"
-    "$(read_compatibility_value ovos.stt.package)==$(read_compatibility_value ovos.stt.validated_version)"
-    "$(read_compatibility_value ovos.stt.engine_package)==$(read_compatibility_value ovos.stt.engine_version)"
-    "$(read_compatibility_value ovos.stt.runtime_package)==$(read_compatibility_value ovos.stt.runtime_version)"
-    "misaki==$(read_compatibility_value ovos.tts.misaki_version)"
-    "scriptconv==$(read_compatibility_value ovos.tts.scriptconv_version)"
     "espeakng-loader==$(read_compatibility_value ovos.tts.espeakng_loader_version)"
     "phonemizer-fork==$(read_compatibility_value ovos.tts.phonemizer_fork_version)"
     "num2words==$(read_compatibility_value ovos.tts.num2words_version)"
@@ -576,25 +582,36 @@ ensure_voice_stack() {
     cleanup_voice_stack_work "$work"
     return 1
   fi
-  # OpenWakeWord 0.4.5a2 still declares numpy<2, whereas Brain's tested
+  # OpenWakeWord 0.4.5a2 still declares numpy<2, whereas reference system's tested
   # ONNX/Bella environment uses 2.4.6. Keep this mismatch visible to doctor
   # and install the exact reviewed version after resolving other dependencies.
-  pip_install --no-deps "numpy==$(read_compatibility_value ovos.tts.numpy_version)"
+  pip_install --no-deps "numpy==$(read_compatibility_value ovos.tts.numpy_version)" || return 1
+  "$ovos_python" "$repo_root/scripts/validate-staged-ovos.py" \
+    "$reviewed_stack_manifest" || return 1
   cleanup_voice_stack_work "$work"
 
+  # Workshop's declarative intent must be converted to a matchable Adapt
+  # parser. Without this, native intents fail and fall through to Qwen.
+  "$ovos_python" - <<'PY' || return 1
+from ovos_adapt.engine import IntentDeterminationEngine
+from ovos_workshop.intents import IntentBuilder
+
+engine = IntentDeterminationEngine()
+engine.register_intent_parser(IntentBuilder("JarvisAdaptProbe").require("Probe").build())
+if not callable(getattr(engine.intent_parsers[-1], "validate_with_tags", None)):
+    raise SystemExit("OVOS Adapt cannot match workshop intents")
+PY
+
   printf '%s\n' "Preparing the local Hey Jarvis, small.en and Bella models..."
-  "$ovos_python" - <<'PY'
+  "$ovos_python" - <<'PY' || return 1
 from openwakeword.utils import download_models
-from openwakeword import get_pretrained_model_paths
 from faster_whisper import WhisperModel
 
 download_models()
-paths = [str(path) for path in (get_pretrained_model_paths() or [])]
-if not any("hey_jarvis" in path for path in paths):
-    raise SystemExit("OpenWakeWord did not provide the reviewed hey_jarvis model")
 WhisperModel("small.en", device="cpu", compute_type="int8", cpu_threads=8)
 PY
-  "$ovos_python" - "$(read_compatibility_value ovos.tts.voice)" <<'PY'
+  "$ovos_python" "$repo_root/scripts/verify-wake-model.py" >/dev/null || return 1
+  "$ovos_python" - "$(read_compatibility_value ovos.tts.voice)" <<'PY' || return 1
 import sys
 from phoonnx.model_manager import TTSModelManager
 
@@ -608,16 +625,14 @@ PY
 }
 
 stack_matches_target() {
-  "$ovos_python" - "$repo_root/compatibility.json" <<'PY'
+  "$ovos_python" - "$repo_root/compatibility.json" "$reviewed_stack_manifest" <<'PY'
 import importlib.metadata as metadata
 import json
 import sys
 
 ovos = json.load(open(sys.argv[1], encoding="utf-8"))["ovos"]
-expected = dict(ovos["validated_package_versions"])
+expected = dict(json.load(open(sys.argv[2], encoding="utf-8"))["packages"])
 for key, field in (("phoonnx", "validated_version"),
-                   ("scriptconv", "scriptconv_version"),
-                   ("onnxruntime", "onnxruntime_version"),
                    ("numpy", "numpy_version")):
     expected[key] = ovos["tts"][field]
 expected[ovos["vad"]["package"]] = ovos["vad"]["validated_version"]
@@ -636,9 +651,20 @@ if not matched:
 PY
 }
 
+reviewed_onnx_model() {
+  if [[ "${JARVIS_TEST_MODE:-0}" == 1 ]]; then
+    local fixture="$jarvis_home/.local/share/ovos/models/hey_jarvis_v0.1.onnx"
+    mkdir -p "$(dirname "$fixture")"
+    printf 'isolated test fixture\n' > "$fixture"
+    printf '%s\n' "$fixture"
+    return
+  fi
+  "$ovos_python" "$repo_root/scripts/verify-wake-model.py"
+}
+
 stage_ovos_stack() {
   local old_python="$ovos_python" venv_root="$jarvis_home/.venvs/ovos"
-  local stage_venv="$stage_root/ovos-venv" used free
+  local stage_venv="$stage_root/ovos-venv" base_python free
   [[ "$old_python" == "$venv_root/bin/python" && -d "$venv_root" &&
      ! -L "$venv_root" ]] || {
     echo "V3.1 stack migration requires the normal ~/.venvs/ovos virtualenv." >&2
@@ -648,17 +674,34 @@ stage_ovos_stack() {
     echo "OVOS virtualenv and backup must be on the same filesystem." >&2
     return 1
   }
-  used="$(du -sb "$venv_root" | cut -f1)"
   free="$(df -B1 --output=avail "$stage_root" | tail -n 1 | tr -d ' ')"
-  if ((free < used + 4294967296)); then
+  if ((free < 8589934592)); then
     echo "Not enough free disk space to stage OVOS and retain rollback." >&2
     return 1
   fi
-  echo "Copying OVOS into a separate environment for the Brain-stack upgrade."
-  cp -a -- "$venv_root" "$stage_venv"
+  echo "Building a clean staged OVOS environment from the reviewed package set."
   if [[ "${JARVIS_TEST_MODE:-0}" == 1 ]]; then
+    mkdir -p "$stage_venv/bin"
+    printf '#!/bin/sh\nexit 0\n' > "$stage_venv/bin/python"
+    chmod 0755 "$stage_venv/bin/python"
     printf 'reviewed\n' > "$stage_venv/jarvis-stack-test-marker"
+    for launcher in ovos-core ovos-audio ovos-dinkum-listener ovos-listen ovos-say-to ovos-speak; do
+      printf '#!%s/bin/python\nexit 0\n' "$stage_venv" > "$stage_venv/bin/$launcher"
+      chmod 0755 "$stage_venv/bin/$launcher"
+    done
+    printf '#!%s/.local/state/jarvis/stage.older/ovos-venv/bin/python\nexit 0\n' \
+      "$jarvis_home" > "$stage_venv/bin/ovos-speak"
   else
+    base_python="$("$old_python" - <<'PY'
+import sys
+print(sys._base_executable)
+PY
+)"
+    [[ "$base_python" == /* && -x "$base_python" ]] || {
+      echo "Could not locate the base Python used by the OVOS virtualenv." >&2
+      return 1
+    }
+    "$base_python" -m venv --copies "$stage_venv" || return 1
     ovos_python="$stage_venv/bin/python"
     if ! ensure_voice_stack ||
        ! "$ovos_python" "$repo_root/scripts/patch-pronunciation.py" ||
@@ -668,6 +711,8 @@ stage_ovos_stack() {
     fi
     ovos_python="$old_python"
   fi
+  "$desktop_python" "$repo_root/scripts/relocate-ovos-launchers.py" \
+    "$stage_venv" "$venv_root" || return 1
   stack_staged=true
 }
 
@@ -769,7 +814,7 @@ fi
 if "$existing_deployment"; then
   printf '%s\n' \
     "Existing OVOS configuration, models, Jarvis shortcuts and private helpers will be preserved." \
-    "If the OVOS stack differs from Brain's tested set, its virtualenv will be staged and kept for rollback."
+    "If the OVOS stack differs from the reviewed set, a clean virtualenv will be staged and the current one kept for rollback."
 fi
 
 stamp="$(date +%Y%m%d-%H%M%S-%N)"
@@ -819,10 +864,13 @@ mkdir -p \
   "$mic_icon_dir" \
   "$sound_dir" \
   "$(dirname "$tray_autostart")" \
+  "$(dirname "$jarvis_launcher")" \
   "$stage_release"
 
+preserve_app_selection=0
 if [[ -f "$target_capabilities" ]]; then
   cp -a "$target_capabilities" "$configuration_source"
+  preserve_app_selection=1
 elif [[ -n "$source_profile" ]]; then
   JARVIS_HOME="$jarvis_home" "$desktop_python" "$repo_root/scripts/setup.py" \
     --migrate-profile "$source_profile" --output "$configuration_source" --no-restart
@@ -840,8 +888,48 @@ else
   JARVIS_HOME="$jarvis_home" "$desktop_python" "$repo_root/scripts/setup.py" "${setup_arguments[@]}"
 fi
 
+# Upgrades preserve application choices by default, but an explicit --mode
+# must work and the retired empty core-only choice deserves a visible review.
+if ((preserve_app_selection)); then
+  review_apps=false
+  if [[ -n "$setup_mode" ]]; then
+    review_apps=true
+  elif [[ -t 0 ]]; then
+    current_mode="$($desktop_python - "$configuration_source" <<'PY'
+import json
+import sys
+from pathlib import Path
+print(json.loads(Path(sys.argv[1]).read_text()).get('mode', 'custom'))
+PY
+)"
+    if [[ "$current_mode" == "core-only" ]]; then
+      printf '\n%s\n' \
+        'This installation has the retired Voice-only application selection.' \
+        'Recommended enables only detected everyday apps; nothing is installed.'
+      read -r -p 'Review application selection now? [Y/n] ' answer
+      [[ ! "$answer" =~ ^[Nn]$ ]] && review_apps=true
+    else
+      printf '\nCurrent application selection will be preserved (%s).\n' "$current_mode"
+      read -r -p 'Review application selection now? [y/N] ' answer
+      [[ "$answer" =~ ^[Yy]$ ]] && review_apps=true
+    fi
+  fi
+  if "$review_apps"; then
+    setup_arguments=(--output "$configuration_source" --no-restart)
+    if [[ -n "$setup_mode" ]]; then
+      setup_arguments+=(--mode "$setup_mode")
+    fi
+    if [[ -n "$setup_apps" ]]; then
+      setup_arguments+=(--apps "$setup_apps")
+    fi
+    JARVIS_HOME="$jarvis_home" "$desktop_python" \
+      "$repo_root/scripts/setup.py" "${setup_arguments[@]}"
+  fi
+fi
+
 JARVIS_HOME="$jarvis_home" \
 JARVIS_EXISTING_DEPLOYMENT="$existing_deployment_flag" \
+JARVIS_PRESERVE_APP_SELECTION="$preserve_app_selection" \
   "$desktop_python" - \
   "$configuration_source" "$repo_root" "$shortcut_state" <<'PY'
 import json
@@ -877,10 +965,12 @@ if os.environ.get("JARVIS_EXISTING_DEPLOYMENT") == "1":
 else:
     data.setdefault("listen_shortcut", "<Super>l")
     data.setdefault("microphone_shortcut", "<Shift><Super>l")
-if data.get("mode") == "all-detected":
+if (data.get("mode") == "all-detected" and
+        os.environ.get("JARVIS_PRESERVE_APP_SELECTION") != "1"):
     # "All detected" is a continuing policy, not a one-time snapshot. This
-    # picks up a supported application installed after Jarvis without changing
-    # core-only or deliberately customised selections.
+    # applies only while creating a new configuration. An update preserves the
+    # exact saved application map; the Control Centre is the explicit place to
+    # discover and enable additional applications later.
     home = Path(os.environ.get("JARVIS_HOME", Path.home())).expanduser()
     data["applications"] = capabilities.detect_applications(home)
 temporary = path.with_suffix(path.suffix + ".new")
@@ -945,6 +1035,7 @@ for unit in \
   backup_file "$systemd_dir/$unit" "systemd/$unit"
 done
 backup_file "$launcher" hermes.desktop
+backup_file "$jarvis_launcher" jarvis-ovos.desktop
 backup_file "$target_bin/ovos-tray" tray/ovos-tray
 backup_file "$tray_autostart" tray/ovos-tray.desktop
 for icon in \
@@ -1036,7 +1127,7 @@ else
   : > "$backup_root/target-root.missing"
 fi
 
-for unit in hermes-launcher-repair.path jarvis-health-check.timer jarvis-update-check.timer; do
+for unit in ovos.service hermes-launcher-repair.path jarvis-health-check.timer jarvis-update-check.timer; do
   if [[ "${JARVIS_TEST_MODE:-0}" == 1 ]]; then
     echo test > "$backup_root/$unit.state"
   elif systemctl --user is-enabled --quiet "$unit"; then
@@ -1100,7 +1191,7 @@ fi
 if "$existing_deployment"; then
   echo "Preserved the existing OVOS configuration and downloaded models."
   if "$stack_staged"; then
-    echo "Staged Brain-compatible OVOS packages; the old virtualenv is in the Jarvis rollback backup."
+    echo "Staged the reviewed OVOS packages; the old virtualenv is in the Jarvis rollback backup."
   fi
 fi
 
@@ -1110,7 +1201,7 @@ if ! "$existing_deployment"; then
     --config "$ovos_config" --listening-sound "$listening_sound"
   if [[ "${JARVIS_TEST_MODE:-0}" != 1 ]]; then
     "$ovos_python" "$target_root/scripts/configure-intent-pipeline.py" \
-      --config "$ovos_config" --merge-v3
+      --config "$ovos_config" --migrate-v3
   fi
 
 mapfile -t wake_settings < <(python3 - "$configuration_source" <<'PY'
@@ -1127,16 +1218,51 @@ PY
 )
 wake_phrase="${wake_settings[0]}"
 wake_phrase_spoken="${wake_settings[1]}"
+  wake_args=()
+  if [[ "$wake_phrase" == hey_jarvis && "$wake_phrase_spoken" == 'hey jarvis' ]]; then
+    onnx_path="$(reviewed_onnx_model)" || exit 1
+    wake_args=(--onnx-model "$onnx_path")
+  fi
   "$desktop_python" "$target_root/scripts/configure-wakeword.py" \
     --config "$ovos_config" --wake-phrase "$wake_phrase" \
-    --spoken-phrase "$wake_phrase_spoken"
+    --spoken-phrase "$wake_phrase_spoken" "${wake_args[@]}"
 else
   echo "Preserved existing audio, wake-word, intent-pipeline and sound configuration."
+  # Migrate only the exact Jarvis-managed audio defaults. Explicit user
+  # choices, third-party STT configuration and every unrelated key remain
+  # machine-owned and untouched.
+  "$desktop_python" "$target_root/scripts/configure-audio-stack.py" \
+    --config "$ovos_config" --migrate-managed
+  # Repair only the known released Jarvis default in the backed-up config.
+  # Custom wake engines, models and thresholds stop for manual review.
+  if [[ "$(python3 - "$ovos_config" <<'PY'
+import json
+import sys
+from pathlib import Path
+path = Path(sys.argv[1])
+data = json.loads(path.read_text()) if path.is_file() else {}
+listener = data.get('listener', {})
+hotwords = data.get('hotwords', {})
+default = listener.get('wake_word') == 'hey_jarvis' and hotwords.get('hey_jarvis', {}).get('module') == 'ovos-ww-plugin-openwakeword'
+print('yes' if default else 'no')
+PY
+)" == yes ]]; then
+    onnx_path="$(reviewed_onnx_model)" || exit 1
+    "$desktop_python" "$target_root/scripts/configure-wakeword.py" \
+      --config "$ovos_config" --ensure-default-onnx \
+      --onnx-model "$onnx_path"
+  fi
   if [[ "${JARVIS_TEST_MODE:-0}" != 1 ]]; then
     "$ovos_python" "$target_root/scripts/configure-intent-pipeline.py" \
-      --config "$ovos_config" --merge-v3
+      --config "$ovos_config" --migrate-v3
   fi
 fi
+
+# An absent microphone section is an implicit OVOS default, not a user's
+# hardware choice. Select the reviewed PipeWire-friendly path in that case,
+# while preserving every explicit microphone module and device unchanged.
+"$desktop_python" "$target_root/scripts/configure-microphone.py" \
+  --config "$ovos_config"
 
 if [[ "${JARVIS_TEST_MODE:-0}" != 1 ]]; then
   "$desktop_python" "$target_root/scripts/qwen-setup.py" --enable
@@ -1145,6 +1271,35 @@ fi
 for helper in "${runtime_helpers[@]}"; do
   install -m 0755 "$target_root/system_helpers/$helper" "$target_bin/$helper"
 done
+
+# Give ordinary desktop users one stable launcher for setup, status and
+# maintenance. It opens the existing Control Centre; it does not start a
+# second service or listening process.
+JARVIS_SETUP="$target_bin/jarvis-setup" \
+JARVIS_ICON="$tray_icon_dir/ovos-ready.svg" \
+  "$desktop_python" - "$jarvis_launcher" <<'PY'
+import os
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+temporary = path.with_suffix(".desktop.new")
+temporary.write_text(
+    "[Desktop Entry]\n"
+    "Type=Application\n"
+    "Name=Jarvis OVOS\n"
+    "Comment=Voice controls, applications and maintenance\n"
+    f"Exec={os.environ['JARVIS_SETUP']} --gui\n"
+    f"TryExec={os.environ['JARVIS_SETUP']}\n"
+    f"Icon={os.environ['JARVIS_ICON']}\n"
+    "Terminal=false\n"
+    "Categories=Utility;Settings;\n"
+    "StartupNotify=true\n",
+    encoding="utf-8",
+)
+temporary.chmod(0o644)
+temporary.replace(path)
+PY
 install -m 0600 "$configuration_source" "$target_capabilities"
 if [[ -n "$source_profile" ]]; then
   install -m 0600 "$source_profile" "$target_profile"
@@ -1161,7 +1316,7 @@ PY
 )
 listen_shortcut="${shortcut_settings[0]}"
 microphone_shortcut="${shortcut_settings[1]}"
-if ! "$existing_deployment" && [[ "${JARVIS_TEST_MODE:-0}" != 1 && \
+if [[ "${JARVIS_TEST_MODE:-0}" != 1 && \
       "$(<"$backup_root/cinnamon-shortcuts.state")" == available ]]; then
   JARVIS_HOME="$jarvis_home" "$desktop_python" \
     "$target_root/scripts/listen-shortcut.py" \
@@ -1183,7 +1338,9 @@ path = Path(sys.argv[1])
 temporary = path.with_suffix(".desktop.new")
 temporary.write_text(
     "[Desktop Entry]\nType=Application\nName=Jarvis Voice Controls\n"
-    f"Exec={os.environ['TRAY_EXEC']}\nTerminal=false\n"
+    f"Exec={os.environ['TRAY_EXEC']}\n"
+    f"TryExec={os.environ['TRAY_EXEC']}\nTerminal=false\n"
+    "X-GNOME-Autostart-Delay=5\n"
     "X-GNOME-Autostart-enabled=true\n",
     encoding="utf-8",
 )
@@ -1250,7 +1407,48 @@ PY
 )"
 
 if [[ "${JARVIS_TEST_MODE:-0}" != 1 ]]; then
+  listener_guard="$target_root/extras/listener-safety/install.py"
+  listener_service_path="$("$ovos_python" - <<'PY'
+import importlib.util
+spec = importlib.util.find_spec("ovos_dinkum_listener.service")
+if spec is None or not spec.origin:
+    raise SystemExit("Dinkum listener source is unavailable")
+print(spec.origin)
+PY
+)"
+  case "$listener_service_path" in
+    "$jarvis_home"/.venvs/ovos/lib/python*/site-packages/ovos_dinkum_listener/service.py) ;;
+    *)
+      echo "Unsafe Dinkum listener source path: $listener_service_path" >&2
+      exit 1
+      ;;
+  esac
+  cp -a -- "$listener_service_path" "$backup_root/listener-service.py"
+  printf '%s\n' "$listener_service_path" > "$backup_root/listener-service.path"
+  chmod 0600 "$backup_root/listener-service.path"
+  listener_voice_loop_path="$(dirname "$listener_service_path")/voice_loop/voice_loop.py"
+  case "$listener_voice_loop_path" in
+    "$jarvis_home"/.venvs/ovos/lib/python*/site-packages/ovos_dinkum_listener/voice_loop/voice_loop.py) ;;
+    *)
+      echo "Unsafe Dinkum voice-loop source path: $listener_voice_loop_path" >&2
+      exit 1
+      ;;
+  esac
+  cp -a -- "$listener_voice_loop_path" "$backup_root/listener-voice-loop.py"
+  printf '%s\n' "$listener_voice_loop_path" > "$backup_root/listener-voice-loop.path"
+  chmod 0600 "$backup_root/listener-voice-loop.path"
+  if ! "$ovos_python" "$listener_guard" --check || \
+     ! "$ovos_python" "$listener_guard"; then
+    echo "The reviewed listener volume safety guard could not be installed." >&2
+    exit 1
+  fi
+
   systemctl --user daemon-reload
+  if ! systemctl --user cat ovos.service >/dev/null 2>&1; then
+    echo "The official OVOS user service is unavailable; refusing an install that cannot start at login." >&2
+    exit 1
+  fi
+  systemctl --user enable ovos.service >/dev/null
   if [[ "$profile_has_hermes" == yes ]]; then
     systemctl --user enable --now hermes-launcher-repair.path >/dev/null
     "$target_bin/hermes-launcher-repair"
@@ -1267,6 +1465,14 @@ if [[ "${JARVIS_TEST_MODE:-0}" != 1 ]]; then
 
   if "$restart"; then
     "$target_bin/jarvis-restart" --full
+    # systemctl may briefly report active while ExecStart immediately fails.
+    # Keep the automatic rollback armed until both services report ready.
+    "$desktop_python" - "$target_root/scripts" <<'PY'
+import sys
+sys.path.insert(0, sys.argv[1])
+from control_runtime import UNITS, wait_ready
+wait_ready(UNITS, timeout=120)
+PY
   fi
 
   python3 "$target_root/scripts/doctor.py" --ovos-python "$ovos_python"
@@ -1339,7 +1545,8 @@ if command -v flatpak >/dev/null 2>&1 && \
    flatpak info net.mkiol.SpeechNote >/dev/null 2>&1; then
   printf '%s\n' \
     "Speech Note detected; Jarvis will use its existing models and settings." \
-    "Review or change it later from the Jarvis tray: Speech Note setup."
+    "Review it later from Jarvis → Voice → Open Speech Note and setup guide." \
+    "For continuous dictation, follow that guide to filter the wake phrase from Speech Note output."
 elif [[ "$speechnote_choice" == install ]] || \
      { [[ "$speechnote_choice" == ask ]] && \
        command -v flatpak >/dev/null 2>&1 && \

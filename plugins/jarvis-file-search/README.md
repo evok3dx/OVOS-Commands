@@ -1,4 +1,4 @@
-# Jarvis File Search 0.2.0
+# Jarvis File Search 0.3.0
 
 Search local **filenames** by voice and open a result from a clickable list.
 The skill reads directory entries and filesystem metadata; it does not inspect
@@ -24,7 +24,7 @@ to skip Qwen integration or `--no-gui` to leave the tray GUI alone.
 
 An existing Qwen patch is kept in place. Changed Qwen and GUI files are backed up at
 `~/.local/state/jarvis/backups/`. If a restart fails, the installer restores
-the dispatcher and GUI files it changed; the skill package may remain at 0.2.0.
+the dispatcher and GUI files it changed; the skill package may remain installed.
 The reviewed GUI Insert New Line alignment is recognised and retained when
 the Qwen action is already present. Close and reopen the tray Commands tab to
 see the installed File Search voice phrases.
@@ -41,7 +41,9 @@ out, but native search phrases still work.
 - “Looking my Documents for Alex”
 - “Can you search my files for Alex documentation?”
 - “Find the Hermes documentation”
-- “Look for a file” (asks what filename to search)
+- “Search my files” (asks what file to search for)
+- “Search my documents” (asks what document to search for, then searches
+  `~/Documents` only)
 
 “My Documents” searches `~/Documents` only. Other searches cover
 `~/Documents`, `~/Downloads` and `~/Desktop` by default. An expression like
@@ -84,7 +86,7 @@ Qwen handling appears as `Qwen router: handler_invoked files.search`. Only
 the latter depends on Qwen responding inside OVOS's timeout.
 
 Run the included local tests with `python3 -m unittest discover -s tests -v`.
-See `COMMANDS.md` for all 45 native voice patterns. The tray shows these
+See `COMMANDS.md` for all 47 native voice patterns. The tray shows these
 installed patterns in a read-only File Search section. See
 `ARCHITECTURE.md` for Qwen, Whisper and Media integration, and
 `HISTORY.md` for the changes in this release.

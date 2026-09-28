@@ -1,13 +1,15 @@
 # Reviewed Whisper app-name hints
 
-**VERIFIED:** this is the reviewed local plugin patch used on Brain with
-`ovos-stt-plugin-fasterwhisper 0.4.0`. It adds bounded enabled-app names and the
-Brain's short Media and writing cues to the existing `small.en` initial prompt.
-It changes no model, voice, app permissions or profile file. The Brain audit
-records a quiet-room false transcription of “Pause music” before the last hint
-update; the logs do not establish its cause. Do not add more commands to the
-prompt without measured evidence. Listener activation and a brief voice check
-were reported; an unhinted accuracy baseline has not been measured.
+**VERIFIED:** this is the reviewed local plugin patch used on the reference
+system with `ovos-stt-plugin-fasterwhisper 0.4.0`. It adds bounded enabled-app
+names to the existing `small.en` initial prompt. It changes no model, voice,
+app permissions or profile file. The reference audit
+records a quiet-room false transcription of “Pause music”; command phrases are
+therefore not used as recognition hints. This avoids biasing silence toward a
+real executable command. The record predates this narrower prompt, so the live
+release test remains required. Do not add commands to the prompt without
+measured evidence. Listener activation and a brief voice check were reported;
+an unhinted accuracy baseline has not been measured.
 
 Inspect first with `python3 extras/whisper-hints/install.py --check`. If the
 installed plugin has different methods or an existing unknown edit, the patch

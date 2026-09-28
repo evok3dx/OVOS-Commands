@@ -4,6 +4,7 @@
 import ast
 import json
 import re
+import runpy
 import stat
 import sys
 import tempfile
@@ -140,6 +141,40 @@ assert 'service_action' not in tray_source
 assert "from control_runtime import" in tray_source
 for gui_module in ('control_center.py', 'control_runtime.py'):
     compile((ROOT / 'scripts' / gui_module).read_text(), gui_module, 'exec')
+control_center = (ROOT / 'scripts/control_center.py').read_text(encoding='utf-8')
+assert "'Restart commands'" in control_center
+assert "'Restart full voice system'" in control_center
+assert "'Update Available ('" in control_center
+assert "self.service_labels" in control_center
+assert "'jarvis-danger'" in control_center
+assert "'jarvis-service-row'" in control_center
+assert "'jarvis-led-ready'" in control_center
+assert "'Everything is working'" in control_center
+assert "'jarvis-summary-good'" in control_center
+assert "self.page('updates','Updates'" in control_center
+assert "background-color: #2F6FED" in control_center
+assert "background-color: #20A464" in control_center
+assert "def uninstall(" in control_center
+assert "update_available()" not in control_center
+setup_source = (ROOT / 'scripts/setup.py').read_text(encoding='utf-8')
+assert "scroll.set_min_content_height(390)" in setup_source
+assert "button.set_mode(False)" in setup_source
+assert "Voice only" not in setup_source
+assert "core_button" not in setup_source
+assert "tab_label('Defaults'" in setup_source
+
+routing_benchmark = (ROOT / "scripts/routing-benchmark.py").read_text()
+assert "len(result) < 300" in routing_benchmark
+assert "No actions will be executed." in routing_benchmark
+assert "does **not** test Whisper" in routing_benchmark
+benchmark_scope = runpy.run_path(ROOT / "scripts/routing-benchmark.py",
+                                 run_name="jarvis_benchmark_validation")
+benchmark_cases = benchmark_scope["cases"]()
+assert len(benchmark_cases) == 340
+assert len({phrase.casefold() for phrase, _expected in benchmark_cases}) == 340
+setup_helper = (ROOT / 'system_helpers/jarvis-setup').read_text(encoding='utf-8')
+assert '[[ "$argument" == --gui && -x "$tray" ]]' in setup_helper
+assert 'nohup "$tray"' in setup_helper
 assert "jarvis-focused-navigation" in EXPECTED_SYSTEM_HELPERS
 assert COMPATIBILITY["ovos"]["wakeword"] == {
     "phrase": "hey_jarvis",
@@ -148,12 +183,12 @@ assert COMPATIBILITY["ovos"]["wakeword"] == {
     "validated_version": "0.4.5a2",
     "engine_package": "openwakeword",
     "engine_version": "0.6.0",
-    "threshold": 0.5,
+    "threshold": 0.4,
 }
 assert COMPATIBILITY["ovos"]["custom_wakeword"]["module"] == "ovos-ww-plugin-vosk"
 assert COMPATIBILITY["ovos"]["stt"]["model"] == "small.en"
 assert COMPATIBILITY["ovos"]["tts"]["voice"] == "kokoro/af_bella"
-# Keep the original release and the functionally verified Brain upgrade.
+# Keep the original release and the functionally verified reference system upgrade.
 # Exact tuples prevent acceptance of unreviewed mixtures or future versions.
 assert tuple(COMPATIBILITY["ovos"]["tts"][key] for key in (
     "scriptconv_version", "onnxruntime_version", "numpy_version"
@@ -162,9 +197,69 @@ assert tuple(COMPATIBILITY["ovos"]["tts"][key] for key in (
     ("0.0.4a31", "1.30.0", "2.4.6"),
 }, "TTS dependency versions do not match a reviewed baseline"
 assert COMPATIBILITY["ovos"]["tts"]["spacy_version"] == "3.8.15"
+assert COMPATIBILITY["ovos"]["validated_package_versions"]["ovos-adapt-parser"] == "1.6.7a2"
+assert COMPATIBILITY["ovos"]["validated_package_versions"]["ovos-microphone-plugin-alsa"] == "0.1.3"
+assert COMPATIBILITY["ovos"]["validated_package_versions"]["ovos-microphone-plugin-sounddevice"] == "0.0.3a9"
+reference_manifest = json.loads(
+    (ROOT / COMPATIBILITY["ovos"]["reviewed_stack_manifest"]).read_text(encoding="utf-8")
+)
+reference_packages = reference_manifest["packages"]
+assert len(reference_packages) == 107
+assert reference_packages["ovos-core"] == "3.7.0a1"
+assert reference_packages["ovos-adapt-parser"] == "1.6.7a2"
+assert reference_packages["ovos-microphone-plugin-alsa"] == "0.1.3"
+assert reference_packages["ovos-microphone-plugin-sounddevice"] == "0.0.3a9"
+assert reference_packages["ovos-phal"] == "0.3.1a1"
+assert reference_packages["ovos-plugin-common-play"] == "1.3.10a1"
+assert "ovos-skill-jarvis-dispatcher" not in reference_packages
+assert 'read_reference_stack_requirements' in installer_source
+assert 'Building a clean staged OVOS environment from the reviewed package set.' in installer_source
+assert 'cp -a -- "$venv_root" "$stage_venv"' not in installer_source
+assert 'scripts/validate-staged-ovos.py' in installer_source
+assert 'engine.register_intent_parser(IntentBuilder("JarvisAdaptProbe")' in installer_source
 
+staged_validator = runpy.run_path(ROOT / "scripts/validate-staged-ovos.py")
+filter_dependency_report = staged_validator["unexpected_pip_check_lines"]
+entry_point_pairs = staged_validator["entry_point_pairs"]
+assert filter_dependency_report(
+    "openwakeword 0.6.0 has requirement numpy<2, but you have numpy 2.4.6."
+) == []
+assert filter_dependency_report(
+    "old-skill 1.0 requires ovos-workshop<8, but you have 9.8.7a1."
+) == ["old-skill 1.0 requires ovos-workshop<8, but you have 9.8.7a1."]
+legacy_entry = type("EntryPoint", (), {"name": "legacy"})()
+current_entry = type(
+    "EntryPoint", (), {"group": "opm.current", "name": "current"}
+)()
+assert entry_point_pairs({"opm.legacy": [legacy_entry]}) == {
+    ("opm.legacy", "legacy")
+}
+assert entry_point_pairs([current_entry]) == {("opm.current", "current")}
 
-assert COMPATIBILITY["ovos"]["intent_pipeline"] == [
+microphone_helpers = runpy.run_path(ROOT / "scripts/configure-microphone.py")
+configure_microphone = microphone_helpers["configure"]
+implicit_microphone = {"private": "preserved"}
+assert configure_microphone(implicit_microphone) is True
+assert implicit_microphone["private"] == "preserved"
+assert implicit_microphone["listener"]["microphone"] == {
+    "module": "ovos-microphone-plugin-sounddevice",
+    "ovos-microphone-plugin-sounddevice": {
+        "fallback_module": "ovos-microphone-plugin-alsa"
+    },
+    "ovos-microphone-plugin-alsa": {},
+}
+explicit_microphone = {
+    "listener": {"microphone": {"module": "private-microphone"}}
+}
+assert configure_microphone(explicit_microphone) is False
+assert explicit_microphone["listener"]["microphone"] == {
+    "module": "private-microphone"
+}
+
+pipeline_helpers = runpy.run_path(ROOT / "scripts/configure-intent-pipeline.py")
+migrate_v3_pipeline = pipeline_helpers["migrate_v3_pipeline"]
+reviewed_pipeline = COMPATIBILITY["ovos"]["intent_pipeline"]
+released_pipeline = [
     "ovos-stop-pipeline-plugin-high",
     "ovos-converse-pipeline-plugin",
     "ovos-ocp-pipeline-plugin-high",
@@ -176,7 +271,41 @@ assert COMPATIBILITY["ovos"]["intent_pipeline"] == [
     "ovos-adapt-pipeline-plugin-medium",
     "ovos-persona-pipeline-plugin-low",
     "ovos-common-query-pipeline-plugin",
+    "jarvis-media-pipeline",
+    "jarvis-qwen-pipeline",
+    "jarvis-unmatched-pipeline",
     "ovos-fallback-pipeline-plugin-medium",
+    "jarvis-qwen-chat-pipeline",
+    "ovos-fallback-pipeline-plugin-low",
+]
+assert migrate_v3_pipeline(released_pipeline, reviewed_pipeline) == [
+    *reviewed_pipeline[:3],
+    "jarvis-media-pipeline",
+    *reviewed_pipeline[3:7],
+    "jarvis-qwen-pipeline",
+    "jarvis-unmatched-pipeline",
+    *reviewed_pipeline[7:-1],
+    "jarvis-qwen-chat-pipeline",
+    reviewed_pipeline[-1],
+]
+try:
+    migrate_v3_pipeline([*released_pipeline, "private-pipeline"], reviewed_pipeline)
+except ValueError as error:
+    assert "private-pipeline" in str(error)
+else:
+    raise AssertionError("Custom pipeline stage was silently removed")
+
+
+assert COMPATIBILITY["ovos"]["intent_pipeline"] == [
+    "ovos-stop-pipeline-plugin-high",
+    "ovos-converse-pipeline-plugin",
+    "ovos-adapt-pipeline-plugin-high",
+    "ovos-padatious-pipeline-plugin-high",
+    "ovos-fallback-pipeline-plugin-high",
+    "ovos-stop-pipeline-plugin-medium",
+    "ovos-adapt-pipeline-plugin-medium",
+    "ovos-fallback-pipeline-plugin-medium",
+    "ovos-common-query-pipeline-plugin",
     "ovos-fallback-pipeline-plugin-low",
 ]
 assert re.fullmatch(
@@ -195,11 +324,26 @@ assert "update_available" in tray_source
 speechnote_setup = (ROOT / "system_helpers/jarvis-speechnote-setup").read_text(
     encoding="utf-8"
 )
+reading_helper = (ROOT / "system_helpers/jarvis-read-visible-text").read_text(
+    encoding="utf-8"
+)
+dispatcher_helpers = (ROOT / "ovos_skill_jarvis_dispatcher/helpers.py").read_text(
+    encoding="utf-8"
+)
+assert 'exit 23' in reading_helper
+assert 'result.returncode == 23' in dispatcher_helpers
+assert 'Reading is already active.' in dispatcher_helpers
 for required_speechnote_fragment in (
     "flatpak remote-add --user --if-not-exists flathub",
     'flatpak install --user --noninteractive flathub "$app_id"',
     "never invokes sudo",
     "never changes existing Speech Note settings",
+    "keep every existing rule",
+    "Rule scope: STT",
+    "Rule type: Replace (Regular expression)",
+    r"Pattern: \bhey\s*,?\s*jarvis\b\s*\.?\s*",
+    "Replace with: one space",
+    "If you change Jarvis's wake phrase",
 ):
     assert required_speechnote_fragment in speechnote_setup, (
         "Speech Note user-space safety check is missing: "
@@ -226,7 +370,8 @@ EXPECTED_INTENTS = {
     "MuteSystemMicrophoneIntent",
     "MuteSystemAudioIntent",
     "MuteJarvisIntent",
-    "PressEnterIntent", "InsertNewLineIntent", "PressEscapeIntent",
+    "PressEnterIntent", "InsertNewLineIntent", "InsertPeriodIntent",
+    "PressEscapeIntent",
     "PlayMediaIntent", "PauseMediaIntent", "StopMediaIntent",
     "NextMediaIntent", "PreviousMediaIntent",
     "CapsLockOnIntent", "CapsLockOffIntent",
@@ -379,8 +524,8 @@ def main():
                          "__file__": str(PACKAGE / "profile.py"),
                          "__package__": ""}
     exec((PACKAGE / "profile.py").read_text(), profile_namespace)
-    brain_profile = profile_namespace["resolve_profile"](
-        profile_namespace["BRAIN_COMPATIBILITY_PROFILE"]
+    reference_profile = profile_namespace["resolve_profile"](
+        profile_namespace["REFERENCE_COMPATIBILITY_PROFILE"]
     )
 
     namespace = {}
@@ -403,9 +548,9 @@ def main():
             self.registrations.append((phrase, entity))
 
     fake = FakeSkill()
-    fake._jarvis_profile = brain_profile
+    fake._jarvis_profile = reference_profile
     namespace["register_skill_vocabulary"](fake, include_custom=False)
-    assert len(fake.registrations) == 1930, len(fake.registrations)
+    assert len(fake.registrations) == 1988, len(fake.registrations)
     assert len(fake.registrations) == len(set(fake.registrations)), (
         "Duplicate vocabulary registrations are present"
     )
@@ -515,6 +660,8 @@ def main():
         assert (phrase, "PressEnterCommand") in fake.registrations
     for phrase in ("new line", "newline", "insert new line", "add a new line"):
         assert (phrase, "InsertNewLineCommand") in fake.registrations
+    for phrase in ("full stop", "period", "insert a full stop", "add a period"):
+        assert (phrase, "InsertPeriodCommand") in fake.registrations
     for phrase in ("press escape", "press esc", "hit escape", "escape key"):
         assert (phrase, "PressEscapeCommand") in fake.registrations
     media_commands = {
@@ -687,13 +834,13 @@ def main():
 
     assert validate_mapping(
         {"show my notes": "application.open.notes"},
-        profile=brain_profile,
+        profile=reference_profile,
         builtin_phrases={"open notes"},
     ) == {"show my notes": "application.open.notes"}
     try:
         validate_mapping(
             {"open notes": "application.open.notes"},
-            profile=brain_profile,
+            profile=reference_profile,
             builtin_phrases={"open notes"},
         )
     except ValueError:
@@ -701,7 +848,7 @@ def main():
     else:
         raise AssertionError("A built-in phrase collision was accepted")
 
-    inventory = collect_builtin_inventory(brain_profile)
+    inventory = collect_builtin_inventory(reference_profile)
     assert set(inventory["mail.new"]) == {
         "new email", "create new email", "create an email",
         "compose email", "compose an email", "write a new email",
@@ -729,12 +876,12 @@ def main():
         written = write_mapping(
             {"show my notes": "application.open.notes"},
             path=custom_path,
-            profile=brain_profile,
+            profile=reference_profile,
             builtin_phrases={"open notes"},
         )
         assert read_mapping(
             path=custom_path,
-            profile=brain_profile,
+            profile=reference_profile,
             builtin_phrases={"open notes"},
         ) == written
         assert stat.S_IMODE(custom_path.stat().st_mode) == 0o600

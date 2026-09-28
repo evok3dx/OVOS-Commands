@@ -70,7 +70,7 @@ coding or file task.
 
 ## Why a small GTK editor was chosen
 
-The native OVOS GUI client was not installed on the Linux Mint Brain. Building
+The native OVOS GUI client was not installed on the Linux Mint reference system. Building
 the current Qt/Kirigami stack would introduce a separate GUI runtime and
 dependencies without improving the command workflow.
 

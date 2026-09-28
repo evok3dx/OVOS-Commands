@@ -24,6 +24,15 @@ class SystemControlsMixin:
             self.log.exception("New-line action failed")
             self.speak("I could not insert a new line.")
 
+    def _insert_period(self):
+        """Insert one literal full stop without submitting the focused field."""
+        try:
+            self._focused_window_details()
+            self._type_focused_text(".")
+        except Exception:
+            self.log.exception("Full-stop action failed")
+            self.speak("I could not insert a full stop.")
+
     def _press_escape(self):
         """Press Escape in the focused app, for example to dismiss its search."""
         try:

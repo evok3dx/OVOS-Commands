@@ -23,7 +23,7 @@ class DispatcherHelpersMixin:
             result = subprocess.run(
                 [str(helper), mode, str(speed)],
                 check=False,
-                timeout=12,
+                timeout=15,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL
             )
@@ -33,6 +33,8 @@ class DispatcherHelpersMixin:
                                  mode, result.returncode)
                 if mode == "selection" and result.returncode == 20:
                     self.speak("I could not find any selected text.")
+                elif result.returncode == 23:
+                    self.speak("Reading is already active.")
                 elif result.returncode == 22:
                     self.speak("Speech Note could not start reading.")
                 else:

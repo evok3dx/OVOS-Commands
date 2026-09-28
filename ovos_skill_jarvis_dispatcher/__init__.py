@@ -240,6 +240,12 @@ class JarvisDispatcherSkill(
         self._insert_new_line()
 
     @intent_handler(
+        IntentBuilder("InsertPeriodIntent").require("InsertPeriodCommand")
+    )
+    def handle_insert_period(self, _message):
+        self._insert_period()
+
+    @intent_handler(
         IntentBuilder("PressEscapeIntent").require("PressEscapeCommand")
     )
     def handle_press_escape(self, _message):
@@ -603,21 +609,7 @@ class JarvisDispatcherSkill(
             return
 
         if action == "address":
-            self._run_browser_action("address")
-
-            with self._message_lock:
-                self._clear_message_state()
-                self._message_stage = "browser_address"
-                self._message_retries = 1
-
-            self.activate(duration_minutes=1)
-
-            self.speak(
-                "What should I enter?",
-                expect_response=True,
-                wait=True
-            )
-            self._arm_message_timeout(20)
+            self._prompt_browser_address()
             return
 
         self._run_browser_action(action)

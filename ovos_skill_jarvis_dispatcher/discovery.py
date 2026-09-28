@@ -82,6 +82,8 @@ def scan_desktop_apps(home=None, roots=None):
                     'icon': entry.get('Icon', '').strip(),
                     'wm_class': entry.get('StartupWMClass', '').strip() or flatpak,
                     'exec': entry.get('Exec', ''),
+                    'menu_categories': [value for value in
+                                        entry.get('Categories', '').split(';') if value],
                 }
             except (OSError, ValueError, KeyError, configparser.Error):
                 continue
@@ -100,6 +102,13 @@ def available_apps(definitions, home=None):
         if name in reserved:
             continue
         identity = normalise(' '.join((entry['desktop_id'], entry['exec'], name)))
+        # Private/local control launchers are implementation details, not apps
+        # that a portable Jarvis installation should offer for voice control.
+        if (entry['desktop_id'] == 'jarvis-ovos.desktop'
+                or name == 'jarvis ovos'
+                or name.endswith(' terminal')
+                or 'jarvis-uninstall' in identity):
+            continue
         if any(word in identity.split() for word in (
                 'hermes', 'claude', 'chatgpt', 'proton', 'brave', 'firefox',
                 'signal', 'zoom', 'onlyoffice', 'standardnotes',

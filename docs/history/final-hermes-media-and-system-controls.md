@@ -70,7 +70,7 @@ layout are not stable enough for a dependable local command.
 
 ## Hermes Desktop integration
 
-Hermes is now a validated application category in the Brain profile. The
+Hermes is now a validated application category in the reference system profile. The
 allowlisted application helper can open, focus, minimise and close the verified
 `hermes.Hermes` window and launches it through its desktop entry in a detached
 transient user service.

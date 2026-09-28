@@ -58,4 +58,17 @@ with TemporaryDirectory() as tmp:
         else:
             raise AssertionError("Missing Ollama was accepted")
     assert path.read_bytes() == before
+    # Guided setup must pull the exact required model and re-check it before
+    # returning success. This is the V2/V3 installer-parity release gate.
+    with (patch.object(module.os, "geteuid", return_value=1000),
+          patch.object(module.Path, "home", return_value=home),
+          patch.object(module.shutil, "which", return_value="/usr/bin/ollama"),
+          patch.object(module, "inspect", side_effect=[
+              (True, True, False, {}, path),
+              (True, True, True, {}, path),
+          ]),
+          patch.object(module.subprocess, "run") as pull,
+          patch("sys.argv", ["qwen-setup.py", "--prepare", "--yes"])):
+        module.main()
+    pull.assert_called_once_with(["ollama", "pull", module.MODEL], check=True)
 print("PASS: local model gate, existing preference preservation and private atomic settings")

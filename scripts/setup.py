@@ -38,6 +38,8 @@ commands_module = load_module(
 INTEGRATIONS = capability_module.INTEGRATIONS
 build_configuration = capability_module.build_configuration
 detect_applications = capability_module.detect_applications
+recommended_applications = capability_module.recommended_applications
+private_agents_available = capability_module.private_agents_available
 APPLICATION_INTEGRATIONS = profile_module.APPLICATION_INTEGRATIONS
 resolve_profile = profile_module.resolve_profile
 
@@ -81,7 +83,7 @@ def atomic_write(path: Path, data: dict[str, object]) -> None:
 def migrate_profile(path: Path) -> dict[str, object]:
     raw = json.loads(path.read_text(encoding="utf-8"))
     applications = dict(raw.get("applications", {}))
-    # Older Brain profiles used generic Mail as a Proton alias. Preserve both
+    # Older reference system profiles used generic Mail as a Proton alias. Preserve both
     # behaviours while making the generic role follow the OS default.
     if applications.get("mail") == "proton_mail":
         applications["mail"] = "default_mail"
@@ -89,7 +91,7 @@ def migrate_profile(path: Path) -> dict[str, object]:
     legacy_private = raw.get("private_extensions", {})
     preserve_private_agents = bool(
         isinstance(legacy_private, dict) and legacy_private.get("agents") is True
-    ) or raw.get("name") in {"brain", "brain-compatibility"}
+    ) or raw.get("name") in {"reference", "reference-compatibility"}
     wake_phrase = str(raw.get("wake_phrase", "hey_jarvis"))
     data = {
         "schema_version": 1,
@@ -105,8 +107,11 @@ def migrate_profile(path: Path) -> dict[str, object]:
             raw.get("microphone_shortcut", "<Shift><Super>l")
         ),
         "applications": applications,
+        "default_browser": raw.get("default_browser"),
+        "preferred_apps": dict(raw.get("preferred_apps", {})),
+        "spoken_names": dict(raw.get("spoken_names", {})),
         # This flag is never offered by normal setup. It only preserves an
-        # already-customised Brain deployment during migration.
+        # already-customised reference system deployment during migration.
         "private_extensions": {"agents": preserve_private_agents},
     }
     resolve_profile(data)
@@ -116,20 +121,20 @@ def migrate_profile(path: Path) -> dict[str, object]:
 def choose_interactively(detected: dict[str, str]) -> tuple[str, set[str]]:
     print("\nJarvis application setup")
     print("No applications will be installed or changed.\n")
-    print("1. All detected supported applications")
-    print("2. Core voice controls only")
+    print("1. Recommended detected applications")
+    print("2. All detected supported applications")
     print("3. Choose applications")
     answer = input("Selection [1]: ").strip() or "1"
     if answer == "1":
-        return "all", set()
+        return "recommended", set()
     if answer == "2":
-        return "core", set()
+        return "all", set()
     if answer != "3":
         raise ValueError("Selection must be 1, 2 or 3")
     available = list(detected.values())
     if not available:
-        print("No supported applications were detected; using core controls.")
-        return "core", set()
+        print("No supported applications were detected; saving an empty custom selection.")
+        return "custom", set()
     print("\nDetected applications:")
     for index, integration in enumerate(available, 1):
         print(f"{index}. {display_name(integration)}")
@@ -156,7 +161,12 @@ def application_rows(detected):
         name = display_name(integration)
         aliases = definition.get('aliases', [])
         natural = profile_module.discovery.normalise(name)
-        alias = natural if natural in aliases else next(iter(aliases), natural)
+        role_names = {
+            'standard_notes': 'notes', 'proton_mail': 'mail',
+            'proton_calendar': 'calendar', 'system_calendar': 'system calendar',
+        }
+        alias = role_names.get(
+            integration, natural if natural in aliases else next(iter(aliases), natural))
         rows.append((integration, name, 'Open ' + alias,
                      'Also: ' + ', '.join('open ' + a for a in aliases if a != alias)))
     return sorted(rows, key=lambda row: row[1].casefold())
@@ -207,8 +217,13 @@ def choose_with_gui(detected, existing=None, on_save=None, *, output=None,
                    **profile_module.discovered_applications(home_path())}
     spoken_names = dict((existing or {}).get('spoken_names', {}))
     rows = application_rows(detected)
-    chosen = set(existing.get('applications', {}).values()) if existing else {r[0] for r in rows}
-    state = {'busy': False, 'dirty': False}
+    recommended = recommended_applications(detected, home_path())
+    chosen = (set(existing.get('applications', {}).values())
+              if existing else set(recommended))
+    state = {'busy': False, 'dirty': False, 'refreshing': False}
+    preferred_choices = dict((existing or {}).get('preferred_apps', {}))
+    if 'browser' not in preferred_choices and (existing or {}).get('default_browser'):
+        preferred_choices['browser'] = existing['default_browser']
 
     dialog = Gtk.Dialog(title='Configure Jarvis')
     cancel = dialog.add_button('Close', Gtk.ResponseType.CANCEL)
@@ -238,34 +253,64 @@ def choose_with_gui(detected, existing=None, on_save=None, *, output=None,
     box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
     box.set_border_width(12)
     notebook.append_page(box, tab_label('Applications', 'applications-other-symbolic'))
-    intro = Gtk.Label(label='Choose your apps. Edit a spoken name, for example Mega. Original names still work.', xalign=0)
+    intro = Gtk.Label(label='Choose which installed apps Jarvis can control. Nothing here installs or removes an app.', xalign=0)
     intro.set_line_wrap(True)
     box.pack_start(intro, False, False, 0)
-    all_button = Gtk.RadioButton.new_with_label_from_widget(None, 'All detected applications')
-    custom_button = Gtk.RadioButton.new_with_label_from_widget(all_button, 'Choose applications')
-    core_button = Gtk.RadioButton.new_with_label_from_widget(all_button, 'Core voice controls only')
-    modes = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-    for button in (all_button, custom_button, core_button):
-        modes.pack_start(button, False, False, 0)
+    all_button = Gtk.RadioButton.new_with_label_from_widget(None, 'All detected')
+    recommended_button = Gtk.RadioButton.new_with_label_from_widget(
+        all_button, 'Recommended')
+    custom_button = Gtk.RadioButton.new_with_label_from_widget(all_button, 'Custom')
+    modes = Gtk.Grid(column_spacing=8,row_spacing=8,column_homogeneous=True)
+    for index,button in enumerate((recommended_button, all_button, custom_button)):
+        button.set_mode(False);button.get_style_context().add_class('jarvis-mode')
+        modes.attach(button,index,0,1,1)
     box.pack_start(modes, False, False, 0)
+    mode_note = Gtk.Label(xalign=0);mode_note.set_line_wrap(True)
+    mode_note.get_style_context().add_class('jarvis-mode-note')
+    box.pack_start(mode_note,False,False,0)
+    toolbar=Gtk.Box(spacing=10)
     search = Gtk.SearchEntry()
     search.set_placeholder_text('Find an app or spoken command')
-    box.pack_start(search, False, False, 0)
+    toolbar.pack_start(search,True,True,0)
+    count = Gtk.Label(xalign=1)
+    toolbar.pack_end(count,False,False,0);box.pack_start(toolbar,False,False,0)
 
     # Enabled, ID, display name, example, aliases, editable override, GIcon.
     store = Gtk.ListStore(bool, str, str, str, str, str, Gio.Icon)
-    icon_defaults = {'files': 'system-file-manager', 'calculator': 'accessories-calculator',
-        'settings': 'preferences-system', 'terminal': 'utilities-terminal',
-        'default_mail': 'internet-mail', 'proton_mail': 'internet-mail',
-        'proton_calendar': 'x-office-calendar', 'standard_notes': 'accessories-text-editor',
-        'onlyoffice': 'x-office-document', 'brave': 'brave-browser', 'firefox': 'firefox',
-        'signal': 'signal-desktop', 'zoom': 'Zoom'}
+    icon_defaults = {'files': ('system-file-manager',), 'calculator': ('accessories-calculator',),
+        'settings': ('preferences-system',), 'terminal': ('utilities-terminal',),
+        'default_mail': ('internet-mail',),
+        'proton_mail': ('proton-mail', 'me.proton.Mail', 'internet-mail'),
+        'proton_calendar': ('proton-calendar', 'x-office-calendar'),
+        'system_calendar': ('org.gnome.Calendar', 'x-office-calendar'),
+        'standard_notes': ('standard-notes', 'org.standardnotes.standardnotes', 'accessories-text-editor'),
+        'hermes_desktop': ('hermes', 'applications-internet'),
+        'claude_desktop': ('com.anthropic.Claude', 'applications-internet'),
+        'onlyoffice': ('onlyoffice-desktopeditors', 'x-office-document'),
+        'brave': ('brave-browser',), 'firefox': ('firefox',),
+        'signal': ('signal-desktop',), 'zoom': ('Zoom', 'zoom')}
     theme = Gtk.IconTheme.get_default()
+    menu_entries=profile_module.discovery.scan_desktop_apps(home_path())
+    icon_needles={
+        'standard_notes': ('standard notes','standardnotes'),
+        'proton_mail': ('proton mail','proton-mail'),
+        'proton_calendar': ('proton calendar','calendar.proton.me'),
+        'hermes_desktop': ('hermes',),
+        'claude_desktop': ('claude',),
+    }
     def app_icon(key):
-        value = definitions.get(key, {}).get('icon', '') or icon_defaults.get(key, '')
-        if value.startswith('/') and Path(value).is_file():
+        value = definitions.get(key, {}).get('icon', '')
+        if not value and key in icon_needles:
+            for entry in menu_entries.values():
+                identity=' '.join((entry.get('display_name',''),entry.get('desktop_id',''),entry.get('exec',''))).casefold()
+                if any(needle in identity for needle in icon_needles[key]) and entry.get('icon'):
+                    value=entry['icon'];break
+        if not value:value=icon_defaults.get(key, '')
+        if isinstance(value, str) and value.startswith('/') and Path(value).is_file():
             return Gio.FileIcon.new(Gio.File.new_for_path(value))
-        return Gio.ThemedIcon.new(value if value and theme.has_icon(value) else 'application-x-executable')
+        candidates = (value,) if isinstance(value, str) else tuple(value)
+        selected = next((name for name in candidates if name and theme.has_icon(name)), '')
+        return Gio.ThemedIcon.new(selected or 'application-x-executable')
 
     for integration, name, example, alternatives in rows:
         override = spoken_names.get(integration, '')
@@ -279,6 +324,7 @@ def choose_with_gui(detected, existing=None, on_save=None, *, output=None,
     tree.set_headers_visible(True)
     tree.set_enable_search(False)
     tree.set_tooltip_column(4)
+    tree.set_grid_lines(Gtk.TreeViewGridLines.HORIZONTAL)
     toggle = Gtk.CellRendererToggle()
     toggle.set_property('ypad', 8)
     tree.append_column(Gtk.TreeViewColumn('Use', toggle, active=0))
@@ -290,7 +336,7 @@ def choose_with_gui(detected, existing=None, on_save=None, *, output=None,
     app_column.pack_start(label, True)
     app_column.add_attribute(label, 'text', 2)
     app_column.set_resizable(True)
-    app_column.set_expand(True)
+    app_column.set_min_width(190)
     tree.append_column(app_column)
     name_renderer = Gtk.CellRendererText()
     name_renderer.set_property('editable', True)
@@ -301,28 +347,67 @@ def choose_with_gui(detected, existing=None, on_save=None, *, output=None,
     tree.append_column(name_column)
     example_column = Gtk.TreeViewColumn('Say this', Gtk.CellRendererText(), text=3)
     example_column.set_resizable(True)
+    example_column.set_expand(True)
     tree.append_column(example_column)
     scroll = Gtk.ScrolledWindow()
     scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
     scroll.set_shadow_type(Gtk.ShadowType.IN)
+    scroll.set_min_content_height(390)
     scroll.add(tree)
     box.pack_start(scroll, True, True, 0)
-    count = Gtk.Label(xalign=0)
-    box.pack_start(count, False, False, 0)
-    help_text = Gtk.Label(label='Leave a spoken name blank to use its defaults. Commands update automatically.\nNamed window controls depend on the app’s window identity.', xalign=0)
+    help_text = Gtk.Label(label='Optional: edit a spoken name. Leave it blank to keep the app’s normal names.', xalign=0)
     help_text.set_line_wrap(True)
     box.pack_start(help_text, False, False, 0)
 
+    defaults_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+    defaults_box.set_border_width(16)
+    notebook.append_page(defaults_box, tab_label('Defaults', 'emblem-default-symbolic'))
+    defaults_intro = Gtk.Label(
+        label='These friendly names keep everyday commands simple. Only enabled, detected apps are used.',
+        xalign=0)
+    defaults_intro.set_line_wrap(True);defaults_box.pack_start(defaults_intro,False,False,0)
+    role_titles = {
+        'browser': 'Web browser', 'notes': 'Notes', 'mail': 'Mail',
+        'calendar': 'Calendar', 'office': 'Office',
+    }
+    role_combos = {}
+    role_models = {}
+    for role, title in role_titles.items():
+        row = Gtk.Box(spacing=10)
+        row.pack_start(Gtk.Label(label=title, xalign=0), True, True, 0)
+        combo = Gtk.ComboBoxText()
+        combo.set_size_request(260, -1)
+        row.pack_end(combo, False, False, 0)
+        defaults_box.pack_start(row, False, False, 0)
+        role_combos[role] = combo
+    defaults_box.pack_start(Gtk.Label(
+        label='Examples: “open browser”, “open notes”, “open mail”, “open calendar” and “open office”. '
+              'Only compatible enabled applications appear here.',
+        xalign=0),False,False,0)
+
     def selection():
         return ('all', set()) if all_button.get_active() else (
-            ('core', set()) if core_button.get_active() else ('custom', set(chosen)))
+            ('recommended', set()) if recommended_button.get_active() else (
+            'custom', set(chosen)))
 
     def prospective():
         mode, selected = selection()
-        return configuration_data(mode, selected, detected, existing, spoken_names)
+        data=configuration_data(mode, selected, detected, existing, spoken_names)
+        applications = data.get('applications', {})
+        selected_preferences = {
+            role: key for role, key in preferred_choices.items()
+            if key in applications
+        }
+        data['preferred_apps'] = selected_preferences
+        selected_browser = selected_preferences.get('browser')
+        if selected_browser in {'brave', 'firefox'}:
+            data['default_browser'] = selected_browser
+        return data
 
-    mode = existing.get('mode', 'custom') if existing else 'all-detected'
-    (all_button if mode == 'all-detected' else core_button if mode == 'core-only' else custom_button).set_active(True)
+    mode = existing.get('mode', 'custom') if existing else 'recommended'
+    (all_button if mode == 'all-detected' else
+     recommended_button if mode in {'recommended', 'core-only'} else
+     custom_button).set_active(True)
     initial_profile = resolve_profile(prospective())
     editor = editor_module.CommandEditor(profile=initial_profile)
     # Scroll the whole panel too, so all controls remain reachable on small screens.
@@ -346,9 +431,43 @@ def choose_with_gui(detected, existing=None, on_save=None, *, output=None,
         toggle.set_property('activatable', custom and not state['busy'])
         enabled = 0
         for row in store:
-            row[0] = all_button.get_active() or (custom and row[1] in chosen)
+            row[0] = (all_button.get_active()
+                      or (recommended_button.get_active() and row[1] in recommended)
+                      or (custom and row[1] in chosen))
             enabled += int(row[0])
         count.set_text(f'{len(store)} applications · {enabled} enabled')
+        preview = prospective()
+        resolved_preview = resolve_profile(preview)
+        applications = resolved_preview.get('applications', {})
+        state['refreshing'] = True
+        try:
+            for role, combo in role_combos.items():
+                candidates = tuple(profile_module.preferred_app_candidates(
+                    applications, role))
+                if role_models.get(role) != candidates:
+                    combo.remove_all()
+                    for key in candidates:
+                        combo.append(key, applications[key]['display_name'])
+                    role_models[role] = candidates
+                selected = preferred_choices.get(role)
+                if selected not in candidates:
+                    selected = resolved_preview.get('preferred_apps', {}).get(role)
+                if selected in candidates:
+                    preferred_choices[role] = selected
+                    combo.set_active_id(selected)
+                else:
+                    preferred_choices.pop(role, None)
+                    combo.set_active(-1)
+                combo.set_sensitive(bool(candidates) and not state['busy'])
+        finally:
+            state['refreshing'] = False
+        mode_note.set_text(
+            'Best for most people. Includes detected Standard Notes, Proton Mail, Proton Calendar and System Calendar.'
+            if recommended_button.get_active() else
+            'Enables every detected app in the list, including system utilities.'
+            if all_button.get_active() else
+            'Tick only the apps you want Jarvis to control.'
+        )
         filtered.refilter()
 
     def changed(*_args):
@@ -386,11 +505,23 @@ def choose_with_gui(detected, existing=None, on_save=None, *, output=None,
 
     name_renderer.connect('edited', name_edited)
     toggle.connect('toggled', toggled)
-    for button in (all_button, custom_button, core_button):
+    for button in (recommended_button, all_button, custom_button):
         button.connect('toggled', changed)
+    def preferred_changed(combo, role):
+        if state['refreshing']:
+            return
+        selected = combo.get_active_id()
+        if selected:
+            preferred_choices[role] = selected
+        else:
+            preferred_choices.pop(role, None)
+        changed()
+
+    for role, combo in role_combos.items():
+        combo.connect('changed', preferred_changed, role)
     search.connect('search-changed', lambda *_args: filtered.refilter())
     def switched(_notebook, _page, page_number):
-        if page_number == 1:
+        if page_number == 2:
             editor.refresh_profile(resolve_profile(prospective()))
     notebook.connect('switch-page', switched)
     refresh()
@@ -434,7 +565,7 @@ def choose_with_gui(detected, existing=None, on_save=None, *, output=None,
         # display a window, save settings, restart services or launch apps.
         editor.refresh_profile(resolve_profile(prospective()))
         dialog.destroy()
-        print('PASS: Jarvis window, four sections and existing apps/commands initialise.')
+        print('PASS: Jarvis window, five sections and existing apps/commands initialise.')
         return None
     dialog.show_all()
     centre.show_tab(tab)
@@ -477,10 +608,29 @@ def personal_path():
                 str(home_path() / '.config/jarvis/custom-commands.json')))
 
 
+def preserve_machine_settings(data, previous):
+    """Preserve host-owned settings while applying a new app selection."""
+    if previous is None:
+        return data
+    generated_preferred = dict(data.get('preferred_apps', {}))
+    previous_preferred = previous.get('preferred_apps', {})
+    if not isinstance(previous_preferred, dict):
+        previous_preferred = {}
+    merged = {
+        **data, **previous,
+        'mode': data['mode'],
+        'applications': data['applications'],
+        'preferred_apps': {**generated_preferred, **previous_preferred},
+    }
+    return merged
+
+
 def configuration_data(mode, selected, detected, previous, spoken_names):
-    data = build_configuration(mode, detected, selected)
-    if previous is not None:
-        data = {**data, **previous, 'mode': data['mode'], 'applications': data['applications']}
+    data = build_configuration(
+        mode, detected, selected,
+        private_agents=private_agents_available(home_path()), home=home_path(),
+    )
+    data = preserve_machine_settings(data, previous)
     names = profile_module.validate_spoken_names(spoken_names)
     if names or 'spoken_names' in data:
         data['spoken_names'] = names
@@ -572,8 +722,7 @@ def save_configuration(data, mapping, output, phrases_path, expected, restart=Tr
 def save_selection(mode, selected, detected, output, restart=True):
     previous = json.loads(output.read_text()) if output.is_file() else None
     data = build_configuration(mode, detected, selected)
-    if previous is not None:
-        data = {**data, **previous, 'mode': data['mode'], 'applications': data['applications']}
+    data = preserve_machine_settings(data, previous)
     if data == previous:
         return 'No changes to save.'
     atomic_write(output, data)
@@ -633,10 +782,10 @@ def restart_jarvis() -> None:
 
 def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(description=__doc__)
-    result.add_argument("--mode", choices=("all", "core", "custom"))
+    result.add_argument("--mode", choices=("recommended", "all", "custom"))
     result.add_argument("--apps", default="", help="Comma-separated detected integration IDs")
     result.add_argument("--gui", action="store_true")
-    result.add_argument("--tab", choices=("overview", "applications", "commands", "voice", "maintenance"), default="overview")
+    result.add_argument("--tab", choices=("overview", "applications", "commands", "voice", "updates", "maintenance"), default="overview")
     result.add_argument("--show", action="store_true")
     result.add_argument("--check-gui", action="store_true", help=argparse.SUPPRESS)
     result.add_argument("--migrate-profile", type=Path)
@@ -679,13 +828,16 @@ def main() -> int:
         elif sys.stdin.isatty():
             mode, selected = choose_interactively(detected)
         else:
-            mode = "all"
-        data = build_configuration(mode, detected, selected)
-        if existing is not None:
-            # App selection must not reset conversation, shortcuts, wake phrase,
-            # private extensions or other unrelated settings.
-            data = {**data, **existing, 'mode': data['mode'],
-                    'applications': data['applications']}
+            mode = "recommended"
+        data = build_configuration(
+            mode, detected, selected,
+            private_agents=private_agents_available(home_path()), home=home_path(),
+        )
+        # App selection must not reset conversation, shortcuts, wake phrase,
+        # private extensions or other unrelated settings. Keep explicit
+        # compatible preferred apps while filling defaults for newly enabled
+        # roles.
+        data = preserve_machine_settings(data, existing)
 
     atomic_write(args.output, data)
     enabled = [display_name(value) for value in data["applications"].values()]

@@ -118,7 +118,7 @@ def run_json(command: list[str], timeout: int = 20) -> dict[str, object]:
 
 
 def reviewed_voice_versions(versions: dict[str, str | None]) -> dict[str, str]:
-    """Select the voice versions matching the reviewed Brain core stack."""
+    """Select the voice versions matching the reviewed reference system core stack."""
     upgrade = POLICY["ovos"].get("preserved_alpha_stack", {})
     if upgrade and all(versions.get(name) == value
                        for name, value in upgrade.get("core", {}).items()):
@@ -331,7 +331,7 @@ print(json.dumps({
                 report.fail(f"bella-{package}", f"Required package {package} is missing.")
     if reviewed_upgrade and str(data["versions"].get("numpy") or "").split(".")[0] == "2":
         report.warn("openwakeword-numpy-metadata",
-                    "Installed OpenWakeWord declares numpy<2; Brain's ONNX engine was tested with NumPy 2, but this metadata conflict remains.")
+                    "Installed OpenWakeWord declares numpy<2; reference system's ONNX engine was tested with NumPy 2, but this metadata conflict remains.")
 
 
 def check_wakeword_config(
@@ -353,11 +353,23 @@ def check_wakeword_config(
     except (OSError, ValueError, json.JSONDecodeError) as error:
         report.fail("wakeword-config", f"Could not read {path}: {error}")
         return
-    if (
+    valid = (
         listener.get("wake_word") == expected_phrase
         and hotword.get("module") == expected_module
         and hotword.get("listen") is True
-    ):
+    )
+    if expected_phrase == POLICY["ovos"]["wakeword"]["phrase"]:
+        models = hotword.get("models")
+        valid = valid and (
+            hotword.get("threshold") == POLICY["ovos"]["wakeword"]["threshold"]
+            and hotword.get("inference_framework") == "onnx"
+            and listener.get("vad_pre_wake_enabled") is False
+            and isinstance(models, list)
+            and len(models) == 1
+            and isinstance(models[0], str)
+            and Path(models[0]).is_file()
+        )
+    if valid:
         report.pass_(
             "wakeword-config",
             f"Wake phrase {expected_phrase.replace('_', ' ')!r} is configured.",
@@ -375,6 +387,8 @@ def check_audio_stack_config(report: Report, home: Path) -> None:
     try:
         config = json.loads(path.read_text(encoding="utf-8"))
         listener = config.get("listener", {})
+        microphone = listener.get("microphone", {})
+        microphone = microphone if isinstance(microphone, dict) else {}
         vad = listener.get("VAD", {})
         stt = config.get("stt", {})
         tts = config.get("tts", {})
@@ -384,11 +398,18 @@ def check_audio_stack_config(report: Report, home: Path) -> None:
         return
     valid = (
         vad.get("module") == POLICY["ovos"]["vad"]["module"]
-        and listener.get("instant_listen") is True
-        and listener.get("fake_barge_in") is True
-        and listener.get("barge_in_delay") == 0.25
-        and listener.get("barge_in_volume") == 15
+        and listener.get("instant_listen") is False
+        and isinstance(listener.get("fake_barge_in"), bool)
+        and isinstance(listener.get("barge_in_volume"), int)
+        and 10 <= listener.get("barge_in_volume") <= 50
+        and listener.get("barge_in_volume") % 5 == 0
+        and config.get("confirm_listening") is True
+        and microphone.get("module") in {
+            "ovos-microphone-plugin-alsa",
+            "ovos-microphone-plugin-sounddevice",
+        }
         and stt.get("module") == POLICY["ovos"]["stt"]["module"]
+        and isinstance(stt.get(POLICY["ovos"]["stt"]["module"], {}).get("vad_filter"), bool)
         and tts.get("module") == POLICY["ovos"]["tts"]["module"]
         and tts.get(POLICY["ovos"]["tts"]["module"], {}).get("voice")
         == POLICY["ovos"]["tts"]["voice"]

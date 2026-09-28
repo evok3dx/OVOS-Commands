@@ -56,7 +56,7 @@ fi
 
 confirm_focus
 
-# Preserve the Brain's proven four-step scrolling while delivering the event
+# Preserve the reference system's proven four-step scrolling while delivering the event
 # to the verified focused window. Chromium/Electron/Firefox may ignore direct
 # synthetic events sent with xdotool --window.
 case "$action" in

@@ -27,7 +27,7 @@ When adding or changing an application window signature, also:
 
 `jarvis-app-window` deliberately treats `|`-separated window signatures as a
 list of literal alternatives. Do not replace that with a single literal match
-against the full joined value. The 16 September 2026 Brain/laptop comparison
+against the full joined value. The 16 September 2026 reference system/laptop comparison
 proved that such a mismatch can make an already-open app appear missing.
 
 See [`window-focus-and-app-integration.md`](window-focus-and-app-integration.md)

@@ -1,5 +1,22 @@
 # Jarvis Media plugin history
 
+## 0.2.0 — bundled with Jarvis 3.6
+
+- A valid title request now receives one short acknowledgement: “Let me spin
+  that track.”
+- The acknowledgement is requested immediately. After it completes, the
+  asynchronous lookup starts without an artificial pre-search delay; a
+  validated result waits 1.5 seconds before Brave opens.
+- The Media pipeline runs after native Adapt commands and before Padatious so
+  an Alerts intent cannot steal a deliberate `Play {title}` request.
+- Qwen-approved title-only wording reaches the same bounded event; the action
+  still rejects questions, negation, compound desktop actions and generic
+  guesses.
+- Empty input and generic playback requests remain outside the title-search
+  path, so a silent wake stays silent.
+- Enabled Brave remains the first playback browser; enabled Firefox is tried
+  only when Brave is unavailable or its reviewed launcher fails.
+
 **HISTORICAL:** this records the separate plugin experiments and their
 recovery steps. Jarvis V3 bundles the reviewed skill source and uses its main
 installer; the commands for earlier standalone installers below are archival.
@@ -25,7 +42,7 @@ The first approach used the standard OVOS Common Play architecture:
 - VLC or another playback backend;
 - optional experimental `ovos-media` service.
 
-The Brain was moved to a coherent OVOS alpha stack and the media providers were
+The reference system was moved to a coherent OVOS alpha stack and the media providers were
 tested. The standalone `ovos-media` service was also trialled and rolled back.
 It remained pre-release and introduced unnecessary queue and control complexity
 for this personal assistant.

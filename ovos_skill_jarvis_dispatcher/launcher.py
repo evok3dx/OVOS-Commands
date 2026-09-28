@@ -32,6 +32,8 @@ DESKTOP_IDS = {
     "calculator": ("org.gnome.Calculator.desktop", "gnome-calculator.desktop", "galculator.desktop"),
     "settings": ("cinnamon-settings.desktop",),
     "files": ("nemo.desktop",),
+    "system_calendar": ("org.gnome.Calendar.desktop", "gnome-calendar.desktop",
+                        "org.kde.korganizer.desktop", "io.elementary.calendar.desktop"),
 }
 FLATPAKS = {
     "brave": "com.brave.Browser", "firefox": "org.mozilla.firefox",
@@ -39,7 +41,7 @@ FLATPAKS = {
     "onlyoffice": "org.onlyoffice.desktopeditors", "zoom": "us.zoom.Zoom",
     "calculator": "org.gnome.Calculator",
 }
-BASIC_APPS = ("calculator", "settings", "files")
+BASIC_APPS = ("calculator", "settings", "files", "system_calendar")
 HELPER_IDS = {"notes": "standard_notes", "office": "onlyoffice"}
 
 

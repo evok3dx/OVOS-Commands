@@ -220,21 +220,34 @@ class ConversationMixin:
                 text_to_write = utterance.strip()
 
                 spoken_punctuation = (
-                    (r"\\s+(?:full stop|period)\\s*$", "."),
-                    (r"\\s+question mark\\s*$", "?"),
-                    (r"\\s+exclamation mark\\s*$", "!")
+                    (
+                        r"\s+(?:(?:insert|add)\s+(?:a\s+)?(?:full stop|period)"
+                        r"|full stop|period)[.!?]?\s*$",
+                        ".",
+                    ),
+                    (r"\s+question mark[.!?]?\s*$", "?"),
+                    (r"\s+exclamation mark[.!?]?\s*$", "!")
                 )
 
+                explicit_punctuation = False
                 for pattern, replacement in spoken_punctuation:
-                    text_to_write = re.sub(
+                    updated = re.sub(
                         pattern,
                         replacement,
                         text_to_write,
                         flags=re.IGNORECASE
                     )
+                    if updated != text_to_write:
+                        explicit_punctuation = True
+                        text_to_write = updated
+                        break
 
-                if not re.search(r"[.!?]$", text_to_write):
-                    text_to_write += "."
+                # Faster-Whisper commonly adds a final full stop itself. For
+                # one-shot “write this”, type the dictated words without that
+                # automatic punctuation or a trailing space. A spoken
+                # “period”/“full stop” remains an explicit request for one.
+                if not explicit_punctuation:
+                    text_to_write = re.sub(r"\.\s*$", "", text_to_write).rstrip()
 
                 # One-shot writing was explicitly requested by the user.
                 # Never interpret dictated text as a send/Enter command.
@@ -447,10 +460,14 @@ class ConversationMixin:
 
         if browser_payload:
             stage, browser_text = browser_payload
+            if stage in {"browser_address", "browser_search", "browser_search_firefox"}:
+                if self._active_window_id() != browser_window_id:
+                    self.speak("The focused window changed, so I cancelled.")
+                    return True
+
             if stage in {"browser_search", "browser_search_firefox"}:
                 browser = "firefox" if stage == "browser_search_firefox" else "brave"
-                if (self._active_window_id() != browser_window_id
-                        or self._active_browser() != browser):
+                if self._active_browser() != browser:
                     self.speak("The focused window changed, so I cancelled.")
                     return True
 

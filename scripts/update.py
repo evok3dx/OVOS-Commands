@@ -85,7 +85,12 @@ def latest_release() -> dict[str, object]:
     checksum = f"{archive}.sha256"
     if archive not in assets or checksum not in assets:
         raise RuntimeError("Latest release is missing its archive or SHA-256 checksum")
-    return {"version": version, "archive": assets[archive], "checksum": assets[checksum]}
+    return {
+        "version": version,
+        "archive": assets[archive],
+        "checksum": assets[checksum],
+        "release_date": str(data.get("published_at", ""))[:10],
+    }
 
 
 def save_status(release: dict[str, object]) -> bool:
@@ -98,6 +103,7 @@ def save_status(release: dict[str, object]) -> bool:
         "schema_version": 1,
         "installed": VERSION,
         "latest": release["version"],
+        "release_date": release.get("release_date", ""),
         "update_available": available,
     }, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     temporary.chmod(0o600)

@@ -11,6 +11,31 @@ class DictationActionsMixin:
     def _speech_note_action(self, action: str) -> bool:
         """Invoke a supported action on the running Speech Note app."""
 
+        # A running Speech Note instance exposes the same supported action API
+        # over its session bus. Use it directly so a second Flatpak launcher
+        # cannot delay or lose a dictation request. Cold start remains a
+        # bounded fallback and existing models/settings are untouched.
+        try:
+            subprocess.run(
+                [
+                    "/usr/bin/gdbus", "call", "--session",
+                    "--dest", "net.mkiol.SpeechNote",
+                    "--object-path", "/net/mkiol/SpeechNote",
+                    "--method", "net.mkiol.SpeechNote.InvokeAction",
+                    action, "{}"
+                ],
+                check=True,
+                timeout=3,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+            return True
+        except Exception:
+            self.log.debug(
+                "Speech Note D-Bus action unavailable; trying Flatpak: %s",
+                action,
+            )
+
         try:
             subprocess.run(
                 [
@@ -194,5 +219,9 @@ class DictationActionsMixin:
         if self._speech_note_action("start-listening-active-window"):
             self._speech_note_dictating = True
             self._speech_note_dictation_paused = False
+            self.log.info(
+                "Speech Note continuous dictation requested; task state=%s",
+                self._speech_note_task_state(),
+            )
         else:
             self.speak("I could not start dictation.")

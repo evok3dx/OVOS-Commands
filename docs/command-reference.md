@@ -11,12 +11,14 @@ corrections are maintained centrally in
 
 Supported applications include Brave, Firefox, Signal, Zoom, Terminal,
 Standard Notes, ONLYOFFICE, Claude Desktop, ChatGPT Desktop, Hermes Desktop,
-the default Mail application, Proton Mail and Proton Calendar when detected
+the default Mail application, Proton Mail, Proton Calendar and the system
+Calendar when detected
 and enabled.
 
 Examples:
 
 - `Open Firefox`
+- `Open browser` (uses the preferred enabled browser)
 - `Show Standard Notes`
 - `Focus Proton Mail`
 - `Minimise Zoom`
@@ -156,14 +158,22 @@ handles deliberate `Play {title}` requests with one bounded YouTube lookup.
 ## Media and local files
 
 - `Play {title}` or `Put on {title}` searches for one YouTube video and opens
-  the result in Brave. Replace `{title}` with an actual song or video name.
+  the result in enabled Brave, with enabled Firefox as the fallback. Replace
+  `{title}` with an actual song or video name.
 - `Pause music`, `Resume playback`, `Stop media`, `Next song` and `Previous
   track` control a compatible MPRIS player. Next and previous require a queue.
 - `Find {filename}` or `Look in my Documents for {query}` searches local
   filenames and shows a picker. Nothing opens until you select a result.
+- `Search my files` or `Search my documents` asks one local follow-up when no
+  query was spoken. The latter searches `~/Documents` only.
 
 The Commands page shows the current installed patterns. File and title
 templates are read-only; [details and limits](10-media-files.md).
+
+Provider-backed browser and YouTube searches are submitted one at a time with
+the conservative pacing described in the linked guide. Jarvis does not retry
+provider blocks automatically. Local filename search and other commands are
+not delayed.
 
 ## Reading
 
@@ -200,9 +210,25 @@ Examples:
 Speech Note performs dictation and reading while the dispatcher controls its
 allowlisted actions.
 
-Speech Note is optional. Run `jarvis-speechnote-setup` to install it for the
-current user, inspect active models or open its model browser. Existing Speech
-Note settings are preserved.
+One-shot writing types the captured words without Enter and removes only
+Whisper's automatic final period. For a period in the same capture, say the
+more distinctive phrase `insert a period` at the end. If Whisper has already
+converted spoken “full stop” into ordinary punctuation, Jarvis cannot tell it
+apart from automatic punctuation; use the separate `Full stop` command then.
+
+Speech Note is optional. Open **Jarvis → Voice → Open Speech Note and setup
+guide…** to inspect or open it, or to approve a per-user installation when it is
+absent. The same bounded helper is available as `jarvis-speechnote-setup` in a
+terminal. Existing Speech Note models, voices, settings and transformation
+rules are preserved.
+
+For continuous dictation, enable Speech Note's Rules feature and add one STT
+**Replace (Regular expression)** rule. Use
+`\bhey\s*,?\s*jarvis\b\s*\.?\s*` as the case-insensitive pattern and one space
+as its replacement. This covers `Hey Jarvis` and `Hey, Jarvis`, with or without
+a final full stop. If the wake phrase changes, update this rule too. Jarvis
+shows the step but does not rewrite Speech Note's rule list: its public
+integration API cannot merge rules safely.
 
 ## Hermes messages
 
@@ -227,6 +253,8 @@ Examples:
 - "New line", "newline", "insert new line" and "add a new line" use the
   dedicated New Line action. They send Shift+Return to the verified focused
   window without submitting a message.
+- "Full stop" or "period" inserts one literal `.` in the focused field without
+  pressing Enter. "Insert a full stop" and "add a period" work too.
 - "Press Enter" sends Return to the verified focused window and may submit.
 - "Press Escape", "press Esc", "hit Escape" and "Escape key" send Escape
   to the focused application, for example to dismiss a search field or dialog

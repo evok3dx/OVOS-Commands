@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Apply the reviewed Misaki eSpeak fallback used by the working Brain."""
+"""Apply the reviewed Misaki eSpeak fallback used by the working reference system."""
 
 from __future__ import annotations
 

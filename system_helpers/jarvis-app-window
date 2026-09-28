@@ -18,6 +18,7 @@ case "$app" in
     ;;
   proton_mail) app="mail" ;;
   proton_calendar) app="calendar" ;;
+  system_calendar) app="system_calendar" ;;
 esac
 
 window_wait_attempts=40
@@ -93,6 +94,10 @@ case "$app" in
   calendar)
     window_match="calendar.proton.me.Brave-browser"
     title="Calendar"
+    ;;
+  system_calendar)
+    window_match="gnome-calendar.Gnome-calendar|org.gnome.Calendar|korganizer.Korganizer|io.elementary.calendar"
+    title="System Calendar"
     ;;
   *)
     echo "Unsupported application" >&2
@@ -185,7 +190,7 @@ launch_window() {
   # Existing applications retain the launch paths used before this update.
   # Only the three newly added basic integrations use desktop discovery here.
   case "$app" in
-    calculator|settings|files)
+    calculator|settings|files|system_calendar)
       if [[ -x "$HOME/.local/bin/jarvis-desktop-launch" ]]; then
         if "$HOME/.local/bin/jarvis-desktop-launch" "$app"; then
           return 0
@@ -199,7 +204,7 @@ launch_window() {
       ;;
   esac
   case "$app" in
-    calculator|settings|files) return 1 ;;
+    calculator|settings|files|system_calendar) return 1 ;;
     brave)
       if /usr/bin/flatpak info com.brave.Browser >/dev/null 2>&1; then
         detached_launch /usr/bin/flatpak run com.brave.Browser

@@ -13,7 +13,8 @@ from urllib.error import URLError
 from urllib.request import urlopen
 
 MODEL = "qwen3:4b-instruct-2507-q4_K_M"
-STAGES = ("jarvis-qwen-pipeline", "jarvis-qwen-chat-pipeline")
+STAGES = ("jarvis-qwen-pipeline", "jarvis-unmatched-pipeline",
+          "jarvis-qwen-chat-pipeline")
 
 
 def inspect(home: Path):

@@ -39,9 +39,16 @@ class JarvisFileSearchSkill(OVOSSkill):
 
     @intent_handler("search.file.prompt.intent")
     def handle_search_prompt(self, message):
-        query = self.get_response("which.filename", num_retries=0)
+        self._prompt_search("which.filename", documents_only=False)
+
+    @intent_handler("search.documents.prompt.intent")
+    def handle_documents_prompt(self, message):
+        self._prompt_search("which.document", documents_only=True)
+
+    def _prompt_search(self, dialog, *, documents_only):
+        query = self.get_response(dialog, num_retries=0)
         if query:
-            self._search(query)
+            self._search(query, documents_only=documents_only)
 
     def _search(self, requested_query, documents_only=False):
         query = str(requested_query or "").strip()

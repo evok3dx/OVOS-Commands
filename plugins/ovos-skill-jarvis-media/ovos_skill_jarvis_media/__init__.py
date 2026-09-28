@@ -4,11 +4,17 @@ from __future__ import annotations
 import subprocess
 import sys
 import threading
+import time
 
 from ovos_workshop.skills.ovos import OVOSSkill
+from ovos_skill_jarvis_dispatcher.search_pacing import (
+    SearchCoolingDown, pace_search,
+)
 
 from .bridge import register, unregister
-from .media import control, first_result, normalise_query, open_brave, search_command
+from .media import (ProviderSearchBlocked, control, first_result,
+                    normalise_query, open_media_url, provider_search_blocked,
+                    search_command)
 from . import pipeline
 
 
@@ -16,6 +22,7 @@ EVENT_CONTROL = "jarvis.media.control"
 EVENT_CANCEL = "jarvis.media.cancel"
 EVENT_STATUS = "jarvis.media.status"
 REVISION = "jarvis.media.plugin.1"
+RESULT_TRANSITION_SECONDS = 1.5
 
 
 class JarvisMediaSkill(OVOSSkill):
@@ -46,12 +53,15 @@ class JarvisMediaSkill(OVOSSkill):
             self._cancel_locked()
             self._media_generation += 1
             generation = self._media_generation
+        self.speak("Let me spin that track.", wait=True)
         threading.Thread(target=self._search_and_open, args=(query, generation),
                          name="jarvis-media-youtube", daemon=True).start()
 
     def _search_and_open(self, query, generation):
         process = None
         try:
+            pace_search("media", jitter=0.0)
+            self.log.info("Reserved one bounded YouTube title lookup")
             process = subprocess.Popen(
                 search_command(sys.executable, query), stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE, text=True, start_new_session=True,
@@ -63,15 +73,28 @@ class JarvisMediaSkill(OVOSSkill):
                 self._media_process = process
             stdout, stderr = process.communicate(timeout=30)
             if process.returncode:
+                if provider_search_blocked(stderr):
+                    raise ProviderSearchBlocked()
                 raise RuntimeError((stderr or "YouTube search failed").strip()[-500:])
             url, title = first_result(stdout)
             with self._media_lock:
                 if generation != self._media_generation:
                     return
                 self._media_process = None
-            if not open_brave(url):
-                raise RuntimeError("The configured Brave launcher did not start")
-            self.log.info("Opened first YouTube result in Brave: %s", title)
+            time.sleep(RESULT_TRANSITION_SECONDS)
+            with self._media_lock:
+                if generation != self._media_generation:
+                    return
+            browser = open_media_url(url)
+            if not browser:
+                raise RuntimeError("No enabled reviewed browser could open the result")
+            self.log.info("Opened first YouTube result in %s: %s", browser.title(), title)
+        except SearchCoolingDown:
+            self.log.info("Provider-backed search is cooling down")
+            self.speak("Search is paused for a moment. Please try again shortly.")
+        except ProviderSearchBlocked:
+            self.log.warning("YouTube refused the search request")
+            self.speak("YouTube is limiting searches. Please try again later.")
         except subprocess.TimeoutExpired:
             if process is not None:
                 process.kill()

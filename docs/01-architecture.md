@@ -16,8 +16,8 @@ upstream OVOS installer with administrator access; updates keep installed OVOS
 speech packages and host configuration in place. The tray and Control Centre
 use system Python/GTK, separate from the OVOS virtualenv.
 
-**PLANNED:** confirm the combined checkout with real speech on both Brain and
+**PLANNED:** confirm the combined checkout with real speech on both reference system and
 i7 laptop; consolidate repeated app definitions only after that baseline is
 captured. V3 bundles its own Media and File Search skills; existing OCP media
-providers remain installed separately in OVOS. The Brain's provider stack is in the
+providers remain installed separately in OVOS. The reference system's provider stack is in the
 [living audit](v2.4-audit.md), with its limits.

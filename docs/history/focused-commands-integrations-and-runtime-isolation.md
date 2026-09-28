@@ -15,7 +15,7 @@ whole command system.
 
 ## Status terminology
 
-- **Confirmed live** means the behaviour was observed working on the Brain.
+- **Confirmed live** means the behaviour was observed working on the reference system.
 - **Installed** means it passed static validation and was deployed, but every
   voice route may not yet have been exercised.
 - **Repository baseline** means the complete source and documentation are
@@ -82,7 +82,7 @@ The reusable focused-window layer gained:
 Terminal-specific shortcuts are used where safe. Destructive or semantically
 different editing actions are refused in Terminal rather than guessed.
 
-The user confirmed the main focused editing additions worked on the Brain.
+The user confirmed the main focused editing additions worked on the reference system.
 
 ## Search opens before the spoken query
 
@@ -136,7 +136,7 @@ excluded because it needs recipient validation and explicit confirmation.
 
 ## Zoom copied-link integration
 
-Zoom on the Brain registers:
+Zoom on the reference system registers:
 
 ```text
 x-scheme-handler/zoommtg → Zoom.desktop → /usr/bin/zoom %U
@@ -162,7 +162,7 @@ but state-aware operations remain preferable.
 
 ## Flatpak Brave mismatch
 
-The Brain had two Brave installations:
+The reference system had two Brave installations:
 
 - the regular Flatpak, `com.brave.Browser`, containing the user's normal
   profile;

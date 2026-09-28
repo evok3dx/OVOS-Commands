@@ -20,7 +20,8 @@ native phrases are the reliable path for frequent requests.
 No. OVOS discovers the skill's `opm.skill` entry point, but Qwen has an
 explicit action catalogue, candidate filter, prompt and approved dispatcher.
 Installing an OVOS skill cannot modify that catalogue automatically. The
-0.2.0 installer automates the **reviewed local edit** for this particular
+The historical 0.2.0 standalone installer automated the **reviewed local
+edit** for that particular
 dispatcher version and verifies hashes first. It also adds the skill's phrases
 to the tray Commands tab. A changed dispatcher requires a
 new review and compatible update. `--no-qwen` skips the edit while keeping
@@ -35,7 +36,7 @@ The Media installer places that pipeline before Qwen and integrates fixed
 transport actions with the dispatcher. Qwen can select existing approved
 play, pause, stop, next and previous actions; that integration was explicitly
 configured by the Media installer. The presence of an OVOS plugin alone does
-not add an action to Qwen. File Search 0.2.0 changes no Media files.
+not add an action to Qwen. File Search 0.3.0 changes no Media files.
 
 Qwen's browser YouTube search action is separate: it opens a search prompt.
 Spoken title playback uses the Media pipeline. File Search does not turn

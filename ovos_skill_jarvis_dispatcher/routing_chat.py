@@ -29,6 +29,19 @@ def question_like(text):
         r'|(?:hello|hi|hey jarvis|thanks|thank you|good morning|good evening)\b)', text))
 
 
+def wake_only(text):
+    """A wake-only transcription is not a question or command to speak."""
+    return bool(re.fullmatch(r"\s*(?:hey\s+jarvis|jarvis)[.!?\s]*", text, re.I))
+
+
+def live_question(text):
+    """Keep basic current facts with native local query skills, never chat."""
+    return bool(re.search(
+        r"\b(?:what\s+time|time\s+is\s+it|what(?:'s|\s+is)\s+(?:the\s+)?(?:time|date|day)"
+        r"|what\s+(?:date|day)\s+is\s+it|today'?s\s+date|current\s+(?:time|date))\b",
+        text, re.I))
+
+
 def wants_detail(text):
     return bool(re.search(r'\b(?:in detail|more detail|detailed|explain fully|step by step)\b', text, re.I))
 

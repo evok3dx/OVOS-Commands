@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "release_version": "3.1.0",
+  "release_version": "3.6.0",
   "package_modules": [
     "__init__.py",
     "agents.py",
@@ -24,6 +24,7 @@
     "routing_runtime.py",
     "routing_pipeline.py",
     "routing_chat.py",
+    "search_pacing.py",
     "_ovos_launcher.py",
     "launcher.py",
     "discovery.py"
@@ -52,11 +53,12 @@
     "jarvis-speechnote-setup",
     "jarvis-system-microphone",
     "jarvis-update",
+    "jarvis-uninstall",
     "jarvis-wake-phrase",
     "jarvis-desktop-launch"
   ],
   "profiles": [
-    "brain.json",
+    "reference.json",
     "default.json",
     "portable-desktop.json",
     "personal.example.json"
@@ -70,6 +72,16 @@
     "systemd/jarvis-update-check.timer"
   ],
   "optional_components": {
+    "licensing": [
+      "OVOS-LAUNCHER-LICENSE.txt",
+      "NOTICE.md",
+      "LAUNCHER.md",
+      "extras/whisper-hints/LICENSE.upstream"
+    ],
+    "reference_stack": [
+      "voice/reviewed-stack.json",
+      "scripts/validate-staged-ovos.py"
+    ],
     "plugin_rollback_preflight": [
       "scripts/check-plugin-rollback.py"
     ],
@@ -90,7 +102,15 @@
       "plugins/jarvis-file-search/jarvis_file_search/__init__.py",
       "plugins/jarvis-file-search/jarvis_file_search/search.py",
       "plugins/jarvis-file-search/jarvis_file_search/skill.py",
-      "plugins/jarvis-file-search/jarvis_file_search/results.py"
+      "plugins/jarvis-file-search/jarvis_file_search/results.py",
+      "plugins/jarvis-file-search/jarvis_file_search/locale/en-us/search.document.intent",
+      "plugins/jarvis-file-search/jarvis_file_search/locale/en-us/search.documentation.intent",
+      "plugins/jarvis-file-search/jarvis_file_search/locale/en-us/search.documents.intent",
+      "plugins/jarvis-file-search/jarvis_file_search/locale/en-us/search.documents.prompt.intent",
+      "plugins/jarvis-file-search/jarvis_file_search/locale/en-us/search.file.intent",
+      "plugins/jarvis-file-search/jarvis_file_search/locale/en-us/search.file.prompt.intent",
+      "plugins/jarvis-file-search/jarvis_file_search/locale/en-us/which.document.dialog",
+      "plugins/jarvis-file-search/jarvis_file_search/locale/en-us/which.filename.dialog"
     ],
     "audio": [
       "voice/jarvis-ready.wav"
@@ -116,6 +136,7 @@
       "mic/mic-muted.svg"
     ],
     "whisper_hints": [
+      "extras/whisper-hints/README.md",
       "extras/whisper-hints/reviewed-plugin-0.4.0.py",
       "extras/whisper-hints/LICENSE.upstream",
       "extras/whisper-hints/install.py",
@@ -123,6 +144,11 @@
       "extras/whisper-hints/test_update.py",
       "extras/whisper-hints/test-fixtures/discovery.py",
       "extras/whisper-hints/test-fixtures/profile.py"
+    ],
+    "listener_safety": [
+      "extras/listener-safety/README.md",
+      "extras/listener-safety/install.py",
+      "extras/listener-safety/test_update.py"
     ]
   }
 }

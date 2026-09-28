@@ -7,7 +7,8 @@ import time
 import weakref
 from pathlib import Path
 
-from .action_registry import router_catalog, dispatch_action
+from .action_registry import (action_catalog, dispatch_action, router_catalog,
+                              strict_spoken_action)
 from .routing_model import MODEL, OPTIONS, KEEP_ALIVE, local_json, classify, load_profile, candidates_for
 from .router_bridge import register_dispatcher, unregister_dispatcher
 from . import routing_chat
@@ -97,7 +98,8 @@ class RouterRuntime:
             unregister_dispatcher(skill)
 
     def status(self, message):
-        from .routing_pipeline import PIPELINE_LOADED, CHAT_PIPELINE_LOADED, UTTERANCE_EVENTS
+        from .routing_pipeline import (PIPELINE_LOADED, UNMATCHED_PIPELINE_LOADED,
+                                       CHAT_PIPELINE_LOADED, UTTERANCE_EVENTS)
         from ovos_config import Configuration
         from ovos_bus_client.session import SessionManager
         skill = self.skill()
@@ -110,7 +112,9 @@ class RouterRuntime:
             except Exception:
                 enabled = False
             skill.bus.emit(message.reply(STATUS + '.response', {
-                'ready': not self.closed and bool(PIPELINE_LOADED) and bool(CHAT_PIPELINE_LOADED) and enabled,
+                'ready': (not self.closed and bool(PIPELINE_LOADED)
+                          and bool(UNMATCHED_PIPELINE_LOADED)
+                          and bool(CHAT_PIPELINE_LOADED) and enabled),
                 'revision': 'qwen.events.1', 'utterance_events': sorted(UTTERANCE_EVENTS), 'timing_ns': self.last_timing,
                 'model': MODEL, 'last_result': self.last,
                 'actions': len(router_catalog(skill._jarvis_profile))}))
@@ -162,16 +166,59 @@ class RouterRuntime:
         finally:
             self.flight.release()
 
+    def propose_strict(self, utterance, message=None):
+        """Create a short-lived proposal for one exact reviewed phrase."""
+
+        skill = self.skill()
+        if self.closed or not skill or self.busy(skill):
+            return None
+        profile = load_profile()
+        if fingerprint(profile) != fingerprint(skill._jarvis_profile):
+            return None
+        action = strict_spoken_action(utterance, profile)
+        if action is None:
+            return None
+        self.cancel()
+        if message is not None:
+            message.context["jarvis_qwen_epoch"] = self.epoch
+        proposal = {
+            'action': action,
+            'utterance': utterance,
+            'profile': fingerprint(profile),
+            'generation': skill._message_generation,
+            'window': skill._active_window_id(),
+            'epoch': self.epoch,
+            'expires': time.monotonic() + 10,
+            'source': 'strict',
+        }
+        if not self.valid(proposal, skill):
+            return None
+        token = secrets.token_urlsafe(24)
+        with self.lock:
+            if proposal['epoch'] != self.epoch or self.closed:
+                return None
+            self.pending = {token: proposal}
+        self.last = 'strict_proposed'
+        return token
+
     def valid(self, proposal, skill):
-        if (self.closed or not settings() or self.busy(skill)
+        source = proposal.get('source', 'router')
+        if (self.closed or self.busy(skill)
                 or proposal['epoch'] != self.epoch
                 or time.monotonic() > proposal['expires']
                 or skill._message_generation != proposal['generation']):
             return False
+        if source != 'strict' and not settings():
+            return False
         profile = load_profile()
         if proposal['profile'] != fingerprint(profile) or proposal['profile'] != fingerprint(skill._jarvis_profile):
             return False
-        if proposal['action'] not in candidates_for(proposal['utterance'], router_catalog(profile), profile):
+        if source == 'strict':
+            if (proposal['action'] != strict_spoken_action(proposal['utterance'], profile)
+                    or proposal['action'] not in action_catalog(profile)):
+                return False
+        elif proposal['action'] not in candidates_for(
+                proposal['utterance'], router_catalog(profile), profile):
             return False
         # All proposals must retain focus; focus-relative actions additionally
         # require a known window. Existing native handlers retain their own guards.
@@ -201,7 +248,10 @@ class RouterRuntime:
             # Handlers receive our original validated text, not substituted bus data.
             safe_message = copy.copy(message)
             safe_message.data = {'utterance': proposal['utterance']}
-            invoked = dispatch_action(skill, proposal['action'], safe_message, source='router')
+            dispatch_source = 'personal' if proposal.get('source') == 'strict' else 'router'
+            invoked = dispatch_action(
+                skill, proposal['action'], safe_message, source=dispatch_source
+            )
             self.last = 'handler_invoked' if invoked else 'rejected'
             self.history.clear()
             skill.log.info('Qwen router: %s %s', self.last, proposal['action'])
@@ -212,12 +262,14 @@ class RouterRuntime:
 
     def reply_token(self, utterance, epoch, *, command=False):
         skill = self.skill()
-        if (self.closed or not skill or self.busy(skill) or not settings()
+        if (self.closed or not skill or self.busy(skill)
                 or not isinstance(utterance, str) or not utterance.strip()):
             return None
         with self.lock:
             token = secrets.token_urlsafe(24)
             kind = 'quiet' if epoch != self.epoch else ('failure' if command else 'chat')
+            if kind == 'chat' and not settings():
+                return None
             self.pending[token] = {'kind':kind, 'utterance':utterance, 'epoch':epoch,
                                    'expires':time.monotonic() + 20}
             return token
@@ -232,7 +284,8 @@ class RouterRuntime:
             cancellation = self.cancel_event
         if (not proposal or proposal.get('kind') not in ('chat', 'failure')
                 or proposal['epoch'] != self.epoch or self.closed
-                or time.monotonic() > proposal['expires'] or self.busy(skill) or not settings()):
+                or time.monotonic() > proposal['expires'] or self.busy(skill)
+                or (proposal['kind'] == 'chat' and not settings())):
             return
         text = "Please repeat."
         if proposal['kind'] == 'chat' and routing_chat.question_like(proposal['utterance']):
@@ -254,7 +307,8 @@ class RouterRuntime:
                     self.flight.release()
         with self.lock:
             if (self.closed or cancellation.is_set() or proposal['epoch'] != self.epoch
-                    or self.busy(skill) or not settings()):
+                    or self.busy(skill)
+                    or (proposal['kind'] == 'chat' and not settings())):
                 return
             self.speaking = True
             # One complete, length-limited response, not an uncancellable stream

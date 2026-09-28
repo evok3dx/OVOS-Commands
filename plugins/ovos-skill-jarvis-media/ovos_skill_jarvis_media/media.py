@@ -1,4 +1,4 @@
-"""Bounded media parsing, YouTube lookup, Brave launch and MPRIS control."""
+"""Bounded media parsing, YouTube lookup, reviewed browser launch and MPRIS control."""
 from __future__ import annotations
 
 import json
@@ -12,6 +12,18 @@ VIDEO_ID = re.compile(r"^[A-Za-z0-9_-]{11}$")
 GENERIC_PLAY = frozenset(("media", "the media", "music", "the music",
                           "this", "this song", "something"))
 ACTIONS = frozenset(("play", "pause", "stop", "next", "previous"))
+
+
+class ProviderSearchBlocked(RuntimeError):
+    """YouTube explicitly refused an automated result lookup."""
+
+
+def provider_search_blocked(stderr: object) -> bool:
+    value = str(stderr or "").casefold()
+    return any(marker in value for marker in (
+        "confirm you're not a bot", "confirm you’re not a bot",
+        "http error 429", "too many requests", "captcha",
+    ))
 
 
 def normalise_query(value: object) -> str:
@@ -80,21 +92,38 @@ def search_command(python: str, query: str) -> list[str]:
             "--dump-single-json", "--no-warnings", "--", "ytsearch1:" + query]
 
 
-def selected_brave_command(candidates=None) -> list[str]:
+def selected_media_commands(candidates=None, profile=None) -> list[tuple[str, list[str]]]:
+    """Return enabled Brave then Firefox commands; never accept spoken paths."""
     if candidates is None:
         from ovos_skill_jarvis_dispatcher.launcher import discover
-        candidates = discover(("brave",))
-    candidate = candidates.get("brave") if isinstance(candidates, dict) else None
-    argv = candidate.get("argv") if isinstance(candidate, dict) else None
-    if not isinstance(argv, list) or not argv or not all(
-            isinstance(item, str) and item for item in argv):
-        raise RuntimeError("The configured Brave launcher is unavailable")
-    return argv
+        candidates = discover(("brave", "firefox"))
+    if profile is None:
+        from ovos_skill_jarvis_dispatcher.profile import load_profile
+        profile = load_profile()
+    permitted = {
+        value.get("integration") for value in profile.get("applications", {}).values()
+        if isinstance(value, dict)
+    }
+    commands = []
+    for browser in ("brave", "firefox"):
+        if browser not in permitted:
+            continue
+        candidate = candidates.get(browser) if isinstance(candidates, dict) else None
+        argv = candidate.get("argv") if isinstance(candidate, dict) else None
+        if (isinstance(argv, list) and argv and
+                all(isinstance(item, str) and item for item in argv)):
+            commands.append((browser, argv))
+    return commands
 
 
-def open_brave(url: str) -> bool:
-    from ovos_skill_jarvis_dispatcher.launcher import start_desktop
-    return bool(start_desktop([*selected_brave_command(), url]))
+def open_media_url(url: str, *, candidates=None, profile=None, starter=None) -> str | None:
+    if starter is None:
+        from ovos_skill_jarvis_dispatcher.launcher import start_desktop
+        starter = start_desktop
+    for browser, command in selected_media_commands(candidates, profile):
+        if starter([*command, url]):
+            return browser
+    return None
 
 
 def preferred_player(action: str) -> str | None:

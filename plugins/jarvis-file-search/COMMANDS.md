@@ -1,6 +1,6 @@
 # File Search voice command list
 
-These are the native OVOS intent templates included in version 0.2.0.
+These are the native OVOS intent templates included in version 0.3.0.
 Replace `{query}` with filename words you want to find. Matching is
 case-insensitive. A phrase like “Alex documentation” requires both words in
 one filename. The optional Qwen route may understand other wording when it
@@ -68,3 +68,12 @@ work without the tray, and installing the Qwen action does not populate it.
 - `look for a file`
 - `find a file`
 - `search my files`
+- `search files`
+- `search my file`
+
+## Ask for a document, then search ~/Documents only
+
+- `search my documents`
+- `search documents`
+- `look in my documents`
+- `look through my documents`

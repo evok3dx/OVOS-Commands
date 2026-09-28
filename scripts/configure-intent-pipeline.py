@@ -113,19 +113,48 @@ def reviewed_pipeline(compatibility_path: Path) -> list[object]:
 
 
 def merge_v3_pipeline(existing: list[object]) -> list[str]:
-    """Add the three local stages without changing unrelated host routing."""
+    """Add the four local stages without changing unrelated host routing."""
     if not isinstance(existing, list) or not all(isinstance(s, str) and s for s in existing):
         raise ValueError("OVOS intents.pipeline must be a list of stage names")
     stages = [stage for stage in existing if stage not in (
-        "jarvis-media-pipeline", "jarvis-qwen-pipeline", "jarvis-qwen-chat-pipeline")]
+        "jarvis-media-pipeline", "jarvis-qwen-pipeline",
+        "jarvis-unmatched-pipeline", "jarvis-qwen-chat-pipeline")]
     medium = "ovos-fallback-pipeline-plugin-medium"
     low = "ovos-fallback-pipeline-plugin-low"
     if medium not in stages or low not in stages:
         raise ValueError("The reviewed medium and low fallback stages are missing")
+    media_anchor = ("ovos-adapt-pipeline-plugin-high"
+                    if "ovos-adapt-pipeline-plugin-high" in stages
+                    else "ovos-converse-pipeline-plugin")
+    stages.insert(stages.index(media_anchor) + 1, "jarvis-media-pipeline")
     index = stages.index(medium)
-    stages[index:index] = ["jarvis-media-pipeline", "jarvis-qwen-pipeline"]
+    stages[index:index] = ["jarvis-qwen-pipeline", "jarvis-unmatched-pipeline"]
     stages.insert(stages.index(low), "jarvis-qwen-chat-pipeline")
     return stages
+
+
+def migrate_v3_pipeline(existing: list[object], reviewed: list[object]) -> list[str]:
+    """Replace known released stages with the measured Jarvis V3 pipeline."""
+    if not isinstance(existing, list) or not all(
+        isinstance(stage, str) and stage for stage in existing
+    ):
+        raise ValueError("OVOS intents.pipeline must be a list of stage names")
+    known_extras = {
+        "ovos-ocp-pipeline-plugin-high",
+        "ovos-persona-pipeline-plugin-high",
+        "ovos-persona-pipeline-plugin-low",
+        "jarvis-media-pipeline",
+        "jarvis-qwen-pipeline",
+        "jarvis-unmatched-pipeline",
+        "jarvis-qwen-chat-pipeline",
+    }
+    unknown = set(existing) - set(reviewed) - known_extras
+    if unknown:
+        raise ValueError(
+            "Custom intent pipeline stages need manual review: "
+            + ", ".join(sorted(unknown))
+        )
+    return merge_v3_pipeline(list(reviewed))
 
 
 def main() -> int:
@@ -145,6 +174,8 @@ def main() -> int:
     )
     parser.add_argument("--merge-v3", action="store_true",
                         help="add reviewed local Media and Qwen stages while retaining existing stages")
+    parser.add_argument("--migrate-v3", action="store_true",
+                        help="replace known released stages with the measured V3 pipeline")
     args = parser.parse_args()
 
     available = (
@@ -155,11 +186,18 @@ def main() -> int:
     intents = local.setdefault("intents", {})
     if not isinstance(intents, dict):
         raise ValueError("local OVOS intents setting is not an object")
-    baseline = (intents.get("pipeline", reviewed_pipeline(args.compatibility))
-                if args.merge_v3 else reviewed_pipeline(args.compatibility))
+    if args.merge_v3 and args.migrate_v3:
+        parser.error("--merge-v3 and --migrate-v3 are mutually exclusive")
+    reviewed = reviewed_pipeline(args.compatibility)
+    baseline = (intents.get("pipeline", reviewed)
+                if args.merge_v3 or args.migrate_v3 else reviewed)
+    if args.migrate_v3:
+        baseline = migrate_v3_pipeline(baseline, reviewed)
     if args.merge_v3:
         baseline = merge_v3_pipeline(baseline)
+    if args.merge_v3 or args.migrate_v3:
         required = {"jarvis-media-pipeline", "jarvis-qwen-pipeline",
+                    "jarvis-unmatched-pipeline",
                     "jarvis-qwen-chat-pipeline"}
         missing = required - available
         if missing:
@@ -168,9 +206,9 @@ def main() -> int:
         if not isinstance(persona, dict) or persona.get("handle_fallback") is True:
             raise ValueError("An existing persona fallback setting needs manual review")
         persona["handle_fallback"] = False
-    if args.merge_v3:
+    if args.merge_v3 or args.migrate_v3:
         # Existing private or machine-specific stages are the owner's policy.
-        # A V3 update only adds its three verified local stages.
+        # A V3 update only adds its four verified local stages.
         retained, removed = baseline, []
     else:
         retained, removed = filter_pipeline(baseline, available)

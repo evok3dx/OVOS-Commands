@@ -3,6 +3,11 @@
 The private `~/.config/jarvis/capabilities.json` file separates reusable voice
 commands from applications detected and approved on one machine. A category
 such as `notes` maps only to a reviewed integration such as `standard_notes`.
+Recommended setup maps detected Standard Notes to Notes, Proton Mail to the
+generic Mail target, and the fixed Proton Calendar web app to Calendar when
+Proton Mail and Brave are available. A detected GNOME/KDE
+desktop calendar is a separate **System Calendar** target, avoiding ambiguous
+generic calendar commands when both are installed.
 
 The file cannot provide an arbitrary shell command. It may only select an
 integration compiled into `profile.py`, and each category accepts only
@@ -10,9 +15,15 @@ explicitly compatible integrations.
 
 ## Setup choices
 
+- `Recommended`: enables a small detected everyday set.
 - `All detected`: enables every reviewed integration found locally.
-- `Core only`: enables universal system, media, reading and focused-window controls.
 - `Custom`: shows only detected reviewed applications for selection.
+
+The **Defaults** page shows the friendly Notes, Email and Calendar roles and
+lets the user choose Brave or Firefox as the generic browser. The Applications
+table shows the real phrase, for example **Open notes** for Standard Notes and
+**Open mail** for Proton Mail. Private remote-terminal launchers and
+Jarvis's own Control Centre are excluded from portable app discovery.
 
 The OVOS bootstrap may install OVOS and minimal command-line system
 prerequisites, but application selection never installs the selected desktop
@@ -23,7 +34,6 @@ explicitly:
 
 ```bash
 bash scripts/install.sh --mode all
-bash scripts/install.sh --mode core
 bash scripts/install.sh --mode custom --apps firefox,hermes_desktop
 ```
 
@@ -34,7 +44,7 @@ The installed profile is stored at:
 ```
 
 If it is absent or invalid, the dispatcher fails closed to core controls. Older
-`profile.json` files are migrated once. An existing named Brain profile may
+`profile.json` files are migrated once. An existing named reference system profile may
 preserve its already-provisioned private agent extension, but normal setup can
 never enable or provision agents, users, sudo rules or privileged helpers.
 
@@ -82,7 +92,7 @@ Standard Notes packaging can expose more than one reviewed X11 class spelling.
 window signatures and checks each candidate independently. Do not replace that
 logic with one literal comparison against the entire `|`-joined string.
 
-The exact Brain/laptop failure that motivated this rule, plus the validated
+The exact reference system/laptop failure that motivated this rule, plus the validated
 troubleshooting sequence, is documented in
 [`window-focus-and-app-integration.md`](window-focus-and-app-integration.md).
 
@@ -131,12 +141,12 @@ The `conversation`, `wake_phrase`, `listen_shortcut` and
 `microphone_shortcut` values record the reviewed installation choices. The
 transactional installer applies the wake phrase and both Cinnamon shortcuts;
 the dispatcher itself never rewrites OVOS or desktop settings while handling
-a spoken command. Defaults match the validated Brain: Super+L starts one
+a spoken command. Defaults match the validated reference system: Super+L starts one
 manual command and Shift+Super+L stops or starts wake-word listening.
 
 ## Immediate command capture
 
-The reviewed local stack matches the validated Brain with `instant_listen`
+The reviewed local stack matches the validated reference system with `instant_listen`
 enabled, a 0.25-second barge-in delay and fake barge-in enabled. If a particular
 microphone produces accidental follow-up capture, disable `instant_listen`
 separately from profile deployment:
