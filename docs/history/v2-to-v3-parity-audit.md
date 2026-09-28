@@ -1,4 +1,4 @@
-# V2-to-V3 behavior parity audit
+# V2-to-V3 behavior parity audit · HISTORICAL
 
 This is the line-by-line continuity record requested after live laptop testing
 exposed behavior that file and inventory counts did not catch.

@@ -359,7 +359,7 @@ def choose_with_gui(detected, existing=None, on_save=None, *, output=None,
     help_text.set_line_wrap(True)
     box.pack_start(help_text, False, False, 0)
 
-    defaults_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+    defaults_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
     defaults_box.set_border_width(16)
     notebook.append_page(defaults_box, tab_label('Defaults', 'emblem-default-symbolic'))
     defaults_intro = Gtk.Label(
@@ -372,13 +372,22 @@ def choose_with_gui(detected, existing=None, on_save=None, *, output=None,
     }
     role_combos = {}
     role_models = {}
-    for role, title in role_titles.items():
-        row = Gtk.Box(spacing=10)
-        row.pack_start(Gtk.Label(label=title, xalign=0), True, True, 0)
+    defaults_grid = Gtk.Grid(column_spacing=24, row_spacing=14)
+    defaults_grid.set_column_homogeneous(False)
+    defaults_grid.set_hexpand(True)
+    defaults_box.pack_start(defaults_grid, False, False, 0)
+    for index, (role, title) in enumerate(role_titles.items()):
+        role_label = Gtk.Label(label=title, xalign=0)
+        role_label.set_size_request(150, -1)
+        role_label.get_style_context().add_class('jarvis-default-label')
         combo = Gtk.ComboBoxText()
-        combo.set_size_request(260, -1)
-        row.pack_end(combo, False, False, 0)
-        defaults_box.pack_start(row, False, False, 0)
+        combo.set_hexpand(True)
+        combo.set_size_request(360, 42)
+        combo.set_property('popup-fixed-width', True)
+        combo.get_style_context().add_class('jarvis-default-combo')
+        combo.set_tooltip_text(f'Choose the enabled application used for “open {role}”.')
+        defaults_grid.attach(role_label, 0, index, 1, 1)
+        defaults_grid.attach(combo, 1, index, 1, 1)
         role_combos[role] = combo
     defaults_box.pack_start(Gtk.Label(
         label='Examples: “open browser”, “open notes”, “open mail”, “open calendar” and “open office”. '

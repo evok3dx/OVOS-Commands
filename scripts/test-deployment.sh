@@ -148,6 +148,7 @@ python3 "$repo_root/scripts/test-reading-request-errors.py"
 python3 "$repo_root/scripts/test-qwen-safe-workflows.py"
 python3 "$repo_root/scripts/test-qwen-setup.py"
 python3 "$repo_root/scripts/test-preferred-apps.py"
+python3 "$repo_root/scripts/test-update-security.py"
 python3 "$repo_root/scripts/test-search-pacing.py"
 python3 "$repo_root/scripts/test-media-browser-fallback.py"
 python3 "$repo_root/scripts/test-browser-search-focus.py"
@@ -819,8 +820,8 @@ assert recommended["mode"] == "recommended"
 assert set(recommended["applications"].values()) == {
     "brave", "firefox", "terminal", "signal", "zoom", "calculator",
     "standard_notes", "hermes_desktop", "proton_mail", "proton_calendar",
+    "onlyoffice",
 }
-assert "onlyoffice" not in recommended["applications"].values()
 assert recommended["private_extensions"] == {"agents": True}
 assert all_apps["mode"] == "all-detected"
 assert set(all_apps["applications"].values()) == {"brave", "onlyoffice"}

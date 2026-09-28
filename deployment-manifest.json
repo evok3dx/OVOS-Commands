@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "release_version": "3.6.0",
+  "release_version": "3.6.1",
   "package_modules": [
     "__init__.py",
     "agents.py",
@@ -73,7 +73,7 @@
   ],
   "optional_components": {
     "licensing": [
-      "OVOS-LAUNCHER-LICENSE.txt",
+      "LICENSE",
       "NOTICE.md",
       "LAUNCHER.md",
       "extras/whisper-hints/LICENSE.upstream"

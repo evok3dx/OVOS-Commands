@@ -4,11 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ovos-skill-jarvis-dispatcher"
-version = "3.6.0"
+version = "3.6.1"
 description = "Allowlisted Jarvis voice and desktop controls"
 requires-python = ">=3.10"
 dependencies = ["ovos-workshop"]
-license = {file = "OVOS-LAUNCHER-LICENSE.txt"}
+license = {file = "LICENSE"}
 
 [project.entry-points."opm.skill"]
 "ovos-skill-jarvis-dispatcher.openvoiceos" = "ovos_skill_jarvis_dispatcher:JarvisDispatcherSkill"

@@ -3,7 +3,7 @@
 **VERIFIED** means code or a recorded machine test supports the claim.
 **PLANNED** means agreed intent with no completed implementation.
 **HISTORICAL** retains older context without presenting it as current.
-Contradictions stay visible in the [living audit](v2.4-audit.md).
+Contradictions stay visible in the [historical audit](history/v2.4-audit.md).
 
 | Decision | Why and limits | Revisit when |
 |---|---|---|
@@ -47,7 +47,10 @@ Contradictions stay visible in the [living audit](v2.4-audit.md).
 | Keep Updates last and make healthy state prominent (**VERIFIED in source; live GUI pending**) | Overview should reassure the user with a strong green healthy banner and compact service indicators. Microphone and emergency speech controls sit side by side; active pause/stop controls use one calm blue, while re-enable uses green. Maintenance precedes the final Updates tab. | Accessibility review or live use shows inadequate contrast or grouping. |
 | Exclude private machine launchers from portable discovery (**VERIFIED in source/tests**) | A public app chooser must not expose private remote-terminal launchers, Jarvis's own launcher or other project-internal helpers merely because they have desktop files. Known public integrations retain allowlisted commands. | A more precise privacy-safe desktop-entry marker replaces the conservative terminal-launcher filter. |
 | Resolve generic app roles to one enabled compatible target (**VERIFIED in source/tests**) | Browser, Notes, Mail, Calendar and Office are user-facing roles, not permission to launch any desktop entry. Offer only compatible enabled choices, keep one generic alias owner, preserve the selection on update and fall back safely if an app disappears. | A new role or integration has reliable detection and an explicit compatibility mapping. |
+| Include recognised Email and Office desktop entries in Recommended choices (**VERIFIED in source/tests**) | Thunderbird, ElectronMail, LibreOffice-family entries and OnlyOffice are ordinary expected defaults when installed. Dynamic entries must match a recognised family; category-only entries remain available through All or Custom. Launching still uses the reviewed desktop entry, and Qwen sees only enabled action IDs. | Add a family only after verifying its desktop identity and compatible role metadata. |
 | Use Firefox only as Media's bounded browser fallback (**VERIFIED in source/tests**) | Keep enabled Brave as the first YouTube playback browser to preserve the reviewed workflow. If its launcher is unavailable or fails, try enabled Firefox through the same application registry. Do not fall back to an arbitrary system command or browser. | The user selects a different reviewed Media browser or the browser registry gains a safe generic URL capability. |
+| Pin CI actions and prefer immutable releases (**VERIFIED for CI; repository release setting remains owner-controlled**) | Full commit SHAs prevent an action tag moving after review. Release checksums catch corruption but not publisher compromise; GitHub release immutability and provenance strengthen future publication without changing Jarvis runtime discovery or Qwen. | GitHub changes its provenance model or a separately protected signing workflow is adopted. |
+| Describe settings export as a private backup (**VERIFIED**) | The allowlist bounds files and excludes models, code, logs and recordings, but reviewed OVOS configuration may contain credentials. Do not call this privacy-filtered or portable until a redaction policy and merge-based import are implemented and tested. | A separate redacted export/import format is approved. |
 
 **HISTORICAL:** the original 2.3.1 fresh-install pins still describe the
 previously reviewed baseline. They do not describe the reference system's upgraded media

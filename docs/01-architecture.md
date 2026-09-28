@@ -1,4 +1,4 @@
-# Architecture · V3
+# Architecture
 
 **VERIFIED in source:** `deployment-manifest.json` inventories the Jarvis modules,
 helpers, profiles and optional desktop files. `scripts/validate_refactor.py` checks
@@ -16,8 +16,9 @@ upstream OVOS installer with administrator access; updates keep installed OVOS
 speech packages and host configuration in place. The tray and Control Centre
 use system Python/GTK, separate from the OVOS virtualenv.
 
-**PLANNED:** confirm the combined checkout with real speech on both reference system and
-i7 laptop; consolidate repeated app definitions only after that baseline is
-captured. V3 bundles its own Media and File Search skills; existing OCP media
-providers remain installed separately in OVOS. The reference system's provider stack is in the
-[living audit](v2.4-audit.md), with its limits.
+**VERIFIED in the 3.6 laptop trial:** wake word, hotkey, local speech, bounded
+Qwen routing, writing, reading, volume restoration, Media, File Search and the
+combined tray/Control Centre all crossed their real desktop boundary. Jarvis
+bundles Media and File Search as separate skills; unrelated OCP providers stay
+host-owned. Earlier comparison evidence remains in the
+[historical audit](history/v2.4-audit.md).

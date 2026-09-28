@@ -1,4 +1,4 @@
-# V3.6 release and known limits
+# V3.6 release development record · HISTORICAL
 
 **Current status: 3.6.0 is built and validated locally, but is not yet pushed,
 tagged or published.** It includes the two separate Media and File Search plugins, the
@@ -34,7 +34,7 @@ GUI update path when a later version exists. The older unrelated OCP/NPR
 `skill.error` remains historical unresolved evidence; working Media and File
 Search plugins do not establish a fix for that separate OVOS path.
 
-Details: [installer and rollback](07-installer-updates.md),
-[local routing](04-local-routing.md), [OVOS voice](06-ovos-voice.md),
-[media and file search](10-media-files.md), and
-[previous draft](history/v3-draft-before-final-snapshot.md).
+Details: [installer and rollback](../07-installer-updates.md),
+[local routing](../04-local-routing.md), [OVOS voice](../06-ovos-voice.md),
+[media and file search](../10-media-files.md), and
+[previous draft](v3-draft-before-final-snapshot.md).

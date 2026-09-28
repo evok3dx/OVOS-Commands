@@ -283,7 +283,7 @@ import urllib.request
 from pathlib import Path
 
 url, destination, expected = sys.argv[1:]
-request = urllib.request.Request(url, headers={"User-Agent": "OVOS-Commands/3.6.0"})
+request = urllib.request.Request(url, headers={"User-Agent": "OVOS-Commands/3.6.1"})
 digest = hashlib.sha256()
 try:
     with urllib.request.urlopen(request, timeout=60) as response, Path(destination).open("wb") as output:

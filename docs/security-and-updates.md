@@ -31,8 +31,8 @@ remain within the desktop user account.
 
 The local voice path is reproducible: wake word, VAD, Faster Whisper, PhōnNX,
 Bella and the supporting pronunciation/runtime packages use the versions
-recorded in `compatibility.json`. The installer deliberately omits the reference system's
-unrelated CUDA and agent packages; they are neither required for Bella on CPU
+recorded in `compatibility.json`. The installer deliberately omits unrelated
+CUDA and agent packages; they are neither required for Bella on CPU
 nor appropriate for a portable desktop installation.
 
 The official OVOS installer requires elevated execution. Jarvis never runs it
@@ -45,7 +45,7 @@ bootstrap cannot leave root-owned debris in the user's temporary directory.
 Claude Desktop and ChatGPT Desktop are launched only into ordinary chat. Jarvis
 does not open Claude Code, Cowork, ChatGPT Codex or Work, approve their prompts,
 or install MCP tools. Hermes remains the intentional local assistant. Private
-reference system agent infrastructure is outside normal setup and updates.
+agent infrastructure is outside normal setup and updates.
 
 X11 applications in the same session can generally observe or inject desktop
 input. The allowlists reduce what Jarvis itself can request, but they do not
@@ -63,7 +63,7 @@ created or silently managed by this repository.
 Before installing a downloaded archive:
 
 ```bash
-version=3.1.0
+version=3.6.1
 sha256sum --check "ovos-commands-$version.tar.gz.sha256"
 tar -tzf "ovos-commands-$version.tar.gz"
 ```
@@ -84,8 +84,8 @@ deployment.
 On an existing installation, the transaction updates release-managed Jarvis
 code and helpers but preserves machine-owned OVOS configuration, selected
 applications, personal commands, keyboard shortcuts, listening sound and
-unlisted private helpers and downloaded models. V3.1 stages the tested
-reference system-compatible OVOS packages in a clean staged virtualenv and saves
+unlisted private helpers and downloaded models. Jarvis stages the reviewed
+OVOS packages in a clean virtual environment and saves
 the previous entire virtualenv for rollback. Fresh installations use the same
 reviewed target; see [migration details](07-installer-updates.md).
 
@@ -109,9 +109,12 @@ OVOS and Jarvis updates are deliberately supervised rather than unattended:
 6. Use `jarvis-update rollback` if the Jarvis deployment regresses. Restore the
    OVOS configuration backup separately if the upstream update changed it.
 
-The GitHub workflow tests this skill against current OVOS Python APIs.
-It reports upstream movement but never updates a workstation or dependency by
-itself.
+GitHub Actions are pinned to reviewed commit SHAs. For future releases, enable
+GitHub release immutability only after every asset is attached to a draft;
+immutability prevents later tag or asset replacement and supplies provenance
+for the published release. The workflow tests this skill against current OVOS
+Python APIs. It reports upstream movement but never updates a workstation or
+dependency by itself.
 
 ## AI-assisted maintenance
 

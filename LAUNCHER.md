@@ -53,7 +53,7 @@ The previously bundled two methods, parse_desktop_file and launch_app, remain
 unchanged from OpenVoiceOS application-launcher 0.13.2a1:
 https://github.com/OpenVoiceOS/ovos-skill-application-launcher/blob/0.13.2a1/__init__.py
 Git blob: 58163bee8d8a0b5c1405cb6046d2bb976a4e2d28.
-Apache-2.0 licence: OVOS-LAUNCHER-LICENSE.txt.
+Apache-2.0 licence: `LICENSE`.
 Authors/contributors: OpenVoiceOS application-launcher project.
 
 The complete standalone upstream voice skill is not installed. Local discovery,

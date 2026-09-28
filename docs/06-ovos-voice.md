@@ -1,6 +1,6 @@
 # OVOS voice stack
 
-This page records the stable voice-stack boundary for Jarvis 3.6. It contains
+This page records the stable voice-stack boundary for Jarvis 3.6.1. It contains
 portable behaviour and reviewed versions, not workstation logs or private
 machine configuration.
 
@@ -87,5 +87,5 @@ wake phrase during continuous dictation instead of rewriting existing rules.
   complete login-autostart cycle remain useful post-release checks.
 
 Historical failures and their durable fixes are summarised in
-[the 3.1.1 incident record](v3.1.1-checklist.md). Raw machine logs are not
+[the 3.1.1 incident record](history/v3.1.1-checklist.md). Raw machine logs are not
 published in this repository.

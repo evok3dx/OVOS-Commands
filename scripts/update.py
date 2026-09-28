@@ -20,6 +20,8 @@ from pathlib import Path, PurePosixPath
 ROOT = Path(__file__).resolve().parents[1]
 POLICY = json.loads((ROOT / "compatibility.json").read_text(encoding="utf-8"))
 VERSION = str(POLICY["release_version"])
+MAX_ARCHIVE_MEMBERS = 4096
+MAX_ARCHIVE_PATH_LENGTH = 240
 
 
 def home() -> Path:
@@ -135,17 +137,25 @@ def safe_extract(archive: Path, destination: Path) -> Path:
     destination.mkdir(parents=True, exist_ok=False)
     with tarfile.open(archive, "r:gz") as bundle:
         members = bundle.getmembers()
+        if len(members) > MAX_ARCHIVE_MEMBERS:
+            raise RuntimeError("Release contains too many archive entries")
         total_size = 0
+        names: set[str] = set()
         for member in members:
             path = PurePosixPath(member.name)
+            normalised = str(path)
             total_size += member.size
             if total_size > 100_000_000 or member.size > 20_000_000:
                 raise RuntimeError("Release contents exceed the extraction safety limit")
             if (
                 path.is_absolute() or ".." in path.parts
+                or not normalised or normalised == "."
+                or len(member.name) > MAX_ARCHIVE_PATH_LENGTH
+                or normalised in names
                 or not (member.isdir() or member.isreg())
             ):
                 raise RuntimeError(f"Unsafe release entry: {member.name}")
+            names.add(normalised)
         bundle.extractall(destination)
     roots = [path for path in destination.iterdir() if path.is_dir()]
     if len(roots) != 1 or not (roots[0] / "scripts/install.sh").is_file():

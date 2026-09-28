@@ -15,7 +15,17 @@ RECOMMENDED_INTEGRATIONS = {
     "brave", "firefox", "signal", "zoom", "terminal", "calculator",
     "files", "settings", "standard_notes", "claude_desktop",
     "hermes_desktop", "default_mail", "proton_mail", "proton_calendar",
-    "system_calendar",
+    "system_calendar", "onlyoffice",
+}
+
+# Desktop-menu applications remain untrusted until the user enables them.  In
+# Recommended mode, offer only familiar everyday families as default-role
+# choices. Launching still goes through the reviewed GIO desktop-file path and
+# Qwen still receives only the resulting enabled, allowlisted actions.
+RECOMMENDED_DYNAMIC_NAMES = {
+    "thunderbird", "electronmail", "electron mail",
+    "libreoffice", "libreoffice writer", "libreoffice calc",
+    "libreoffice impress", "libreoffice start center",
 }
 
 # Detection only decides what setup may offer. Runtime execution remains fixed
@@ -201,9 +211,11 @@ def recommended_applications(
             *map(str, definition.get("aliases", ())),
         )).casefold()
         words = set(re.findall(r"[a-z0-9]+", identity))
-        if "telegram" in words or (
+        if ("telegram" in words
+                or any(name in identity for name in RECOMMENDED_DYNAMIC_NAMES)
+                or (
             "calendar" in words and "proton" not in words
-        ):
+        )):
             selected.add(integration)
     return selected
 

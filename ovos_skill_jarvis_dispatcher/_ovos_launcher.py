@@ -2,7 +2,7 @@
 
 Source: https://github.com/OpenVoiceOS/ovos-skill-application-launcher
 Git blob: 58163bee8d8a0b5c1405cb6046d2bb976a4e2d28
-Apache-2.0; see OVOS-LAUNCHER-LICENSE.txt and LAUNCHER.md.
+Apache-2.0; see LICENSE and LAUNCHER.md.
 Only the imports/class wrapper are local. No voice handlers are registered.
 """
 import configparser

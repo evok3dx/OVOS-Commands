@@ -24,7 +24,19 @@ cleanup() {
 trap cleanup EXIT
 
 if git -C "$repo_root" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  git -C "$repo_root" ls-files --cached --others --exclude-standard -z > "$file_list"
+  git -C "$repo_root" ls-files --cached --others --exclude-standard -z |
+    python3 -c '
+import os
+import sys
+
+root = sys.argv[1]
+for raw in sys.stdin.buffer.read().split(b"\0"):
+    if not raw:
+        continue
+    path = os.path.join(root, os.fsdecode(raw))
+    if os.path.isfile(path) and not os.path.islink(path):
+        sys.stdout.buffer.write(raw + b"\0")
+' "$repo_root" > "$file_list"
 else
   python3 - "$repo_root" > "$file_list" <<'PY'
 import os
@@ -38,7 +50,7 @@ roots = (
 )
 files = (
     ".gitignore", "AGENTS.md", "COMMAND-EDITOR.md", "README.md", "compatibility.json",
-    "deployment-manifest.json", "pyproject.toml", "LAUNCHER.md", "OVOS-LAUNCHER-LICENSE.txt",
+    "deployment-manifest.json", "pyproject.toml", "LAUNCHER.md", "LICENSE", "NOTICE.md",
 )
 excluded = {".git", "__pycache__", "build", "dist"}
 for relative in files:
@@ -91,5 +103,6 @@ mv -- "$temporary" "$output"
 
 (cd "$(dirname "$output")" && sha256sum "$(basename "$output")") > "$checksum_temporary"
 mv -- "$checksum_temporary" "$checksum"
+chmod 0644 -- "$output" "$checksum"
 (cd "$(dirname "$output")" && sha256sum --check "$(basename "$checksum")")
 printf '%s\n' "Release: $output" "Checksum: $checksum"

@@ -1,6 +1,6 @@
 # Repository audit and consolidation
 
-This audit started from the validated v21 release archive and preserved its
+This audit started from the validated V2 release archive and preserved its
 working command behaviour as the regression baseline.
 
 ## Findings
@@ -36,11 +36,17 @@ working command behaviour as the regression baseline.
 - Removed private agent helpers and vocabulary from normal installation.
 - Moved implementation reports to `docs/history/` and rewrote current guidance.
 - Excluded caches, logs, secrets, local configuration and release output.
+- Added a conventional root `LICENSE` and linked third-party acknowledgements.
+- Pinned GitHub Actions to reviewed immutable commit SHAs.
+- Bounded updater archive member count, duplicate paths and path length.
+- Moved completed V2/V3 implementation records under `docs/history/`.
+- Clarified that settings export is a private backup which may contain
+  credentials, not a redacted portable export.
 
 ## Compatibility retained
 
-- Existing reference system-specific agent vocabulary can remain active only when an
-  already-customised legacy reference system profile is migrated.
+- Existing private agent vocabulary can remain active only when an
+  already-customised legacy profile is migrated.
 - Every enabled application alias has open, focus, minimise, maximise and close
   coverage.
 - Hermes rootless Podman isolation and secure launcher repair.

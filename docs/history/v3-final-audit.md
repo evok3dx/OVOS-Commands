@@ -1,4 +1,4 @@
-# V3.0 source reconciliation (historical baseline)
+# V3.0 source reconciliation · HISTORICAL
 
 This document preserves the V3.0 source comparison. It is not the current V3.5
 release checklist. Current verified behaviour and open acceptance work live in
@@ -21,7 +21,7 @@ work and authorised publication of V3. Other machine checks remain open.
 | `Jarvis-reference system-Commands-Live(1).md` and `Jarvis-reference system-Final-Audit-Live(1).md` | Action catalogue, New Line/Enter separation, live GUI source and dynamic plugin phrase panels. | **VERIFIED in candidate source:** 88 reference system base actions including New Line remain; V3 adds `files.search` as action 89. The Qwen explicit list grows from 24 to 25; app actions still depend on the active profile. The reference system's 182 actions/2049 unique phrases used private enabled settings absent from the sanitised archive, so they cannot be reproduced exactly offline. |
 | `jarvis-media-plugin-update-current.tar(2).gz`, `README(2).md`, `HISTORY(2).md` | Package skill and pipeline source, release history and seven GUI title examples. | **VERIFIED in package and V3 source.** The attached standalone installer, fixtures and baseline are reference material; V3 uses its integrated installer. A later installed plugin on reference system is not established by the final snapshot. |
 | `jarvis-file-search-0.2.0(3).zip` | ZIP integrity, package source, 45 filename phrase templates, GUI examples, and reviewed Qwen patches. | **VERIFIED in package and historical V3 source.** The snapshot's installed version was 0.1.9. The attached standalone upgrade tool is historical; Jarvis 3.6 now bundles File Search 0.3.0 with two prompted-search phrases. It never reads file contents for search. |
-| Earlier reference system source archive and machine progress notes | Source/installed-file differences and the chronology of wake-word, Whisper, Bella, Qwen, media and GUI repairs. | **VERIFIED as recorded evidence.** Historical 0.2 → 1.0 Vosk timing was intermittent, not the final wake-word fix; see [OVOS voice](06-ovos-voice.md). |
+| Earlier reference system source archive and machine progress notes | Source/installed-file differences and the chronology of wake-word, Whisper, Bella, Qwen, media and GUI repairs. | **VERIFIED as recorded evidence.** Historical 0.2 → 1.0 Vosk timing was intermittent, not the final wake-word fix; see [OVOS voice](../06-ovos-voice.md). |
 
 The two bundled plugin packages register skill and pipeline entry points in an
 isolated offline environment. That proves packaging and discovery, not a
@@ -82,4 +82,4 @@ this Jarvis installer. Publication does not mark these checks as passed.
 superseded 2.3.1 README and earlier V3 draft remain in `docs/history/`. Their
 two-icon description is historical; it is not presented as the current tray.
 No security decision or unresolved issue was removed. See the
-[decision log](12-decisions.md) and [installer details](07-installer-updates.md).
+[decision log](../12-decisions.md) and [installer details](../07-installer-updates.md).
