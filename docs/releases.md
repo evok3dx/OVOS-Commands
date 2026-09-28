@@ -7,6 +7,44 @@ acceptance work. Durable design choices belong in
 under [`history/`](history/README.md). Other current documents link here rather
 than repeating release narratives.
 
+## 3.9.0
+
+Status: **VERIFIED in focused source tests; full release and live laptop
+acceptance pending.**
+
+Changes:
+
+- focused `Read this` now keeps the temporary clipboard owner available for a
+  bounded one-second hand-off after Speech Note accepts the request, then
+  clears the clipboard. The previous clipboard value is never retained or
+  restored;
+- an update started in the Control Centre can be stopped safely. Closing the
+  window during an update offers the same bounded termination instead of
+  leaving an uncloseable `Installing update` state;
+- the reviewed Common Play player gains the state-aware `can_stop()` required
+  by the installed OVOS Workshop Stop pipeline. Installation is guarded by the
+  exact reviewed Common Play version and source hash and is transactional;
+- Media 0.3.1 reports when Play cannot find a browser media session. Brave and
+  YouTube Music remain connected through MPRIS; the documented prevention for
+  an inactive discarded tab is Brave's **Always keep these sites active**
+  setting for `music.youtube.com` and `youtube.com`;
+- the non-executing benchmark is now an exactly 350-case balanced suite. It
+  covers every Qwen-exposed action in the reference profile, including normal
+  window, application, tab, navigation, reading, writing, media, search and
+  message variations, plus safe rejection cases.
+
+Evidence:
+
+- [x] focused clipboard hand-off and final-clear regression passes;
+- [x] Control Centre update completion and cancellation regressions pass;
+- [x] exact Common Play compatibility patch, idempotence and rejection tests pass;
+- [x] Media missing-session feedback and 350-case routing policy tests pass;
+- [x] complete source-tree deployment, preservation, failure and rollback suite passes;
+- [ ] complete 350-case real-model benchmark passes on the laptop;
+- [ ] live ONLYOFFICE selection, update cancellation, Stop and Brave playback acceptance passes;
+- [x] final archive checksum, both plugin wheel checksums and clean-extraction suite pass;
+- [ ] public main, tag, archive and checksums identify the same release.
+
 ## 3.8.2
 
 Status: **VERIFIED in code, archive inspection and automated tests; publication

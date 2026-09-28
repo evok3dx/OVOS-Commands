@@ -149,6 +149,7 @@ python3 "$repo_root/scripts/test-qwen-safe-workflows.py"
 python3 "$repo_root/scripts/test-qwen-setup.py"
 python3 "$repo_root/scripts/test-preferred-apps.py"
 python3 "$repo_root/scripts/test-update-security.py"
+python3 "$repo_root/scripts/test-control-update-cancel.py"
 python3 "$repo_root/scripts/test-search-pacing.py"
 python3 "$repo_root/scripts/test-media-browser-fallback.py"
 python3 "$repo_root/scripts/test-browser-search-focus.py"
@@ -158,6 +159,7 @@ bash "$repo_root/scripts/test-speech-note-speed.sh"
 python3 "$repo_root/scripts/test-settings-export.py"
 python3 "$repo_root/extras/whisper-hints/test_update.py"
 python3 "$repo_root/extras/listener-safety/test_update.py"
+python3 "$repo_root/extras/ocp-stop-compat/test_update.py"
 PYTHONPATH="$repo_root/plugins/jarvis-file-search" \
   python3 -m unittest discover -s "$repo_root/plugins/jarvis-file-search/tests" -q
 

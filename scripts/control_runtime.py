@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 import re
+import signal
 import subprocess
 import sys
 import tempfile
@@ -336,7 +337,48 @@ finally:bus.close()
     return 'Stop requested.'
 
 
-def maintenance(action):
+def _run_cancellable_update(arguments, cancel_event, timeout=600):
+    """Run the fixed updater command in its own cancellable process group."""
+    process = subprocess.Popen(
+        [str(value) for value in arguments],
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        start_new_session=True,
+        close_fds=True,
+    )
+    deadline = time.monotonic() + timeout
+    while True:
+        try:
+            stdout, stderr = process.communicate(timeout=0.25)
+            return subprocess.CompletedProcess(
+                arguments, process.returncode, stdout, stderr)
+        except subprocess.TimeoutExpired:
+            if cancel_event.is_set():
+                reason = 'Update cancelled. No further update steps will run.'
+            elif time.monotonic() >= deadline:
+                reason = 'Update timed out and was stopped.'
+            else:
+                continue
+
+        try:
+            os.killpg(process.pid, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+        try:
+            stdout, stderr = process.communicate(timeout=5)
+        except subprocess.TimeoutExpired:
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            stdout, stderr = process.communicate()
+        detail = (stdout + '\n' + stderr).strip()
+        raise RuntimeError(reason + (('\n' + detail[-12000:]) if detail else ''))
+
+
+def maintenance(action, cancel_event=None):
     commands={
         'health':([str(Path.home()/'.local/bin/jarvis-health-check')],150),
         'report':([str(Path.home()/'.local/bin/jarvis-report')],120),
@@ -355,7 +397,9 @@ def maintenance(action):
     argv,timeout=commands[action]
     if action=='install':
         with operation_lock():
-            result=run(argv,timeout=timeout,check=False)
+            result=(_run_cancellable_update(argv,cancel_event,timeout)
+                    if cancel_event is not None else
+                    run(argv,timeout=timeout,check=False))
     else:
         result=run(argv,timeout=timeout,check=False)
     text=(result.stdout+'\n'+result.stderr).strip()

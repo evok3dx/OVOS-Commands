@@ -339,6 +339,19 @@ PY
         ;;
     esac
   fi
+  if ! "$restored_venv" && [[ -f "$backup_root/ocp-player.py" && \
+        -f "$backup_root/ocp-player.path" ]]; then
+    ocp_player_path="$(<"$backup_root/ocp-player.path")"
+    case "$ocp_player_path" in
+      "$jarvis_home"/.venvs/ovos/lib/python*/site-packages/ovos_plugin_common_play/ocp/player.py)
+        install -m 0644 "$backup_root/ocp-player.py" "$ocp_player_path"
+        ;;
+      *)
+        echo "Unsafe Common Play rollback path: $ocp_player_path" >&2
+        exit 1
+        ;;
+    esac
+  fi
 
   systemctl --user daemon-reload
   for unit in ovos.service hermes-launcher-repair.path jarvis-health-check.timer jarvis-update-check.timer; do

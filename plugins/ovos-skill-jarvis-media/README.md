@@ -1,4 +1,4 @@
-# Jarvis Media skill 0.3.0
+# Jarvis Media skill 0.3.1
 
 This source package is bundled with Jarvis V3. Use the main
 [`scripts/install.sh`](../../scripts/install.sh) for a managed install, upgrade
@@ -18,6 +18,10 @@ retry provider blocks or try to imitate human browsing.
 It also handles five approved MPRIS transport actions. The OVOS Media pipeline
 runs before Qwen; only those fixed actions can be selected by Jarvis's router.
 Real YouTube playback and spoken controls require checks on the target desktop.
+If Brave no longer exposes a resumable media session, a spoken resume now says
+“Open the music tab once” instead of failing silently. Brave's documented
+Memory Saver exception remains the preventive fix; Jarvis does not click a
+site inactivity confirmation or revive a discarded tab blindly.
 
 See [Media and file search](../../docs/10-media-files.md) for commands and
 limits, and [history](HISTORY.md) for the failures that shaped this package.

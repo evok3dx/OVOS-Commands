@@ -279,7 +279,7 @@ import urllib.request
 from pathlib import Path
 
 url, destination, expected = sys.argv[1:]
-request = urllib.request.Request(url, headers={"User-Agent": "OVOS-Commands/3.8.2"})
+request = urllib.request.Request(url, headers={"User-Agent": "OVOS-Commands/3.9.0"})
 digest = hashlib.sha256()
 try:
     with urllib.request.urlopen(request, timeout=60) as response, Path(destination).open("wb") as output:
@@ -1438,6 +1438,31 @@ PY
   if ! "$ovos_python" "$listener_guard" --check || \
      ! "$ovos_python" "$listener_guard"; then
     echo "The reviewed listener volume safety guard could not be installed." >&2
+    exit 1
+  fi
+
+  ocp_stop_guard="$target_root/extras/ocp-stop-compat/install.py"
+  ocp_player_path="$("$ovos_python" - <<'PY'
+import importlib.util
+spec = importlib.util.find_spec("ovos_plugin_common_play.ocp.player")
+if spec is None or not spec.origin:
+    raise SystemExit("Common Play player source is unavailable")
+print(spec.origin)
+PY
+)"
+  case "$ocp_player_path" in
+    "$jarvis_home"/.venvs/ovos/lib/python*/site-packages/ovos_plugin_common_play/ocp/player.py) ;;
+    *)
+      echo "Unsafe Common Play player source path: $ocp_player_path" >&2
+      exit 1
+      ;;
+  esac
+  cp -a -- "$ocp_player_path" "$backup_root/ocp-player.py"
+  printf '%s\n' "$ocp_player_path" > "$backup_root/ocp-player.path"
+  chmod 0600 "$backup_root/ocp-player.path"
+  if ! "$ovos_python" "$ocp_stop_guard" --check || \
+     ! "$ovos_python" "$ocp_stop_guard"; then
+    echo "The reviewed Common Play Stop compatibility repair could not be installed." >&2
     exit 1
   fi
 

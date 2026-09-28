@@ -11,7 +11,17 @@ printf '[General]\nspeech_speed2=13\n' > "$settings"
 
 cat > "$test_root/mock-bin/xclip" <<'EOF'
 #!/usr/bin/env bash
-if [[ " $* " == *' -i '* ]]; then cat >/dev/null; else printf 'Selected text\n'; fi
+if [[ " $* " == *' -silent '* && " $* " == *' -i '* ]]; then
+  cat >/dev/null
+  printf 'clipboard-owner-start\n' >> "$MOCK_SEQUENCE"
+  trap 'printf "clipboard-owner-stop\n" >> "$MOCK_SEQUENCE"; exit 0' TERM
+  while true; do /usr/bin/sleep 0.02; done
+elif [[ " $* " == *' -i '* ]]; then
+  cat >/dev/null
+  printf 'clipboard-clear\n' >> "$MOCK_SEQUENCE"
+else
+  printf 'Selected text\n'
+fi
 EOF
 cat > "$test_root/mock-bin/xdotool" <<'EOF'
 #!/usr/bin/env bash
@@ -24,6 +34,9 @@ EOF
 cat > "$test_root/mock-bin/flatpak" <<'EOF'
 #!/usr/bin/env bash
 printf '%s %s\n' "$*" "$(sed -n 's/^speech_speed2=//p' "$MOCK_SETTINGS")" >> "$MOCK_LOG"
+if [[ "$*" == *'start-reading-clipboard'* ]]; then
+  printf 'reader-request\n' >> "$MOCK_SEQUENCE"
+fi
 if [[ "$1" == run && "${MOCK_FAIL:-0}" == 1 ]]; then exit 7; fi
 if [[ "$1" == run && "${MOCK_STALL:-0}" == 1 ]]; then /bin/sleep 5; fi
 EOF
@@ -41,6 +54,10 @@ if (( count <= 2 )); then echo '(<4>,)'; else echo '(<0>,)'; fi
 EOF
 cat > "$test_root/mock-bin/sleep" <<'EOF'
 #!/usr/bin/env bash
+if [[ "${1:-}" == 1 ]]; then
+  /usr/bin/sleep 0.05
+  printf 'handoff-delay\n' >> "$MOCK_SEQUENCE"
+fi
 if [[ "${MOCK_MONITOR_HOLD:-0}" == 1 ]]; then /usr/bin/sleep 0.02; fi
 exit 0
 EOF
@@ -48,9 +65,26 @@ chmod +x "$test_root/mock-bin/"*
 
 export HOME="$test_root/home" PATH="$test_root/mock-bin:$PATH"
 export MOCK_SETTINGS="$settings" MOCK_LOG="$test_root/flatpak.log" \
-  MOCK_STATE="$test_root/saw-playing"
+  MOCK_STATE="$test_root/saw-playing" MOCK_SEQUENCE="$test_root/sequence.log"
 bash "$repo_root/system_helpers/jarvis-read-visible-text" selection 2
 grep -Fxq 'run net.mkiol.SpeechNote --action start-reading-clipboard 20' "$MOCK_LOG"
+for attempt in {1..100}; do
+  grep -Fxq 'reader-request' "$MOCK_SEQUENCE" 2>/dev/null && break
+  /usr/bin/sleep 0.01
+done
+python3 - "$MOCK_SEQUENCE" <<'PY'
+import sys
+from pathlib import Path
+
+events = Path(sys.argv[1]).read_text().splitlines()
+assert "reader-request" in events, events
+start = events.index("clipboard-owner-start")
+request = events.index("reader-request", start)
+delay = events.index("handoff-delay", request)
+stop = events.index("clipboard-owner-stop", delay)
+assert start < request < delay < stop, events
+assert events[-1] == "clipboard-clear", events
+PY
 grep -Fxq 'speech_speed2=13' "$settings"
 grep -Fxq '13' "$HOME/.config/jarvis/reading-normal-speed"
 for attempt in {1..300}; do

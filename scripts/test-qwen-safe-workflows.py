@@ -43,10 +43,22 @@ assert required <= catalogue.keys(), required - catalogue.keys()
 
 benchmark = runpy.run_path(str(root / "scripts/routing-benchmark.py"),
                            run_name="jarvis_policy_test")
+reference = profile.resolve_profile(profile.REFERENCE_COMPATIBILITY_PROFILE)
+reference_catalogue = action_registry.router_catalog(reference)
+benchmark_expected = {
+    expected for _phrase, expected in benchmark["cases"]()
+    if expected != "none"
+}
+assert benchmark_expected == set(reference_catalogue), (
+    benchmark_expected - set(reference_catalogue),
+    set(reference_catalogue) - benchmark_expected,
+)
 for phrase, expected in benchmark["cases"]():
     if expected == "none":
         continue
-    allowed = routing_model.candidates_for(phrase, catalogue, configured)
+    allowed = routing_model.candidates_for(
+        phrase, reference_catalogue, reference
+    )
     assert expected in allowed, (phrase, expected, sorted(allowed))
 
 cases = (

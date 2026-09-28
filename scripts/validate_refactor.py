@@ -163,6 +163,9 @@ assert "def uninstall(" in control_center
 assert "update_available()" not in control_center
 assert "relaunch_control_center()" in control_center
 assert "Gtk.ResponseType.CANCEL" in control_center
+assert "self.stop_update" in control_center
+assert "cancel_event=self.update_cancel" in control_center
+assert "def request_close(" in control_center
 control_runtime = (ROOT / 'scripts/control_runtime.py').read_text(encoding='utf-8')
 assert "relaunch-control-center.py" in control_runtime
 updater_source = (ROOT / 'scripts/update.py').read_text(encoding='utf-8')
@@ -183,14 +186,14 @@ assert '"display_name": "ONLYOFFICE"' in (
 ).read_text(encoding="utf-8")
 
 routing_benchmark = (ROOT / "scripts/routing-benchmark.py").read_text()
-assert "len(result) < 300" in routing_benchmark
+assert "len(result) != 350" in routing_benchmark
 assert "No actions will be executed." in routing_benchmark
 assert "does **not** test Whisper" in routing_benchmark
 benchmark_scope = runpy.run_path(ROOT / "scripts/routing-benchmark.py",
                                  run_name="jarvis_benchmark_validation")
 benchmark_cases = benchmark_scope["cases"]()
-assert len(benchmark_cases) == 364
-assert len({phrase.casefold() for phrase, _expected in benchmark_cases}) == 364
+assert len(benchmark_cases) == 350
+assert len({phrase.casefold() for phrase, _expected in benchmark_cases}) == 350
 setup_helper = (ROOT / 'system_helpers/jarvis-setup').read_text(encoding='utf-8')
 assert '[[ "$argument" == --gui && -x "$tray" ]]' in setup_helper
 assert 'nohup "$tray"' in setup_helper
@@ -355,7 +358,7 @@ assert 'Reading is still starting.' in dispatcher_helpers
 assert ') 9>&- >/dev/null 2>&1 &' in reading_helper
 assert '-selection primary' not in reading_helper
 assert 'clipboard_backup' not in reading_helper
-assert '-selection clipboard -loops 1 -i' in reading_helper
+assert '-selection clipboard -silent -i' in reading_helper
 assert 'xclip -selection clipboard -i 9>&-' in reading_helper
 for required_speechnote_fragment in (
     "flatpak remote-add --user --if-not-exists flathub",

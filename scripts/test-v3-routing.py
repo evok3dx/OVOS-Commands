@@ -289,6 +289,25 @@ assert started == [("Get Lucky", 1)]
 assert "RESULT_TRANSITION_SECONDS = 1.5" in skill_source
 assert 'pace_search("media", jitter=0.0)' in skill_source
 
+# A discarded Brave tab withdraws its MPRIS player. Resume must give one short
+# actionable response rather than appearing to succeed silently.
+control_method = next(node for node in skill_class.body if isinstance(node, ast.FunctionDef)
+                      and node.name == "_control")
+control_spoken = []
+control_scope = {"control": lambda _action: (False, None)}
+exec(compile(ast.Module(body=[control_method], type_ignores=[]),
+             "ovos_skill_jarvis_media/__init__.py", "exec"), control_scope)
+control_skill = SimpleNamespace(
+    log=SimpleNamespace(info=lambda *_args: None, error=lambda *_args: None,
+                        exception=lambda *_args: None),
+    speak=control_spoken.append,
+)
+control_scope["_control"](control_skill, "play")
+assert control_spoken == ["Open the music tab once."]
+control_spoken.clear()
+control_scope["_control"](control_skill, "pause")
+assert control_spoken == []
+
 # Starting the address-bar prompt must not clear/deactivate the conversation
 # immediately before it is activated. That ordering made live follow-up speech
 # fall through to broad fallback instead of being typed into the browser.

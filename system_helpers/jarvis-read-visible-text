@@ -527,9 +527,12 @@ else
     fi
 fi
 
-# Keep the temporary owner only until Speech Note requests the text once.
-# Closing fd 9 is mandatory because xclip may remain alive as the X11 owner.
-xclip -selection clipboard -loops 1 -i < "$captured_text" 9>&- &
+# Keep one foreground xclip process as the temporary owner while Speech Note
+# resolves the clipboard's available targets and retrieves the text.  A
+# one-request loop is unsafe here because a reader may request TARGETS before
+# requesting the actual UTF-8 value.  Closing fd 9 remains mandatory so this
+# bounded owner cannot inherit the reading transaction lock.
+xclip -selection clipboard -silent -i < "$captured_text" 9>&- &
 clipboard_owner_pid=$!
 
 flatpak run net.mkiol.SpeechNote \
@@ -558,8 +561,12 @@ for ((attempt=0; attempt<50; attempt++)); do
     sleep 0.2
 done
 
-# Speech Note has either accepted the request or the setup failed. In both
-# cases remove the temporary readable text from the clipboard immediately.
+# Speech Note can report an accepted action just before its worker retrieves
+# the clipboard. Give an accepted request one tightly bounded hand-off window,
+# then remove the temporary text. Rejected requests are cleared immediately.
+if (( accepted == 1 )); then
+    sleep 1
+fi
 clear_clipboard
 
 if (( accepted == 0 )) && kill -0 "$launcher_pid" 2>/dev/null; then
@@ -656,8 +663,4 @@ if (( temporary_fast == 1 )); then
 fi
 
 (( accepted == 1 )) || exit 22
-
-# Speech Note reads the clipboard asynchronously even after accepting the
-# request. Allow it a moment to copy the text before restoring the user's data.
-sleep 1
 exit 0

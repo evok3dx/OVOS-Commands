@@ -35,7 +35,7 @@ diagnostic:** seven actions completed without an eight-second timeout; the warm
 median was 2.66 seconds. Ollama reported the model resident indefinitely and
 every `load_duration` was zero. Warm singleton prompt evaluation was usually
 below 0.4 seconds, while generation was the larger remaining variable. This is
-a small latency diagnostic, not the required 364-case accuracy benchmark.
+a small latency diagnostic, not the required 350-case accuracy benchmark.
 
 The first V3.5 singleton prompt incorrectly treated polite action requests such
 as “Can I search through Brave?” as information-seeking questions. Rc2 now
@@ -53,15 +53,21 @@ but deliberately executes nothing. Profile-disabled private agents are shown
 as skipped rather than treated as failures.
 
 For broader release testing, `python3 scripts/routing-benchmark.py` generates
-364 command variations across writing, continuous dictation, 1×/2× reading,
-browser search, safe message starters, media, files and deliberately rejected
-requests. It checks the request-specific allowlist and then the real local Qwen
-model without dispatching any action. `--quick` runs a representative 40-case
-sample; `--policy-only` checks every allowlist without invoking the model. The
-default full run uses the live eight-second deadline and saves a timestamped
-Markdown report under `~/Downloads/`. An interrupted run also saves its partial
-results. The supplied 40-case V3.5 quick run is historical diagnostic evidence,
-not a substitute for the complete run.
+exactly 350 natural variations covering every action exposed to Qwen by the
+reference profile: writing and dictation, 1×/2× reading, focused-window
+controls, browser navigation and tabs, browser and local search, media,
+message starters, information requests, and open/focus/minimise/maximise for
+every reviewed application. Six compound, destructive or secret-sharing
+requests must be rejected. It checks the request-specific allowlist and then
+the real local Qwen model without dispatching any action. Restricted native
+commands such as app close, clipboard editing and keystrokes remain exact and
+are tested separately rather than being exposed to Qwen for a benchmark score.
+`--quick` runs a representative 40-case sample; `--policy-only` checks every
+allowlist without invoking the model. The default full run uses the live
+eight-second deadline and saves a timestamped Markdown report under
+`~/Downloads/`. An interrupted run also saves its partial results. The supplied
+40-case V3.5 quick run is historical diagnostic evidence, not a substitute for
+the complete run.
 
 This benchmark starts from typed text, after speech recognition. It cannot
 measure the microphone, wake word or Whisper accuracy. Live release acceptance

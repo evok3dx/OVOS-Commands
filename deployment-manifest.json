@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "release_version": "3.8.2",
+  "release_version": "3.9.0",
   "package_modules": [
     "__init__.py",
     "agents.py",
@@ -149,6 +149,11 @@
       "extras/listener-safety/README.md",
       "extras/listener-safety/install.py",
       "extras/listener-safety/test_update.py"
+    ],
+    "ocp_stop_compat": [
+      "extras/ocp-stop-compat/README.md",
+      "extras/ocp-stop-compat/install.py",
+      "extras/ocp-stop-compat/test_update.py"
     ]
   }
 }

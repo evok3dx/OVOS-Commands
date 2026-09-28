@@ -84,6 +84,7 @@ class ControlCenter:
         self.refresh_config=refresh_config;self.check_only=check_only
         self.alive=True;self.polling=False;self.buttons=[];self.busy=False
         self.emergency_busy=False;self.latest=None
+        self.update_cancel=None;self.update_in_progress=False
         self.footer=footer;self.save=save;self.cancel=cancel;self.notebook=notebook
         self.saved_flags=None
         self.provider=Gtk.CssProvider();self.provider.load_from_data(CSS)
@@ -124,6 +125,7 @@ class ControlCenter:
         self.activity.pack_start(self.progress,False,False,0)
         outer.pack_start(self.activity,False,False,0)
         self.activity.set_no_show_all(True)
+        dialog.connect('delete-event',self.request_close)
         dialog.connect('destroy',self.destroy)
         if not check_only:
             GLib.timeout_add_seconds(3,self.poll)
@@ -313,6 +315,9 @@ class ControlCenter:
         self.action(row,'Check now','view-refresh-symbolic',lambda _:self.maintain('updates'))
         self.install_update=self.action(row,'No update available','software-update-available-symbolic',self.install_release)
         self.install_update.set_sensitive(False)
+        self.stop_update=button('Stop update','process-stop-symbolic',self.cancel_update)
+        self.stop_update.set_no_show_all(True);self.stop_update.hide()
+        row.pack_start(self.stop_update,False,False,0)
         details=self.card(parent,'Safe update','Jarvis creates a rollback snapshot before replacing managed files. Application choices, custom commands, OVOS settings, local models and private helpers are preserved.')
         details.pack_start(label('Use Maintenance → Export settings for a separate private settings archive.','jarvis-subtitle'),False,False,0)
 
@@ -371,13 +376,35 @@ class ControlCenter:
         prompt.format_secondary_text('This runs the existing updater and may restart Jarvis.')
         answer=prompt.run();prompt.destroy()
         if answer==Gtk.ResponseType.OK:
+            self.update_cancel=threading.Event();self.update_in_progress=True
+            self.stop_update.set_label('Stop update');self.stop_update.set_sensitive(True)
+            self.stop_update.show()
             def installed(result):
                 self.output.get_buffer().set_text(str(result))
                 self.details.set_expanded(True)
                 relaunch_control_center()
                 GLib.idle_add(self.dialog.response, Gtk.ResponseType.CANCEL)
                 return 'Update installed. Reopening Jarvis…'
-            self.task('Installing update…',lambda:maintenance('install'),on_success=installed)
+            self.task('Installing update…',
+                      lambda:maintenance('install',cancel_event=self.update_cancel),
+                      on_success=installed,on_finish=self.finish_update)
+
+    def cancel_update(self,_button=None):
+        if not self.update_in_progress or self.update_cancel is None:return
+        prompt=Gtk.MessageDialog(transient_for=self.dialog,modal=True,
+                                 message_type=Gtk.MessageType.WARNING,
+                                 buttons=Gtk.ButtonsType.OK_CANCEL,
+                                 text='Stop the current Jarvis update?')
+        prompt.format_secondary_text('The updater will stop safely. If files were already changed, its rollback protection remains available.')
+        answer=prompt.run();prompt.destroy()
+        if answer!=Gtk.ResponseType.OK:return
+        self.update_cancel.set();self.stop_update.set_sensitive(False)
+        self.stop_update.set_label('Stopping update…')
+        self.show_activity('Stopping update safely…',True)
+
+    def finish_update(self):
+        self.update_in_progress=False;self.update_cancel=None
+        self.stop_update.hide();self.stop_update.set_sensitive(True)
 
     def services(self,action):return service_action(action,self.report)
 
@@ -394,7 +421,7 @@ class ControlCenter:
         else:self.progress.hide()
         return False
 
-    def task(self,title,work,on_success=None):
+    def task(self,title,work,on_success=None,on_finish=None):
         if self.state['busy'] or self.busy:return
         self.busy=True;self.state['busy']=True
         self.notebook.set_sensitive(False);self.save.set_sensitive(False);self.cancel.set_sensitive(False)
@@ -402,6 +429,7 @@ class ControlCenter:
         self.show_activity(title,True)
         def done(value,error):
             if not self.alive:return False
+            if on_finish:on_finish()
             self.busy=False;self.state['busy']=False
             self.notebook.set_sensitive(True);self.save.set_sensitive(True);self.cancel.set_sensitive(True)
             for obj in self.buttons:obj.set_sensitive(True)
@@ -510,4 +538,17 @@ class ControlCenter:
         self.dialog.present()
 
     def destroy(self,*_args):
+        if self.update_cancel is not None:self.update_cancel.set()
         self.alive=False
+
+    def request_close(self,*_args):
+        if not self.update_in_progress:return False
+        prompt=Gtk.MessageDialog(transient_for=self.dialog,modal=True,
+                                 message_type=Gtk.MessageType.WARNING,
+                                 buttons=Gtk.ButtonsType.OK_CANCEL,
+                                 text='An update is still running.')
+        prompt.format_secondary_text('Stop the update and close Jarvis?')
+        answer=prompt.run();prompt.destroy()
+        if answer!=Gtk.ResponseType.OK:return True
+        if self.update_cancel is not None:self.update_cancel.set()
+        return False

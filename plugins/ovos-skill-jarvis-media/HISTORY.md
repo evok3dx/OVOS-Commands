@@ -1,5 +1,13 @@
 # Jarvis Media plugin history
 
+## 0.3.1 — bundled with Jarvis 3.9
+
+- A resume request with no Brave/Chromium MPRIS session now says “Open the
+  music tab once” instead of failing silently.
+- Jarvis still does not guess a tab or bypass an on-page inactivity prompt.
+  Brave Memory Saver should keep `music.youtube.com` and `youtube.com` active
+  when uninterrupted system media control is wanted.
+
 ## 0.3.0 — bundled with Jarvis 3.7
 
 - “Play music” begins a bounded two-turn request: Jarvis asks what to play,

@@ -21,7 +21,7 @@ from . import pipeline
 EVENT_CONTROL = "jarvis.media.control"
 EVENT_CANCEL = "jarvis.media.cancel"
 EVENT_STATUS = "jarvis.media.status"
-REVISION = "jarvis.media.plugin.1"
+REVISION = "jarvis.media.plugin.2"
 RESULT_TRANSITION_SECONDS = 1.5
 
 
@@ -124,6 +124,8 @@ class JarvisMediaSkill(OVOSSkill):
                               " to " + player if player else "", action)
             else:
                 self.log.info("Media action ignored; no compatible player: %s", action)
+                if action == "play":
+                    self.speak("Open the music tab once.")
         except FileNotFoundError:
             self.log.error("playerctl is unavailable")
             self.speak("Media control is not installed.")
