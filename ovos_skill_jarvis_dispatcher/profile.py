@@ -47,7 +47,7 @@ APPLICATION_INTEGRATIONS = {
         ],
     },
     "onlyoffice": {
-        "display_name": "Office",
+        "display_name": "ONLYOFFICE",
         "aliases": ["only office", "onlyoffice", "office app", "office"],
     },
     "claude_desktop": {

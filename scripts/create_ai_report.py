@@ -79,6 +79,17 @@ def sanitise(text: str, home: Path) -> str:
         value,
     )
     value = re.sub(r"(?i)\bbearer\s+[A-Za-z0-9._~+/=-]+", "Bearer <redacted>", value)
+    value = re.sub(
+        r"(?i)(['\"]?location['\"]?\s*:\s*)\{[^{}\n]{0,500}\}",
+        r"\1{<redacted-location>}",
+        value,
+    )
+    value = re.sub(
+        r"(?i)(['\"]?(?:lat|latitude|lon|longitude)['\"]?\s*[:=]\s*)"
+        r"-?\d{1,3}(?:\.\d+)?",
+        r"\1<redacted-location>",
+        value,
+    )
     return value
 
 

@@ -60,8 +60,8 @@ def payload_for(utterance, catalogue, profile=None):
         'claude_desktop.message': 'Focus Claude Desktop and begin a second-turn spoken message capture',
         'codex.message': 'Focus the enabled Codex agent and begin a second-turn spoken message capture',
         'claude_agent.message': 'Focus the enabled Claude agent and begin a second-turn spoken message capture',
-        'media.play': 'Resume currently paused music or video playback',
-        'media.pause': 'Pause currently playing music or video playback',
+        'media.play': 'Resume or start currently paused music, song, track or video playback',
+        'media.pause': 'Pause currently playing music, song or track so it can resume later',
         'media.stop': 'Stop music or video playback; NOT listening, microphone, dictation or speech',
         'media.next': 'Skip to the next song, track or video',
         'media.previous': 'Return to the previous song, track or video',
@@ -85,12 +85,14 @@ def payload_for(utterance, catalogue, profile=None):
     examples = [
         'Why would someone launch a browser? => {"action":"none"}',
         'My colleague has started Firefox. => {"action":"none"}',
+        'I wrote this stuff. => {"action":"none"}',
         'Pause playback and maximise the current window. => {"action":"none"}',
     ]
     action_examples = (
         ('media.pause', 'Would you pause playback for me? => {"action":"media.pause"}'),
         ('media.pause', 'Pose music. => {"action":"media.pause"}'),
         ('media.play', 'Carry on with the music. => {"action":"media.play"}'),
+        ('media.play', 'Start the song again. => {"action":"media.play"}'),
         ('media.next', 'Skip this tune. => {"action":"media.next"}'),
         ('media.previous', 'Go back one song. => {"action":"media.previous"}'),
         ('media.search', 'Put on Get Lucky. => {"action":"media.search"}'),

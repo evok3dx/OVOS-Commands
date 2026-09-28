@@ -162,8 +162,11 @@ handles deliberate `Play {title}` requests with one bounded YouTube lookup.
   `{title}` with an actual song or video name.
 - `Play music` asks “What shall I play?”; say one song, artist or video title.
   The direct `Play {title}` form remains available.
-- `Pause music`, `Pose music`, `Poze music`, `Resume playback`, `Stop media`, `Next song` and `Previous
-  track` control a compatible MPRIS player. Next and previous require a queue.
+- `Pause music`, `Pose music`, `Poze music` and `Stop the music` pause a
+  compatible MPRIS player without discarding its current browser track.
+- `Resume the music`, `Start the song` and `Start the song again` resume that
+  paused player. `Stop media` remains the explicit full-stop command.
+- `Next song` and `Previous track` require a real player queue.
 - `Find {filename}` or `Look in my Documents for {query}` searches local
   filenames and shows a picker. Nothing opens until you select a result.
 - `Search my files` or `Search my documents` asks one local follow-up when no
@@ -213,9 +216,11 @@ Examples:
 Speech Note performs dictation and reading while the dispatcher controls its
 allowlisted actions.
 
-Stopping active continuous dictation keeps Speech Note's final full stop and
-adds one trailing space, ready for the next sentence. `Press space` inserts a
-single space separately without submitting the focused field.
+Stopping continuous dictation keeps Speech Note's final full stop and adds one
+trailing space, ready for the next sentence. This also applies when the wake
+phrase has already paused Speech Note before `Stop writing` reaches Jarvis.
+Jarvis rechecks the focused window before inserting it. `Press space` inserts
+a single space separately without submitting the focused field.
 
 One-shot writing types the captured words without Enter and removes only
 Whisper's automatic final period. For a period in the same capture, say the
@@ -256,8 +261,9 @@ Examples:
 - `Show desktop`
 - `Go to desktop`
 - `Minimize all`
+- `Minimize everything`, `Minimise everything` or `Hide everything`
 
-The three desktop phrases use Linux Mint's fixed `Super+D` shortcut. They do
+These desktop phrases use Linux Mint's fixed `Super+D` shortcut. They do
 not minimize windows one by one or accept a model-generated key sequence.
 
 

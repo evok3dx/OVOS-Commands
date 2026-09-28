@@ -979,13 +979,17 @@ updater = importlib.util.module_from_spec(updater_spec)
 updater_spec.loader.exec_module(updater)
 assert updater.version_key('3.0.0rc1') < updater.version_key('3.0.0')
 assert updater.version_key('v3.0.0') > updater.version_key('2.3.1')
+private_log = "Session({'location': {'lat': 25.7701, 'lon': -80.1928, 'tz': 'America/New_York'}})"
+safe_log = module.sanitise_log_text(private_log)
+assert '25.7701' not in safe_log and '-80.1928' not in safe_log
+assert '<redacted-location>' in safe_log
 PY
 
 # The AI bundle is bounded, self-describing and redacts supplied secret shapes.
 report="$test_root/ai-report.tar.gz"
 JARVIS_HOME="$fresh_home" JARVIS_REPOSITORY="$fresh_target" JARVIS_TEST_MODE=1 \
   "$fresh_home/.local/bin/jarvis-report" \
-  --issue 'Contact person@example.com with api_key=DO-NOT-SHARE' \
+  --issue "Contact person@example.com with api_key=DO-NOT-SHARE location={'lat': 25.7701, 'lon': -80.1928}" \
   --output "$report"
 test "$(stat -c '%a' "$report")" = 600
 report_dir="$test_root/report"
@@ -996,6 +1000,8 @@ test -n "$bundle"
 grep -q '<redacted-email>' "$bundle/ISSUE.md"
 grep -q 'api_key=<redacted>' "$bundle/ISSUE.md"
 ! grep -R -q 'DO-NOT-SHARE\|person@example.com' "$bundle"
+! grep -R -q '25.7701\|-80.1928' "$bundle"
+grep -R -q '<redacted-location>' "$bundle"
 ! grep -R -q '/workspace/' "$bundle"
 (cd "$bundle" && sha256sum --check MANIFEST.sha256 >/dev/null)
 python3 - "$report" <<'PY'

@@ -77,6 +77,11 @@ class FakeDictation(dictation.DictationActionsMixin):
         self.action_result = action_result
         self.actions = []
         self.spaces = 0
+        self.window = "123"
+        self.log = type("Log", (), {
+            "exception": lambda *_args: None,
+            "warning": lambda *_args: None,
+        })()
 
     def _speech_note_action(self, action):
         self.actions.append(action)
@@ -84,6 +89,9 @@ class FakeDictation(dictation.DictationActionsMixin):
 
     def _press_space(self):
         self.spaces += 1
+
+    def _focused_window_details(self):
+        return self.window, "editor"
 
 with patch.object(dictation.time, "sleep"):
     active_dictation = FakeDictation()
@@ -99,7 +107,17 @@ with patch.object(dictation.time, "sleep"):
 
     paused_dictation = FakeDictation(running=False)
     assert paused_dictation._finish_speech_note_dictation()
-    assert paused_dictation.actions == [] and paused_dictation.spaces == 0
+    assert paused_dictation.actions == [] and paused_dictation.spaces == 1
+
+    changed_window = FakeDictation()
+    original_focus = changed_window._focused_window_details
+    calls = [0]
+    def changing_focus():
+        calls[0] += 1
+        return original_focus() if calls[0] == 1 else ("456", "browser")
+    changed_window._focused_window_details = changing_focus
+    assert changed_window._finish_speech_note_dictation()
+    assert changed_window.spaces == 0
 
 strict_profile = {"private_extensions": {"agents": True}, "applications": {}}
 assert strict_spoken_action("Message Hermes.", strict_profile) == "hermes.message"

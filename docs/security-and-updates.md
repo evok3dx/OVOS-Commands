@@ -63,7 +63,7 @@ created or silently managed by this repository.
 Before installing a downloaded archive:
 
 ```bash
-version=3.7.1
+version=3.7.2
 sha256sum --check "ovos-commands-$version.tar.gz.sha256"
 tar -tzf "ovos-commands-$version.tar.gz"
 ```
@@ -122,3 +122,7 @@ dependency by itself.
 instructions requesting a patch. It never uploads, applies or deploys that
 patch. Review the archive before sharing and review any proposed patch before
 running the normal validation and isolated deployment tests.
+Home paths, usernames, common credential shapes and OVOS session location
+coordinates are redacted from its optional logs. Control Centre Recent Logs
+uses the same location boundary, but recognised utterances can still be
+sensitive and must be reviewed before sharing.

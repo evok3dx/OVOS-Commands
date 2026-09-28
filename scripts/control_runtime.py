@@ -51,6 +51,27 @@ def run(args, timeout=15, check=True):
     return result
 
 
+def sanitise_log_text(text):
+    """Redact common private context before logs enter the Control Centre."""
+
+    value = str(text).replace(str(Path.home()), "~")
+    username = os.environ.get('USER') or os.environ.get('LOGNAME')
+    if username and len(username) > 2:
+        value = re.sub(
+            rf'(?<![\w-]){re.escape(username)}(?![\w-])', '<user>', value)
+    value = re.sub(
+        r"(?i)(['\"]?location['\"]?\s*:\s*)\{[^{}\n]{0,500}\}",
+        r"\1{<redacted-location>}", value)
+    value = re.sub(
+        r"(?i)(['\"]?(?:lat|latitude|lon|longitude)['\"]?\s*[:=]\s*)"
+        r"-?\d{1,3}(?:\.\d+)?",
+        r"\1<redacted-location>", value)
+    value = re.sub(
+        r'(?i)\b(api[_-]?key|access[_-]?token|authorization|password|secret)'
+        r'\s*[:=]\s*[^\s,;]+', r'\1=<redacted>', value)
+    return value
+
+
 def speech_note_status():
     """Inspect the bounded per-user Speech Note integration."""
     result = run([SPEECH_NOTE_HELPER, '--status'], timeout=30, check=False)
@@ -339,6 +360,8 @@ def maintenance(action):
         result=run(argv,timeout=timeout,check=False)
     text=(result.stdout+'\n'+result.stderr).strip()
     if result.returncode:raise RuntimeError(text[-16000:] or 'Action failed')
+    if action == 'logs':
+        text = sanitise_log_text(text)
     return text[-20000:] or 'Completed.'
 
 

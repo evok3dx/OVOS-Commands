@@ -6,7 +6,7 @@ such as `notes` maps only to a reviewed integration such as `standard_notes`.
 Recommended setup maps detected Standard Notes to Notes, Proton Mail or an
 installed desktop email client such as Thunderbird or ElectronMail to Mail,
 and the fixed Proton Calendar web app to Calendar when Proton Mail and Brave
-are available. Detected Office-category applications, including OnlyOffice,
+are available. Detected Office-category applications, including ONLYOFFICE,
 can be selected for the Office role. A detected GNOME/KDE
 desktop calendar is a separate **System Calendar** target, avoiding ambiguous
 generic calendar commands when both are installed.
@@ -22,8 +22,10 @@ explicitly compatible integrations.
 - `Custom`: shows only detected reviewed applications for selection.
 
 The **Defaults** page shows Browser, Notes, Mail, Calendar and Office in a
-full-width selector. It lists only compatible applications enabled on the
-Applications page. The Applications
+full-width click-to-open selector. Its spacious popover stays open until a
+choice is made and lists only compatible applications enabled on the
+Applications page. When detected and enabled, the fixed office integration is
+shown as **ONLYOFFICE**. The Applications
 table shows the real phrase, for example **Open notes** for Standard Notes and
 **Open mail** for Proton Mail. Private remote-terminal launchers and
 Jarvis's own Control Centre are excluded from portable app discovery.

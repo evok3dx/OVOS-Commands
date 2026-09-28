@@ -48,7 +48,8 @@ CSS = b'''
 .jarvis-mode:checked { background-color: #2D8CFF; border-color: #1673D3; color: #FFFFFF; }
 .jarvis-mode-note { opacity: 0.70; }
 .jarvis-default-label { font-weight: 600; }
-.jarvis-default-combo button { padding: 9px 13px; border-radius: 7px; }
+.jarvis-default-combo { padding: 9px 13px; border-radius: 7px; }
+.jarvis-default-choice { padding: 8px 10px; border-radius: 6px; }
 combobox menu menuitem { padding: 9px 14px; min-height: 24px; }
 '''
 
@@ -293,7 +294,7 @@ class ControlCenter:
         row=Gtk.Box(spacing=8);support.pack_start(row,False,False,0)
         for name,icon,key in [('Create report','document-save-symbolic','report'),('Recent logs','text-x-generic-symbolic','logs'),('About','help-about-symbolic','about')]:
             self.action(row,name,icon,lambda _,k=key:self.maintain(k))
-        support.pack_start(label('Reports stay on this computer. Recent logs may contain your spoken words.','jarvis-subtitle'),False,False,0)
+        support.pack_start(label('Reports stay on this computer. Location coordinates are redacted, but Recent Logs may contain your spoken words.','jarvis-subtitle'),False,False,0)
         advanced=Gtk.Expander(label='Advanced');parent.pack_start(advanced,False,False,0)
         box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8);advanced.add(box)
         self.action(box,'Restart full voice system','view-refresh-symbolic',lambda _:self.task('Restarting voice system',lambda:self.services('restart')))

@@ -36,6 +36,21 @@ def normalise(text):
     return ' '.join(re.findall(r'\w+', text.casefold()))
 
 
+def non_command_statement(utterance):
+    """Reject clear past-tense descriptions before consulting the model."""
+
+    text = normalise(utterance)
+    subject = r'(?:i|we|you|he|she|they)'
+    adverb = r'(?:(?:just|already|recently)\s+)?'
+    completed = r'(?:wrote|typed|dictated)'
+    progressive = r'(?:(?:was|were|have been|had been)\s+(?:writing|typing|dictating))'
+    perfect = r'(?:(?:have|has|had)\s+(?:written|typed|dictated))'
+    return bool(re.match(
+        rf'^{subject}\s+{adverb}(?:{completed}|{progressive}|{perfect})\b',
+        text,
+    ))
+
+
 def file_search_request(utterance):
     """Extract a bounded filename query from the original spoken request."""
     if not isinstance(utterance, str) or not 2 <= len(utterance.strip()) <= 300 or not utterance.isprintable():
@@ -233,6 +248,8 @@ def _operation_hinted_candidates(text, candidates):
 def candidates_for(utterance, catalogue, profile):
     if not isinstance(utterance, str) or not 2 <= len(utterance.strip()) <= 300 or not utterance.isprintable():
         raise ValueError('Invalid utterance')
+    if non_command_statement(utterance):
+        return {}
     targets = named_targets(utterance, profile)
     if (targets and targets <= {'notes', '!disabled:standard_notes'} and re.search(
             r'\b(?:write|type|take down)\b.*\b(?:here|this|something|note)\b',

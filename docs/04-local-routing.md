@@ -35,7 +35,7 @@ diagnostic:** seven actions completed without an eight-second timeout; the warm
 median was 2.66 seconds. Ollama reported the model resident indefinitely and
 every `load_duration` was zero. Warm singleton prompt evaluation was usually
 below 0.4 seconds, while generation was the larger remaining variable. This is
-a small latency diagnostic, not the required 360-case accuracy benchmark.
+a small latency diagnostic, not the required 364-case accuracy benchmark.
 
 The first V3.5 singleton prompt incorrectly treated polite action requests such
 as “Can I search through Brave?” as information-seeking questions. Rc2 now
@@ -53,7 +53,7 @@ but deliberately executes nothing. Profile-disabled private agents are shown
 as skipped rather than treated as failures.
 
 For broader release testing, `python3 scripts/routing-benchmark.py` generates
-360 command variations across writing, continuous dictation, 1×/2× reading,
+364 command variations across writing, continuous dictation, 1×/2× reading,
 browser search, safe message starters, media, files and deliberately rejected
 requests. It checks the request-specific allowlist and then the real local Qwen
 model without dispatching any action. `--quick` runs a representative 40-case
@@ -67,6 +67,10 @@ This benchmark starts from typed text, after speech recognition. It cannot
 measure the microphone, wake word or Whisper accuracy. Live release acceptance
 must still compare the listener's `Raw transcription` with the words actually
 spoken. A router pass must never be recorded as a Whisper pass.
+
+Clear past-tense descriptions such as `I wrote this stuff` are rejected before
+the model is called. This preserves natural requests such as `Could you write
+this for me?` while preventing a statement from opening second-turn writing.
 
 The exact reviewed tag is in [Ollama's model catalogue](https://ollama.com/library/qwen3%3A4b-instruct-2507-q4_K_M).
 Ollama lists that download at about **2.5 GB**. Linux Mint on X11 and x86_64 is

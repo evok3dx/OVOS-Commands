@@ -194,6 +194,99 @@ def choose_with_gui(detected, existing=None, on_save=None, *, output=None,
         from gi.repository import Gtk, GLib, Gdk, Gio
     except Exception as error:
         raise RuntimeError(f'GTK 3 is unavailable: {error}') from error
+
+    class DefaultAppPicker(Gtk.MenuButton):
+        """Spacious click-to-open picker for one enabled default app."""
+
+        def __init__(self):
+            super().__init__()
+            self._active_id = None
+            self._choices = {}
+            self._group = None
+            self._updating = False
+            self._changed = None
+            self.set_hexpand(True)
+            self.set_size_request(360, 42)
+            self.set_label('No compatible app enabled')
+            self.get_style_context().add_class('jarvis-default-combo')
+
+            self._popover = Gtk.Popover.new(self)
+            outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
+            outer.set_border_width(7)
+            self._choices_box = Gtk.Box(
+                orientation=Gtk.Orientation.VERTICAL, spacing=4)
+            self._choices_box.set_size_request(340, 88)
+            outer.pack_start(self._choices_box, True, True, 0)
+            note = Gtk.Label(label='Enabled compatible applications', xalign=0)
+            note.get_style_context().add_class('jarvis-mode-note')
+            outer.pack_start(note, False, False, 4)
+            self._popover.add(outer)
+            self.set_popover(self._popover)
+
+        def connect_changed(self, callback, *args):
+            self._changed = (callback, args)
+
+        def remove_all(self):
+            for child in self._choices_box.get_children():
+                child.destroy()
+            self._active_id = None
+            self._choices.clear()
+            self._group = None
+            self.set_label('No compatible app enabled')
+
+        def append(self, identifier, text):
+            choice = Gtk.RadioButton.new_with_label_from_widget(self._group, text)
+            if self._group is None:
+                self._group = choice
+            choice.set_size_request(330, 40)
+            choice.set_halign(Gtk.Align.FILL)
+            choice.get_style_context().add_class('jarvis-default-choice')
+            choice.connect('toggled', self._choice_toggled, identifier, text)
+            self._choices_box.pack_start(choice, False, False, 0)
+            self._choices[identifier] = choice
+            choice.show_all()
+
+        def _choice_toggled(self, choice, identifier, text):
+            if not choice.get_active():
+                return
+            self._active_id = identifier
+            self.set_label(text)
+            if not self._updating and self._changed:
+                callback, args = self._changed
+                callback(self, *args)
+                self._popover.popdown()
+
+        def get_active_id(self):
+            return self._active_id
+
+        def set_active_id(self, identifier):
+            choice = self._choices.get(identifier)
+            if choice is None:
+                self.set_active(-1)
+                return
+            self._updating = True
+            try:
+                choice.set_active(True)
+                self._active_id = identifier
+                self.set_label(choice.get_label())
+            finally:
+                self._updating = False
+
+        def set_active(self, index):
+            if index >= 0:
+                identifiers = tuple(self._choices)
+                if index < len(identifiers):
+                    self.set_active_id(identifiers[index])
+                    return
+            self._updating = True
+            try:
+                for choice in self._choices.values():
+                    choice.set_active(False)
+                self._active_id = None
+                self.set_label('No compatible app enabled')
+            finally:
+                self._updating = False
+
     # One window across tray and legacy shortcuts, using the user's session bus.
     app = None
     if not check_only:
@@ -380,11 +473,7 @@ def choose_with_gui(detected, existing=None, on_save=None, *, output=None,
         role_label = Gtk.Label(label=title, xalign=0)
         role_label.set_size_request(150, -1)
         role_label.get_style_context().add_class('jarvis-default-label')
-        combo = Gtk.ComboBoxText()
-        combo.set_hexpand(True)
-        combo.set_size_request(360, 42)
-        combo.set_property('popup-fixed-width', True)
-        combo.get_style_context().add_class('jarvis-default-combo')
+        combo = DefaultAppPicker()
         combo.set_tooltip_text(f'Choose the enabled application used for “open {role}”.')
         defaults_grid.attach(role_label, 0, index, 1, 1)
         defaults_grid.attach(combo, 1, index, 1, 1)
@@ -527,7 +616,7 @@ def choose_with_gui(detected, existing=None, on_save=None, *, output=None,
         changed()
 
     for role, combo in role_combos.items():
-        combo.connect('changed', preferred_changed, role)
+        combo.connect_changed(preferred_changed, role)
     search.connect('search-changed', lambda *_args: filtered.refilter())
     def switched(_notebook, _page, page_number):
         if page_number == 2:

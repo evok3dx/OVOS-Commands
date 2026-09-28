@@ -174,6 +174,11 @@ assert "button.set_mode(False)" in setup_source
 assert "Voice only" not in setup_source
 assert "core_button" not in setup_source
 assert "tab_label('Defaults'" in setup_source
+assert "class DefaultAppPicker(Gtk.MenuButton)" in setup_source
+assert "Enabled compatible applications" in setup_source
+assert '"display_name": "ONLYOFFICE"' in (
+    ROOT / "ovos_skill_jarvis_dispatcher/profile.py"
+).read_text(encoding="utf-8")
 
 routing_benchmark = (ROOT / "scripts/routing-benchmark.py").read_text()
 assert "len(result) < 300" in routing_benchmark
@@ -182,8 +187,8 @@ assert "does **not** test Whisper" in routing_benchmark
 benchmark_scope = runpy.run_path(ROOT / "scripts/routing-benchmark.py",
                                  run_name="jarvis_benchmark_validation")
 benchmark_cases = benchmark_scope["cases"]()
-assert len(benchmark_cases) == 360
-assert len({phrase.casefold() for phrase, _expected in benchmark_cases}) == 360
+assert len(benchmark_cases) == 364
+assert len({phrase.casefold() for phrase, _expected in benchmark_cases}) == 364
 setup_helper = (ROOT / 'system_helpers/jarvis-setup').read_text(encoding='utf-8')
 assert '[[ "$argument" == --gui && -x "$tray" ]]' in setup_helper
 assert 'nohup "$tray"' in setup_helper
@@ -563,7 +568,7 @@ def main():
     fake = FakeSkill()
     fake._jarvis_profile = reference_profile
     namespace["register_skill_vocabulary"](fake, include_custom=False)
-    assert len(fake.registrations) == 2010, len(fake.registrations)
+    assert len(fake.registrations) == 2024, len(fake.registrations)
     assert len(fake.registrations) == len(set(fake.registrations)), (
         "Duplicate vocabulary registrations are present"
     )
@@ -671,6 +676,8 @@ def main():
         "press enter", "press return", "press send", "hit enter", "hit return",
     ):
         assert (phrase, "PressEnterCommand") in fake.registrations
+    for phrase in ("minimize everything", "minimise everything", "hide everything"):
+        assert (phrase, "ShowDesktopCommand") in fake.registrations
     for phrase in ("new line", "newline", "insert new line", "add a new line"):
         assert (phrase, "InsertNewLineCommand") in fake.registrations
     for phrase in ("full stop", "period", "insert a full stop", "add a period"):
@@ -678,9 +685,15 @@ def main():
     for phrase in ("press escape", "press esc", "hit escape", "escape key"):
         assert (phrase, "PressEscapeCommand") in fake.registrations
     media_commands = {
-        "PlayMediaCommand": ("play media", "resume playback", "resume music"),
+        "PlayMediaCommand": (
+            "play media", "resume playback", "resume music",
+            "start the music", "start the song again",
+        ),
         "PromptMusicCommand": ("play music", "lay music", "put some music on"),
-        "PauseMediaCommand": ("pause media", "pause playback", "pause music", "poze music"),
+        "PauseMediaCommand": (
+            "pause media", "pause playback", "pause music", "poze music",
+            "stop music", "stop the song", "stop the track",
+        ),
         "StopMediaCommand": ("stop media", "stop playback", "stop playing"),
         "NextMediaCommand": ("next track", "next song", "skip track"),
         "PreviousMediaCommand": (
@@ -690,6 +703,8 @@ def main():
     for entity, phrases in media_commands.items():
         for phrase in phrases:
             assert (phrase, entity) in fake.registrations
+    assert ("stop music", "StopMediaCommand") not in fake.registrations
+    assert ("stop the song", "StopMediaCommand") not in fake.registrations
     assert not any(phrase in {"pose", "poze", "lay"}
                    for phrase, _entity in fake.registrations)
     for phrase in ("caps lock on", "enable caps lock"):

@@ -86,6 +86,19 @@ for spoken in ("Can I search through Brave?", "Can I dictate something to Hermes
     assert "polite request phrased as a question" in system_prompt
     assert "information-seeking question" in system_prompt
 
+for statement in (
+    "I wrote this stuff",
+    "I just typed the note",
+    "We were writing the report",
+    "She has dictated the message",
+):
+    assert routing_model.non_command_statement(statement)
+    assert routing_model.candidates_for(statement, catalogue, configured) == {}
+    result = routing_model.classify(statement, catalogue, configured)
+    assert result["actual"] == "none" and result["skipped_model"] is True
+assert not routing_model.non_command_statement("Could you write this for me?")
+assert not routing_model.non_command_statement("I want to write something here")
+
 assert routing_model.media_search_request("Could you play a song called Get Lucky?") == "Get Lucky"
 assert routing_model.media_search_request("Lay Get Lucky") == "Get Lucky"
 assert routing_model.media_search_request("I would like to hear Teardrop please") == "Teardrop"

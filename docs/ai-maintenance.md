@@ -34,11 +34,13 @@ Warning-level OVOS journal entries can help diagnose an intermittent failure:
 jarvis-report --issue-file problem.txt --include-logs
 ```
 
-Obvious home paths, usernames, email addresses and credential-shaped values are
-redacted, but automated redaction cannot guarantee that arbitrary log messages
-are private. Review the archive before sharing whenever `--include-logs` is
-used. Treat every generated bundle as private even when optional logs are not
-included.
+Obvious home paths, usernames, email addresses, credential-shaped values and
+OVOS session location coordinates are redacted. The Control Centre applies the
+same location redaction before displaying Recent Logs. Automated redaction
+cannot guarantee that arbitrary log messages are private, especially because
+recognised utterances may remain. Review the archive before sharing whenever
+`--include-logs` is used. Treat every generated bundle as private even when
+optional logs are not included.
 
 ## Patch boundary
 

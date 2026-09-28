@@ -187,6 +187,10 @@ class ConversationMixin:
             "lay music", "lay the music", "lay some music",
             "put music on", "put some music on",
             "stop music", "stop the music",
+            "stop song", "stop the song", "stop track", "stop the track",
+            "resume music", "resume the music", "resume song", "resume the song",
+            "start music", "start the music", "start song", "start the song",
+            "start track", "start the track", "start the song again",
             "next track", "previous track",
         }
 

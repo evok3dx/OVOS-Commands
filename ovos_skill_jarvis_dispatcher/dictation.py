@@ -230,15 +230,38 @@ class DictationActionsMixin:
         """Stop active dictation and leave one separator after its punctuation."""
 
         was_dictating = self._speech_note_dictating
+        was_paused = self._speech_note_dictation_paused
+        original_window = None
+        if was_dictating or was_paused:
+            try:
+                original_window, _ = self._focused_window_details()
+            except Exception:
+                self.log.exception(
+                    "Could not verify the dictation window before stopping"
+                )
         stopped = True
         if was_dictating:
             stopped = self._speech_note_action("stop-listening")
 
         self._speech_note_dictating = False
         self._speech_note_dictation_paused = False
-        if was_dictating and stopped:
+        if (was_dictating or was_paused) and stopped and original_window:
             # Speech Note finalises its own punctuation. Add only the separator
             # expected before the user's next sentence, never a second period.
-            time.sleep(0.15)
-            self._press_space()
+            # A wake word pauses Speech Note before the stop intent arrives, so
+            # paused dictation must still receive its final separator.
+            if was_dictating:
+                time.sleep(0.15)
+            try:
+                current_window, _ = self._focused_window_details()
+                if current_window == original_window:
+                    self._press_space()
+                else:
+                    self.log.warning(
+                        "Dictation window changed; trailing space was not sent"
+                    )
+            except Exception:
+                self.log.exception(
+                    "Could not verify the dictation window after stopping"
+                )
         return stopped
