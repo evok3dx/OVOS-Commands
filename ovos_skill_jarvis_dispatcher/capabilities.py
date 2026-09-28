@@ -27,6 +27,9 @@ RECOMMENDED_DYNAMIC_NAMES = {
     "libreoffice", "libreoffice writer", "libreoffice calc",
     "libreoffice impress", "libreoffice start center",
 }
+RECOMMENDED_DYNAMIC_EXACT_NAMES = {
+    "notes", "sticky", "sticky notes", "text editor", "xed",
+}
 
 # Detection only decides what setup may offer. Runtime execution remains fixed
 # and allowlisted in the desktop helpers.
@@ -211,8 +214,10 @@ def recommended_applications(
             *map(str, definition.get("aliases", ())),
         )).casefold()
         words = set(re.findall(r"[a-z0-9]+", identity))
+        display_name = str(definition.get("display_name", "")).casefold().strip()
         if ("telegram" in words
                 or any(name in identity for name in RECOMMENDED_DYNAMIC_NAMES)
+                or display_name in RECOMMENDED_DYNAMIC_EXACT_NAMES
                 or (
             "calendar" in words and "proton" not in words
         )):

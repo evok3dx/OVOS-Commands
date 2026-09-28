@@ -1,6 +1,6 @@
 # OVOS voice stack
 
-This page records the stable voice-stack boundary for Jarvis 3.7.3. It contains
+This page records the stable voice-stack boundary for Jarvis 3.8.0. It contains
 portable behaviour and reviewed versions, not workstation logs or private
 machine configuration.
 
@@ -80,7 +80,9 @@ Jarvis uses Speech Note's supported local actions for one-shot writing,
 continuous dictation and reading. It preserves the user's normal reading
 speed; an explicit 2× request is a temporary transaction and restores the
 exact prior setting. Lock contention, empty selection and startup failure have
-different results.
+different results. The short transaction lock covers setup and recovery only;
+the background playback monitor closes its copy so a completed 2× launch
+cannot block later normal reading requests.
 
 Speech Note's transformation-rule list is opaque and machine-owned. Setup
 therefore explains one additive regular-expression rule for filtering the

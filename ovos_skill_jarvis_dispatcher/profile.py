@@ -69,7 +69,7 @@ APPLICATION_INTEGRATIONS = {
         "aliases": ["hermes desktop", "hermes app", "hermes"],
     },
     "default_mail": {
-        "display_name": "Mail",
+        "display_name": "System default mail",
         "aliases": ["default mail", "email app", "mail app", "email", "mail"],
     },
     "proton_mail": {
@@ -139,6 +139,12 @@ PREFERRED_DYNAMIC_CATEGORIES = {
     "calendar": {"Calendar"},
     "office": {"Office", "WordProcessor", "Spreadsheet", "Presentation"},
 }
+PREFERRED_DYNAMIC_NAMES = {
+    # Some Linux Mint desktop files classify these small utilities only as
+    # Utility rather than TextEditor. Keep the exception name-based and
+    # narrow instead of admitting every utility into the Notes role.
+    "notes": {"notes", "sticky", "sticky notes", "text editor", "xed"},
+}
 
 
 def preferred_app_candidates(applications, role):
@@ -156,7 +162,9 @@ def preferred_app_candidates(applications, role):
         if not str(integration).startswith("desktop_"):
             continue
         menu_categories = set(definition.get("menu_categories", ()))
-        if categories.intersection(menu_categories):
+        display_name = discovery.normalise(str(definition.get("display_name", "")))
+        if (categories.intersection(menu_categories)
+                or display_name in PREFERRED_DYNAMIC_NAMES.get(role, set())):
             result.append(key)
     return result
 

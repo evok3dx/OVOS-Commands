@@ -1,6 +1,6 @@
 # Installer, updates and rollback
 
-This page describes the current 3.7.3 deployment contract. Historical release
+This page describes the current 3.8.0 deployment contract. Historical release
 trials and their failures are retained under [`docs/history/`](history/README.md).
 
 ## Supported target

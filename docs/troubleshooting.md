@@ -25,6 +25,7 @@ system**. If it says `failed`, inspect the recent logs before changing files.
 | Manual-listen shortcut does nothing | Open **Keyboard shortcuts…** and confirm the bindings. | Run `jarvis-health-check`; the update preserves existing bindings. |
 | An app opens but an action targets the wrong window | Run `jarvis-app-window focus APP_NAME`. | Follow the [window-focus guide](window-focus-and-app-integration.md); do not change shortcuts until focus works. |
 | Reading or dictation fails | Open **Open Speech Note and setup guide…** and confirm Speech Note is installed and configured. | Keep its existing models, voice and rules; do not reinstall or replace them as a first step. |
+| `Read this` repeatedly says reading is still starting | Wait for the current request setup to finish, then retry once. | On 3.7.3 or earlier, update to 3.8.0; an inherited 2× monitor lock could block later reads. Do not delete Speech Note settings or its speed file. |
 | Tray icon is missing | The voice system can still run without the tray. Start `~/.local/bin/ovos-tray` from a terminal. | Check `~/.local/state/jarvis/ovos-tray.log`. |
 | A problem began directly after a Jarvis update | Run the health check and view recent logs. | Use `jarvis-update rollback` only if the release caused the regression. |
 

@@ -195,8 +195,8 @@ def choose_with_gui(detected, existing=None, on_save=None, *, output=None,
     except Exception as error:
         raise RuntimeError(f'GTK 3 is unavailable: {error}') from error
 
-    class DefaultAppPicker(Gtk.MenuButton):
-        """Compact click-to-open picker with a clear dropdown affordance."""
+    class DefaultAppPicker(Gtk.Button):
+        """Compact picker that explicitly opens its application popover."""
 
         def __init__(self):
             super().__init__()
@@ -232,7 +232,15 @@ def choose_with_gui(detected, existing=None, on_save=None, *, output=None,
             note.get_style_context().add_class('jarvis-mode-note')
             outer.pack_start(note, False, False, 4)
             self._popover.add(outer)
-            self.set_popover(self._popover)
+            self._popover.set_position(Gtk.PositionType.BOTTOM)
+            self.connect('clicked', self._open_popover)
+
+        def _open_popover(self, _button):
+            # Gtk.MenuButton did not reliably open its attached popover on the
+            # reviewed Linux Mint GTK 3 desktop. Use an ordinary button and an
+            # explicit popup so one click always exposes the available apps.
+            self._popover.show_all()
+            self._popover.popup()
 
         def connect_changed(self, callback, *args):
             self._changed = (callback, args)

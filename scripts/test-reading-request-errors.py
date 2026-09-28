@@ -36,7 +36,7 @@ class Reader(module.DispatcherHelpersMixin):
 for status, mode, expected in (
     (0, "selection", None),
     (20, "selection", "I could not find any selected text."),
-    (23, "selection", "Reading is already active."),
+    (23, "selection", "Reading is still starting."),
     (22, "selection", "Speech Note could not start reading."),
     (22, "page", "Speech Note could not start reading."),
     (1, "page", "I could not read content from that window."),

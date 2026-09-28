@@ -174,7 +174,9 @@ assert "button.set_mode(False)" in setup_source
 assert "Voice only" not in setup_source
 assert "core_button" not in setup_source
 assert "tab_label('Defaults'" in setup_source
-assert "class DefaultAppPicker(Gtk.MenuButton)" in setup_source
+assert "class DefaultAppPicker(Gtk.Button)" in setup_source
+assert "self.connect('clicked', self._open_popover)" in setup_source
+assert "self._popover.popup()" in setup_source
 assert "Enabled compatible applications" in setup_source
 assert '"display_name": "ONLYOFFICE"' in (
     ROOT / "ovos_skill_jarvis_dispatcher/profile.py"
@@ -349,7 +351,8 @@ dispatcher_helpers = (ROOT / "ovos_skill_jarvis_dispatcher/helpers.py").read_tex
 )
 assert 'exit 23' in reading_helper
 assert 'result.returncode == 23' in dispatcher_helpers
-assert 'Reading is already active.' in dispatcher_helpers
+assert 'Reading is still starting.' in dispatcher_helpers
+assert ') 9>&- >/dev/null 2>&1 &' in reading_helper
 for required_speechnote_fragment in (
     "flatpak remote-add --user --if-not-exists flathub",
     'flatpak install --user --noninteractive flathub "$app_id"',

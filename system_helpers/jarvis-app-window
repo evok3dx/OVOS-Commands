@@ -65,7 +65,9 @@ case "$app" in
     title="Notes"
     ;;
   office)
-    window_match="DesktopEditors.ONLYOFFICE"
+    # Native and Flatpak packages have exposed different fixed X11 class
+    # spellings. Keep reviewed alternatives literal and independent.
+    window_match="DesktopEditors.ONLYOFFICE|desktopeditors.DesktopEditors|org.onlyoffice.desktopeditors|onlyoffice-desktopeditors"
     title="Office"
     ;;
   claude)
@@ -190,7 +192,7 @@ launch_window() {
   # Existing applications retain the launch paths used before this update.
   # Only the three newly added basic integrations use desktop discovery here.
   case "$app" in
-    calculator|settings|files|system_calendar)
+    calculator|settings|files|system_calendar|office)
       if [[ -x "$HOME/.local/bin/jarvis-desktop-launch" ]]; then
         if "$HOME/.local/bin/jarvis-desktop-launch" "$app"; then
           return 0
@@ -288,18 +290,22 @@ launch_window() {
       fi
       ;;
     office)
+      # The desktop launcher above uses GIO for the selected .desktop file,
+      # including Flatpak field codes. These fixed paths are only fallbacks
+      # when no reviewed desktop entry can be resolved.
       if [[ -x /usr/bin/desktopeditors ]]; then
         detached_launch /usr/bin/desktopeditors
       elif [[ -x /usr/bin/onlyoffice-desktopeditors ]]; then
         detached_launch /usr/bin/onlyoffice-desktopeditors
       elif [[ -x /opt/onlyoffice/desktopeditors/DesktopEditors ]]; then
         detached_launch /opt/onlyoffice/desktopeditors/DesktopEditors
+      elif [[ -x /usr/bin/flatpak ]] && \
+           /usr/bin/flatpak info org.onlyoffice.desktopeditors >/dev/null 2>&1; then
+        detached_launch /usr/bin/flatpak run org.onlyoffice.desktopeditors
       elif detached_launch /usr/bin/gtk-launch onlyoffice-desktopeditors; then
         :
       elif detached_launch /usr/bin/gtk-launch org.onlyoffice.desktopeditors; then
         :
-      elif [[ -x /usr/bin/flatpak ]]; then
-        detached_launch /usr/bin/flatpak run org.onlyoffice.desktopeditors
       else
         return 1
       fi

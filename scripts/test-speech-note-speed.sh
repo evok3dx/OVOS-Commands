@@ -21,10 +21,19 @@ if [[ "$1" == run && "${MOCK_STALL:-0}" == 1 ]]; then /bin/sleep 5; fi
 EOF
 cat > "$test_root/mock-bin/gdbus" <<'EOF'
 #!/usr/bin/env bash
-if [[ -f "$MOCK_STATE" ]]; then echo '(<0>,)'; else touch "$MOCK_STATE"; echo '(<4>,)'; fi
+if [[ "${MOCK_MONITOR_HOLD:-0}" == 1 ]]; then
+  echo '(<4>,)'
+  exit 0
+fi
+if [[ "${MOCK_GDBUS_ZERO:-0}" == 1 ]]; then echo '(<0>,)'; exit 0; fi
+count="$(cat "$MOCK_STATE" 2>/dev/null || printf '0')"
+count=$((count + 1))
+printf '%s\n' "$count" > "$MOCK_STATE"
+if (( count <= 2 )); then echo '(<4>,)'; else echo '(<0>,)'; fi
 EOF
 cat > "$test_root/mock-bin/sleep" <<'EOF'
 #!/usr/bin/env bash
+if [[ "${MOCK_MONITOR_HOLD:-0}" == 1 ]]; then /usr/bin/sleep 0.02; fi
 exit 0
 EOF
 chmod +x "$test_root/mock-bin/"*
@@ -47,7 +56,8 @@ grep -Fxq 'run net.mkiol.SpeechNote --start-in-tray 13' "$MOCK_LOG"
 # failure. It cannot start late with the temporary 2x value still in memory.
 : > "$MOCK_LOG"
 rm -f -- "$MOCK_STATE"
-if MOCK_STALL=1 bash "$repo_root/system_helpers/jarvis-read-visible-text" selection 2; then
+if MOCK_STALL=1 MOCK_GDBUS_ZERO=1 \
+   bash "$repo_root/system_helpers/jarvis-read-visible-text" selection 2; then
   echo 'Unconfirmed delayed Speech Note launch was reported as success' >&2
   exit 1
 fi
@@ -55,7 +65,8 @@ grep -Fxq 'kill net.mkiol.SpeechNote 13' "$MOCK_LOG"
 grep -Fxq 'speech_speed2=13' "$settings"
 [[ ! -e "$HOME/.local/state/jarvis/reading-fast-active" ]]
 
-if MOCK_FAIL=1 bash "$repo_root/system_helpers/jarvis-read-visible-text" selection 2; then
+if MOCK_FAIL=1 MOCK_GDBUS_ZERO=1 \
+   bash "$repo_root/system_helpers/jarvis-read-visible-text" selection 2; then
   echo 'Failed Speech Note launch was reported as success' >&2
   exit 1
 fi
@@ -105,4 +116,20 @@ fi
 
 bash "$repo_root/system_helpers/jarvis-read-visible-text" selection 1
 grep -q '^run ' "$MOCK_LOG"
+
+# The temporary-2x completion monitor may remain alive for the whole passage,
+# but it must not inherit the setup transaction lock. Run this isolation check
+# last so its intentionally long-lived mock cannot affect other cases.
+printf '[General]\nspeech_speed2=13\n' > "$settings"
+rm -f -- "$MOCK_STATE" "$HOME/.local/state/jarvis/reading-fast-active"
+: > "$MOCK_LOG"
+MOCK_MONITOR_HOLD=1 bash \
+  "$repo_root/system_helpers/jarvis-read-visible-text" selection 2
+if ! flock -n "$HOME/.local/state/jarvis/reading-speed.lock" -c true; then
+  echo 'Completed reading setup left its transaction lock held' >&2
+  exit 1
+fi
+rm -f -- "$HOME/.local/state/jarvis/reading-fast-active"
+/usr/bin/sleep 0.2
+
 echo 'PASS: Speech Note preserves manual defaults and restores temporary 2x safely'

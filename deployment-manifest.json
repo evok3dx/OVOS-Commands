@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "release_version": "3.7.3",
+  "release_version": "3.8.0",
   "package_modules": [
     "__init__.py",
     "agents.py",

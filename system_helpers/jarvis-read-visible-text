@@ -617,7 +617,10 @@ if (( temporary_fast == 1 )); then
         if [[ "$current_version" == v2 && "$current_token" == "$marker" ]]; then
             rm -f -- "$fast_marker"
         fi
-    ) >/dev/null 2>&1 &
+    # The monitor may live for the whole passage, but the transaction lock is
+    # only for setup and recovery. Close fd 9 before backgrounding so a
+    # completed request cannot block every later "read this" command.
+    ) 9>&- >/dev/null 2>&1 &
 fi
 
 (( accepted == 1 )) || exit 22

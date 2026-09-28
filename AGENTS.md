@@ -35,6 +35,15 @@ override current code, tests, decisions or the current release record.
 The Control Centre command list is generated from the action registry and
 registered vocabulary. Do not create another hand-maintained command list.
 
+Browser, Notes, Mail, Calendar and Office are compatible application roles,
+not executable aliases. Add a candidate through `profile.py`, detection and
+the preferred-app regression together. Keep Linux's generic mail handler
+labelled as the system default; keep concrete clients separately named. Never
+admit every Utility-category desktop entry merely to expose one notes app.
+Launch detected desktop entries through GIO so the desktop owns field codes,
+Flatpak forwarding and activation. Never parse an `Exec=` string into a shell
+command, and keep post-launch window verification on fixed reviewed classes.
+
 ## Command-system update map
 
 Every spoken command change must be traced through this whole path:
@@ -97,6 +106,9 @@ If any one of these layers is missing, the command change is incomplete.
    `docs/troubleshooting.md`, durable choices in `docs/12-decisions.md` and old
    investigation detail in `docs/history/`; link to them instead of repeating
    the same update narrative across multiple current documents.
+9. A short operation lock must not be inherited by a long-lived subprocess or
+   playback monitor. Explicitly close its descriptor in every background child
+   and add a regression that acquires the lock while that child remains alive.
 
 ## Required validation
 

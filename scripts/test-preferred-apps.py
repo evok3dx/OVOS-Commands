@@ -102,12 +102,27 @@ dynamic = {
         "aliases": ["unreviewed mail utility"],
         "menu_categories": ["Network", "Email"],
     },
+    "desktop_" + "6" * 24: {
+        "integration": "desktop_" + "6" * 24,
+        "display_name": "Notes",
+        "aliases": ["notes"],
+        "menu_categories": ["Utility"],
+    },
+    "desktop_" + "7" * 24: {
+        "integration": "desktop_" + "7" * 24,
+        "display_name": "Text Editor",
+        "aliases": ["text editor"],
+        "menu_categories": ["Utility", "TextEditor"],
+    },
 }
 assert preferred_app_candidates(dynamic, "mail") == [
     "desktop_" + "1" * 24, "desktop_" + "2" * 24,
     "desktop_" + "5" * 24,
 ]
 assert preferred_app_candidates(dynamic, "office") == ["desktop_" + "3" * 24]
+assert preferred_app_candidates(dynamic, "notes") == [
+    "desktop_" + "6" * 24, "desktop_" + "7" * 24,
+]
 
 capabilities._discovered_applications = lambda _home: dynamic
 recommended = capabilities.recommended_applications({
@@ -120,12 +135,21 @@ assert "desktop_" + "2" * 24 in recommended
 assert "desktop_" + "3" * 24 in recommended
 assert "desktop_" + "4" * 24 not in recommended
 assert "desktop_" + "5" * 24 not in recommended
+assert "desktop_" + "6" * 24 in recommended
+assert "desktop_" + "7" * 24 in recommended
+
+assert module.APPLICATION_INTEGRATIONS["default_mail"]["display_name"] == (
+    "System default mail"
+)
 
 setup_source = (ROOT / "scripts" / "setup.py").read_text(encoding="utf-8")
 for required in (
+    "class DefaultAppPicker(Gtk.Button)",
     "self.set_hexpand(False)",
     "self.set_size_request(380, 38)",
     "pan-down-symbolic",
+    "self.connect('clicked', self._open_popover)",
+    "self._popover.popup()",
     "self._choices_box.set_size_request(340, 88)",
     "'onlyoffice': ('onlyoffice-desktopeditors', 'x-office-document')",
 ):

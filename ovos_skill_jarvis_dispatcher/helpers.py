@@ -34,7 +34,7 @@ class DispatcherHelpersMixin:
                 if mode == "selection" and result.returncode == 20:
                     self.speak("I could not find any selected text.")
                 elif result.returncode == 23:
-                    self.speak("Reading is already active.")
+                    self.speak("Reading is still starting.")
                 elif result.returncode == 22:
                     self.speak("Speech Note could not start reading.")
                 else:

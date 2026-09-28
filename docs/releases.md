@@ -7,10 +7,41 @@ acceptance work. Durable design choices belong in
 under [`history/`](history/README.md). Other current documents link here rather
 than repeating release narratives.
 
+## 3.8.0
+
+Status: **VERIFIED in code and automated tests; live reading acceptance and
+publication pending.**
+
+Changes:
+
+- the live-accepted Default Apps control uses an ordinary GTK button and an
+  explicit popover, avoiding the Linux Mint `Gtk.MenuButton` no-open failure;
+- generic Mail is clearly labelled **System default mail**, while enabled
+  Thunderbird, ElectronMail and Proton Mail retain their concrete names;
+- detected Notes, Sticky Notes, Text Editor and Xed are eligible for the Notes
+  role without widening that role to unrelated desktop utilities;
+- ONLYOFFICE uses its reviewed desktop entry through GIO, including the
+  Flatpak entry, and recognises fixed native/Flatpak X11 class variants;
+- the temporary 2× completion monitor closes its inherited setup-lock file
+  descriptor, so an accepted read cannot block every later `Read this` request;
+- lock contention now says that reading is still starting rather than claiming
+  playback is already active.
+
+Evidence:
+
+- [x] live Default Apps popover opens on the tested Linux Mint laptop;
+- [x] focused default-role and reading-lock regressions pass;
+- [x] 364/364 non-executing routing-policy cases pass;
+- [x] full source-tree deployment, preservation, failure and rollback suite passes;
+- [ ] live normal → 2× → normal reading sequence passes;
+- [ ] live ONLYOFFICE Flatpak launch/focus acceptance passes;
+- [x] final archive checksum and clean-extraction suite pass;
+- [ ] public main, tag, archive and checksums identify the same release.
+
 ## 3.7.3
 
-Status: **VERIFIED in code and automated tests; published with live visual
-acceptance still recommended.**
+Status: **HISTORICAL — published and superseded by the 3.8.0 live GTK and
+reading correction.**
 
 Changes:
 

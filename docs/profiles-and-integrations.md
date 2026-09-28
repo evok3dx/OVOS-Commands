@@ -6,10 +6,16 @@ such as `notes` maps only to a reviewed integration such as `standard_notes`.
 Recommended setup maps detected Standard Notes to Notes, Proton Mail or an
 installed desktop email client such as Thunderbird or ElectronMail to Mail,
 and the fixed Proton Calendar web app to Calendar when Proton Mail and Brave
-are available. Detected Office-category applications, including ONLYOFFICE,
-can be selected for the Office role. A detected GNOME/KDE
+are available. Linux Mint's detected Notes, Sticky Notes, Text Editor and Xed
+entries can also be selected for the Notes role. Detected Office-category
+applications, including ONLYOFFICE, can be selected for the Office role. A detected GNOME/KDE
 desktop calendar is a separate **System Calendar** target, avoiding ambiguous
 generic calendar commands when both are installed.
+
+Fixed integrations still follow the desktop's launch metadata. For example,
+the ONLYOFFICE Flatpak is opened through its detected
+`org.onlyoffice.desktopeditors.desktop` entry with GIO; Jarvis does not split
+or execute the entry's `Exec=` field itself.
 
 The file cannot provide an arbitrary shell command. It may only select an
 integration compiled into `profile.py`, and each category accepts only
@@ -25,7 +31,9 @@ The **Defaults** page shows Browser, Notes, Mail, Calendar and Office in a
 full-width click-to-open selector. Its spacious popover stays open until a
 choice is made and lists only compatible applications enabled on the
 Applications page. When detected and enabled, the fixed office integration is
-shown as **ONLYOFFICE**. The Applications
+shown as **ONLYOFFICE**. The generic mail choice is labelled **System default
+mail** because it follows Linux's registered `mailto:` handler; Thunderbird,
+ElectronMail and Proton Mail remain separately named choices when enabled. The Applications
 table shows the real phrase, for example **Open notes** for Standard Notes and
 **Open mail** for Proton Mail. Private remote-terminal launchers and
 Jarvis's own Control Centre are excluded from portable app discovery.
