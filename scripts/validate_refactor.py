@@ -353,6 +353,10 @@ assert 'exit 23' in reading_helper
 assert 'result.returncode == 23' in dispatcher_helpers
 assert 'Reading is still starting.' in dispatcher_helpers
 assert ') 9>&- >/dev/null 2>&1 &' in reading_helper
+assert '-selection primary' not in reading_helper
+assert 'clipboard_backup' not in reading_helper
+assert '-selection clipboard -loops 1 -i' in reading_helper
+assert 'xclip -selection clipboard -i 9>&-' in reading_helper
 for required_speechnote_fragment in (
     "flatpak remote-add --user --if-not-exists flathub",
     'flatpak install --user --noninteractive flathub "$app_id"',

@@ -71,16 +71,19 @@ dictation = importlib.util.module_from_spec(dictation_spec)
 dictation_spec.loader.exec_module(dictation)
 
 class FakeDictation(dictation.DictationActionsMixin):
-    def __init__(self, running=True, action_result=True):
+    def __init__(self, running=True, action_result=True, task_state=1):
         self._speech_note_dictating = running
         self._speech_note_dictation_paused = not running
         self.action_result = action_result
+        self.task_state = task_state
         self.actions = []
         self.spaces = 0
+        self.spoken = []
         self.window = "123"
         self.log = type("Log", (), {
             "exception": lambda *_args: None,
             "warning": lambda *_args: None,
+            "info": lambda *_args: None,
         })()
 
     def _speech_note_action(self, action):
@@ -89,6 +92,12 @@ class FakeDictation(dictation.DictationActionsMixin):
 
     def _press_space(self):
         self.spaces += 1
+
+    def _speech_note_task_state(self):
+        return self.task_state
+
+    def speak(self, text, **_kwargs):
+        self.spoken.append(text)
 
     def _focused_window_details(self):
         return self.window, "editor"
@@ -118,6 +127,20 @@ with patch.object(dictation.time, "sleep"):
     changed_window._focused_window_details = changing_focus
     assert changed_window._finish_speech_note_dictation()
     assert changed_window.spaces == 0
+
+with patch.object(dictation.time, "sleep"):
+    confirmed = FakeDictation(running=False)
+    confirmed._start_speech_note_dictation()
+    assert confirmed._speech_note_dictating
+    assert confirmed.actions == ["start-listening-active-window"]
+
+    unconfirmed = FakeDictation(running=False, task_state=0)
+    unconfirmed._start_speech_note_dictation()
+    assert not unconfirmed._speech_note_dictating
+    assert unconfirmed.actions == [
+        "start-listening-active-window", "stop-listening"
+    ]
+    assert unconfirmed.spoken[-1] == "I could not start dictation."
 
 strict_profile = {"private_extensions": {"agents": True}, "applications": {}}
 assert strict_spoken_action("Message Hermes.", strict_profile) == "hermes.message"

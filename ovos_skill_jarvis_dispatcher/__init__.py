@@ -502,10 +502,12 @@ class JarvisDispatcherSkill(
     def handle_resume_speech_note_dictation(self, _message):
         self.speak("Continue speaking.", wait=True)
 
-        if self._speech_note_action("start-listening-active-window"):
+        if (self._speech_note_action("start-listening-active-window") and
+                self._wait_for_speech_note_dictation()):
             self._speech_note_dictating = True
             self._speech_note_dictation_paused = False
         else:
+            self._speech_note_action("stop-listening")
             self.speak("I could not resume dictation.")
 
     @intent_handler(

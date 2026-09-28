@@ -80,6 +80,16 @@ class DictationActionsMixin:
         except Exception:
             return None
 
+    def _wait_for_speech_note_dictation(self, timeout=2.0) -> bool:
+        """Confirm Speech Note entered its listening state."""
+
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            if self._speech_note_task_state() == 1:
+                return True
+            time.sleep(0.05)
+        return False
+
     def _mute_listener_for_speech_note(self):
         """Keep wake-word input active during Speech Note reading."""
 
@@ -216,14 +226,17 @@ class DictationActionsMixin:
 
         self.speak("Ready.", wait=True)
 
-        if self._speech_note_action("start-listening-active-window"):
+        if (self._speech_note_action("start-listening-active-window") and
+                self._wait_for_speech_note_dictation()):
             self._speech_note_dictating = True
             self._speech_note_dictation_paused = False
             self.log.info(
-                "Speech Note continuous dictation requested; task state=%s",
-                self._speech_note_task_state(),
+                "Speech Note continuous dictation started",
             )
         else:
+            self._speech_note_action("stop-listening")
+            self._speech_note_dictating = False
+            self._speech_note_dictation_paused = False
             self.speak("I could not start dictation.")
 
     def _finish_speech_note_dictation(self):

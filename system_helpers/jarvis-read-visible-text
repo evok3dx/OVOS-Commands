@@ -6,31 +6,31 @@ reading_speed="${2:-1}"
 normal_speed_file="$HOME/.config/jarvis/reading-normal-speed"
 speech_note_settings="$HOME/.var/app/net.mkiol.SpeechNote/config/net.mkiol/dsnote/settings.conf"
 fast_marker="$HOME/.local/state/jarvis/reading-fast-active"
-clipboard_backup="$(mktemp)"
 captured_text="$(mktemp)"
 captured_html="$(mktemp)"
 main_text="$(mktemp)"
-had_clipboard=0
+clipboard_owner_pid=""
 
-restore_clipboard() {
-    if [[ "$had_clipboard" -eq 1 ]]; then
-        xclip -selection clipboard -i \
-          < "$clipboard_backup" 2>/dev/null || true
+clear_clipboard() {
+    if [[ -n "$clipboard_owner_pid" ]]; then
+        kill "$clipboard_owner_pid" 2>/dev/null || true
+        wait "$clipboard_owner_pid" 2>/dev/null || true
+        clipboard_owner_pid=""
     fi
+    # Never retain or restore clipboard contents. The prior value may have
+    # been a password, and the temporary readable text is sensitive too.
+    : | xclip -selection clipboard -i 9>&- 2>/dev/null || true
+}
 
+cleanup() {
+    clear_clipboard
     rm -f \
-      "$clipboard_backup" \
       "$captured_text" \
       "$captured_html" \
       "$main_text"
 }
 
-trap restore_clipboard EXIT
-
-if xclip -selection clipboard -o \
-     > "$clipboard_backup" 2>/dev/null; then
-    had_clipboard=1
-fi
+trap cleanup EXIT
 
 copy_browser_page() {
     local window_id
@@ -50,7 +50,7 @@ copy_browser_page() {
     esac
 
     # Clear the working clipboard so a failed Copy cannot replay stale text.
-    : | xclip -selection clipboard -i
+    : | xclip -selection clipboard -i 9>&-
 
     xdotool key --clearmodifiers ctrl+a
     sleep 0.2
@@ -67,6 +67,38 @@ copy_browser_page() {
     if [[ ! -s "$captured_text" ]]; then
         echo "The copied page was empty" >&2
         exit 1
+    fi
+}
+
+copy_focused_selection() {
+    local initial_window
+    local current_window
+    local window_class
+    local copy_keys="ctrl+c"
+
+    initial_window="$(xdotool getactivewindow 2>/dev/null)" || return 1
+    [[ "$initial_window" =~ ^[0-9]+$ ]] || return 1
+    window_class="$(focused_window_class)" || return 1
+    case "$window_class" in
+      *gnome-terminal*|*mate-terminal*|*xfce4-terminal*|*konsole*|*xterm*)
+        copy_keys="ctrl+shift+c"
+        ;;
+    esac
+
+    # Copy from the verified focused window. Reading X11 PRIMARY directly can
+    # replay a stale selection owned by another application.
+    : | xclip -selection clipboard -i 9>&-
+    xdotool key --clearmodifiers "$copy_keys"
+    sleep 0.4
+    current_window="$(xdotool getactivewindow 2>/dev/null)" || return 1
+    if [[ "$current_window" != "$initial_window" ]]; then
+        echo "The focused window changed before the selection was copied" >&2
+        return 1
+    fi
+    if ! xclip -selection clipboard -o > "$captured_text" 2>/dev/null ||
+       [[ ! -s "$captured_text" ]]; then
+        echo "No selected text in the focused application" >&2
+        return 1
     fi
 }
 
@@ -204,7 +236,7 @@ copy_with_shortcut() {
     local copy_keys="$2"
 
     # Clear the working clipboard so a failed Copy cannot replay stale text.
-    : | xclip -selection clipboard -i
+    : | xclip -selection clipboard -i 9>&-
 
     xdotool key --clearmodifiers "$select_keys"
     sleep 0.2
@@ -327,14 +359,7 @@ PY
 
 case "$mode" in
   selection)
-    if ! xclip -selection primary -o \
-         > "$captured_text" 2>/dev/null; then
-        echo "No selected text" >&2
-        exit 20
-    fi
-
-    if [[ ! -s "$captured_text" ]]; then
-        echo "No selected text" >&2
+    if ! copy_focused_selection; then
         exit 20
     fi
     ;;
@@ -502,7 +527,10 @@ else
     fi
 fi
 
-xclip -selection clipboard -i < "$captured_text"
+# Keep the temporary owner only until Speech Note requests the text once.
+# Closing fd 9 is mandatory because xclip may remain alive as the X11 owner.
+xclip -selection clipboard -loops 1 -i < "$captured_text" 9>&- &
+clipboard_owner_pid=$!
 
 flatpak run net.mkiol.SpeechNote \
   --action start-reading-clipboard \
@@ -529,6 +557,10 @@ for ((attempt=0; attempt<50; attempt++)); do
     fi
     sleep 0.2
 done
+
+# Speech Note has either accepted the request or the setup failed. In both
+# cases remove the temporary readable text from the clipboard immediately.
+clear_clipboard
 
 if (( accepted == 0 )) && kill -0 "$launcher_pid" 2>/dev/null; then
     echo "Speech Note did not confirm reading started" >&2

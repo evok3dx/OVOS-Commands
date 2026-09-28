@@ -1,6 +1,6 @@
 # OVOS voice stack
 
-This page records the stable voice-stack boundary for Jarvis 3.8.0. It contains
+This page records the stable voice-stack boundary for Jarvis 3.8.1. It contains
 portable behaviour and reviewed versions, not workstation logs or private
 machine configuration.
 

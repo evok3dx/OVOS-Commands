@@ -13,6 +13,14 @@ cat > "$test_root/mock-bin/xclip" <<'EOF'
 #!/usr/bin/env bash
 if [[ " $* " == *' -i '* ]]; then cat >/dev/null; else printf 'Selected text\n'; fi
 EOF
+cat > "$test_root/mock-bin/xdotool" <<'EOF'
+#!/usr/bin/env bash
+if [[ "$1" == getactivewindow ]]; then printf '123\n'; fi
+EOF
+cat > "$test_root/mock-bin/xprop" <<'EOF'
+#!/usr/bin/env bash
+printf 'WM_CLASS(STRING) = "DesktopEditors", "ONLYOFFICE"\n'
+EOF
 cat > "$test_root/mock-bin/flatpak" <<'EOF'
 #!/usr/bin/env bash
 printf '%s %s\n' "$*" "$(sed -n 's/^speech_speed2=//p' "$MOCK_SETTINGS")" >> "$MOCK_LOG"
@@ -127,6 +135,11 @@ MOCK_MONITOR_HOLD=1 bash \
   "$repo_root/system_helpers/jarvis-read-visible-text" selection 2
 if ! flock -n "$HOME/.local/state/jarvis/reading-speed.lock" -c true; then
   echo 'Completed reading setup left its transaction lock held' >&2
+  exit 1
+fi
+# The temporary clipboard owner must not inherit the same lock either.
+if ! flock -n "$HOME/.local/state/jarvis/reading-speed.lock" -c true; then
+  echo 'Clipboard ownership left the reading transaction lock held' >&2
   exit 1
 fi
 rm -f -- "$HOME/.local/state/jarvis/reading-fast-active"

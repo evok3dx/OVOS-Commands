@@ -7,10 +7,40 @@ acceptance work. Durable design choices belong in
 under [`history/`](history/README.md). Other current documents link here rather
 than repeating release narratives.
 
+## 3.8.1
+
+Status: **PUBLISHED and VERIFIED in code and automated tests; live laptop
+acceptance pending.**
+
+Changes:
+
+- `Read this` copies only from the verified focused window instead of using a
+  potentially stale X11 primary selection from another application;
+- Jarvis never backs up or restores clipboard contents for reading. It clears
+  the temporary text immediately after Speech Note accepts or rejects it;
+- every temporary clipboard owner closes the reading lock descriptor, fixing
+  the remaining normal-speed path that could falsely report reading startup;
+- continuous dictation is considered active only after Speech Note reports its
+  listening state, and a failed start is cancelled instead of being reported
+  as successful;
+- bare `Stop` is owned by an active reading, dictation or prompted-writing
+  workflow and no longer also stops unrelated browser media;
+- Zoom recognises reviewed native and Flatpak window classes, uses desktop
+  discovery, and serialises concurrent open requests to prevent duplicates.
+
+Evidence:
+
+- [x] focused clipboard, lock-isolation and temporary-speed regressions pass;
+- [x] dictation state and routing regressions pass;
+- [x] full source-tree deployment, preservation, failure and rollback suite passes;
+- [x] final archive checksum and clean-extraction suite pass;
+- [ ] live ONLYOFFICE selection, writing/dictation and Zoom acceptance passes;
+- [x] public main, tag, archive and checksums identify the same release.
+
 ## 3.8.0
 
-Status: **VERIFIED in code and automated tests; live reading acceptance and
-publication pending.**
+Status: **HISTORICAL — published and superseded by the 3.8.1 focused-reading
+and dictation correction.**
 
 Changes:
 
@@ -36,7 +66,7 @@ Evidence:
 - [ ] live normal → 2× → normal reading sequence passes;
 - [ ] live ONLYOFFICE Flatpak launch/focus acceptance passes;
 - [x] final archive checksum and clean-extraction suite pass;
-- [ ] public main, tag, archive and checksums identify the same release.
+- [x] public main, tag, archive and checksums identify the same release.
 
 ## 3.7.3
 
