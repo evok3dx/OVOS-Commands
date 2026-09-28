@@ -24,7 +24,7 @@ Download the archive and matching `.sha256` from
 [Releases](https://github.com/evok3dx/OVOS-Commands/releases/latest):
 
 ```bash
-version=3.8.2
+version=3.9.0
 sha256sum --check "ovos-commands-$version.tar.gz.sha256"
 tar -xzf "ovos-commands-$version.tar.gz"
 cd "ovos-commands-$version"
