@@ -32,11 +32,14 @@ backs up the Jarvis source and records managed package versions for rollback.
 Brave already connects browser audio to Jarvis through its MPRIS media session,
 which `playerctl` discovers again for every command. This permits pause, resume,
 stop, next and previous while Brave still exposes a compatible player. It does
-not bypass YouTube's own inactivity confirmation. Once YouTube withdraws or
-blocks the media session pending an on-page confirmation, a system resume
-command has no resumable player to address; the user must confirm playback in
-the visible tab. Jarvis does not simulate that confirmation or keep the site
-artificially active.
+not bypass YouTube's own inactivity confirmation. Brave also documents that
+Memory Saver deactivates inactive tabs and provides an **Always keep these
+sites active** exception under **Settings → System → Performance**. Add
+`music.youtube.com` and `youtube.com` there for reliable long-running system
+media control. Once the site withdraws its session or Brave discards the tab,
+a system resume command has no player to address; 3.9 says “Open the music tab
+once” rather than failing silently. Jarvis does not guess a tab or simulate an
+inactivity confirmation.
 
 Browser searches and Media's YouTube title lookup use one shared local pacing
 guard: one reservation at a time and at least 12 seconds between submissions.
@@ -56,7 +59,7 @@ delayed because it never contacts a provider.
 
 **reference system evidence:** the 24 September final archive contains the earlier
 integrated Brave media implementation and file-search 0.1.9. The attached
-reviewed release packages supply Media 0.3.0 and File Search 0.3.0. Offline
+reviewed release packages supply Media 0.3.1 and File Search 0.3.0. Offline
 plugin tests and the V3 phrase/pipeline tests pass; the owner subsequently
 confirmed both plugins work. The older snapshot cannot document that later
 installation or establish behavior on another computer.

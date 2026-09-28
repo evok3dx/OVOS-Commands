@@ -1,6 +1,6 @@
 # Installer, updates and rollback
 
-This page describes the current 3.8.2 deployment contract. Historical release
+This page describes the current 3.9.0 deployment contract. Historical release
 trials and their failures are retained under [`docs/history/`](history/README.md).
 
 ## Supported target
@@ -108,7 +108,9 @@ channel. See [Security and updates](security-and-updates.md).
 When an update is started from the Control Centre, the successful transaction
 starts a fixed user-space relaunch helper, closes the old window, waits for its
 process to exit and opens the newly installed Control Centre on the Updates
-page. The combined tray is also restarted idempotently by the installer.
+page. The combined tray is also restarted idempotently by the installer. While
+that exact update is active, **Stop update** performs bounded process-group
+termination; closing the window offers the same recovery after confirmation.
 
 ## Speech Note and live acceptance
 
