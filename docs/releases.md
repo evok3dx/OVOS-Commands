@@ -7,10 +7,32 @@ acceptance work. Durable design choices belong in
 under [`history/`](history/README.md). Other current documents link here rather
 than repeating release narratives.
 
+## 3.8.2
+
+Status: **VERIFIED in code, archive inspection and automated tests; publication
+pending.**
+
+Changes:
+
+- packaging-only correction for 3.8.1 with a new, uncached release URL;
+- excludes the temporary GitHub CLI program, licence and manual pages that
+  made the first 3.8.1 asset exceed the updater's extraction-size limit;
+- contains no credential files or user configuration. GitHub authentication
+  was stored outside the repository and was removed after publication;
+- retains the focused-reading, clipboard, dictation, Stop and Zoom fixes from
+  3.8.1 without changing their behaviour.
+
+Evidence:
+
+- [x] archive entry count and total/largest extracted sizes are below updater limits;
+- [x] archive contains no untracked tool directory or credential/config paths;
+- [x] source-tree and clean-extraction validation passes;
+- [ ] public main, tag, archive and checksums identify the same release.
+
 ## 3.8.1
 
-Status: **PUBLISHED and VERIFIED in code and automated tests; live laptop
-acceptance pending.**
+Status: **HISTORICAL — published and superseded by the 3.8.2 packaging
+correction; live laptop acceptance was pending.**
 
 Changes:
 

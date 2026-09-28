@@ -63,7 +63,7 @@ created or silently managed by this repository.
 Before installing a downloaded archive:
 
 ```bash
-version=3.8.1
+version=3.8.2
 sha256sum --check "ovos-commands-$version.tar.gz.sha256"
 tar -tzf "ovos-commands-$version.tar.gz"
 ```
