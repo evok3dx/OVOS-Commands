@@ -293,12 +293,17 @@ def register_skill_vocabulary(self, include_custom=True):
         ],
         "PlayMediaCommand": [
             "play media", "play the media", "resume playback", "unpause playback",
-            "resume media", "play music", "play the music", "resume music",
+            "resume media", "resume music",
             "resume the music", "resume song", "resume the song", "resume track",
             "resume the track", "continue music", "continue the music",
             "continue song", "continue the song", "continue track",
             "continue the track", "carry on with the music", "carry on playing",
             "start the music again", "unpause music", "unpause the music",
+        ],
+        "PromptMusicCommand": [
+            "play music", "play the music", "play some music",
+            "put some music on", "put music on", "lay music",
+            "lay the music", "lay some music",
         ],
         "PauseMediaCommand": [
             "pause media", "pause the media", "pause playback", "pause music",
@@ -307,6 +312,7 @@ def register_skill_vocabulary(self, include_custom=True):
             "pause this song", "pause this track", "pause this video",
             "hold the music", "hold this song", "hold this track",
             "pause what is playing", "pose music", "pose the music",
+            "poze music", "poze the music",
             "hose music", "hose the music",
         ],
         "StopMediaCommand": [

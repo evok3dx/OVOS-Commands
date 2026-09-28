@@ -9,7 +9,7 @@ from settings_export import export_settings
 from control_runtime import (service_action, microphone_action, speech_stop, status,
                              maintenance, voice_setting, read_json, update_status,
                              speech_note_status, speech_note_action, audio_settings,
-                             uninstall_jarvis)
+                             uninstall_jarvis, relaunch_control_center)
 
 CSS = b'''
 .jarvis-root { background-color: @theme_bg_color; }
@@ -214,7 +214,7 @@ class ControlCenter:
     def build_voice(self,parent):
         config=read_json(Path.home()/'.config/jarvis/capabilities.json')
         audio=audio_settings()
-        wake=self.card(parent,'Wake phrase','Say this to get Jarvis’s attention.')
+        wake=self.card(parent,'Wake phrase','One active phrase. Hey Jarvis uses the reviewed model; a custom replacement uses local Vosk.')
         self.wake=Gtk.Entry();self.wake.set_text(config.get('wake_phrase_spoken',config.get('wake_phrase','hey_jarvis').replace('_',' ')))
         wake.pack_start(self.wake,False,False,0)
         self.action(wake,'Save wake phrase','document-save-symbolic',lambda _:self.voice('wake',[self.wake.get_text()]))
@@ -369,7 +369,14 @@ class ControlCenter:
                                  buttons=Gtk.ButtonsType.OK_CANCEL,text='Install Jarvis '+self.latest+'?')
         prompt.format_secondary_text('This runs the existing updater and may restart Jarvis.')
         answer=prompt.run();prompt.destroy()
-        if answer==Gtk.ResponseType.OK:self.task('Installing update…',lambda:maintenance('install'))
+        if answer==Gtk.ResponseType.OK:
+            def installed(result):
+                self.output.get_buffer().set_text(str(result))
+                self.details.set_expanded(True)
+                relaunch_control_center()
+                GLib.idle_add(self.dialog.response, Gtk.ResponseType.CANCEL)
+                return 'Update installed. Reopening Jarvis…'
+            self.task('Installing update…',lambda:maintenance('install'),on_success=installed)
 
     def services(self,action):return service_action(action,self.report)
 

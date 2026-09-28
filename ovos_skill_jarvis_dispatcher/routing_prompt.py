@@ -2,11 +2,26 @@
 
 import json
 
-from .profile import resolve_profile
+from .profile import (
+    APPLICATION_INTEGRATIONS,
+    CATEGORY_INTEGRATIONS,
+    resolve_profile,
+)
 
 from .action_registry import APP_ROUTER_OPERATIONS
 
-_APPLICATIONS = {'brave': {'id': 'brave', 'display_name': 'Brave', 'aliases': ['brave browser', 'brave', 'break'], 'detection': {'category': 'brave', 'commands': ['brave-browser-stable'], 'flatpaks': ['com.brave.Browser']}, 'categories': ['brave'], 'capabilities': ['open', 'focus', 'minimize', 'maximize', 'close']}, 'firefox': {'id': 'firefox', 'display_name': 'Firefox', 'aliases': ['firefox browser', 'fire fox', 'firefox'], 'detection': {'category': 'firefox', 'commands': ['firefox']}, 'categories': ['firefox'], 'capabilities': ['open', 'focus', 'minimize', 'maximize', 'close']}, 'signal': {'id': 'signal', 'display_name': 'Signal', 'aliases': ['signal app', 'signal'], 'detection': {'category': 'signal', 'commands': ['signal-desktop'], 'paths': ['/opt/Signal/signal-desktop'], 'flatpaks': ['org.signal.Signal']}, 'categories': ['signal'], 'capabilities': ['open', 'focus', 'minimize', 'maximize', 'close']}, 'zoom': {'id': 'zoom', 'display_name': 'Zoom', 'aliases': ['zoom app', 'xoom', 'zome', 'zoom'], 'detection': {'category': 'zoom', 'commands': ['zoom']}, 'categories': ['zoom'], 'capabilities': ['open', 'focus', 'minimize', 'maximize', 'close']}, 'terminal': {'id': 'terminal', 'display_name': 'Terminal', 'aliases': ['command line', 'terminal app', 'terminal', 'console'], 'detection': {'category': 'terminal', 'commands': ['x-terminal-emulator', 'gnome-terminal', 'kgx', 'konsole', 'xfce4-terminal']}, 'categories': ['terminal'], 'capabilities': ['open', 'focus', 'minimize', 'maximize', 'close']}, 'standard_notes': {'id': 'standard_notes', 'display_name': 'Notes', 'aliases': ['standard notes', 'standard note', 'standard nodes', 'standard node', 'notes app', 'notes', 'nodes', 'a note', 'note'], 'detection': {'category': 'notes', 'commands': ['standard-notes', 'standard-notes-desktop'], 'flatpaks': ['org.standardnotes.standardnotes'], 'home_globs': ['Apps/standard-notes*.AppImage', 'Apps/Standard-Notes*.AppImage', 'Apps/standardnotes*.AppImage', 'Apps/StandardNotes*.AppImage', 'Applications/standard-notes*.AppImage', 'Applications/Standard-Notes*.AppImage', 'Applications/standardnotes*.AppImage', 'Applications/StandardNotes*.AppImage'], 'desktop_contains': ['standard notes']}, 'categories': ['notes'], 'capabilities': ['open', 'focus', 'minimize', 'maximize', 'close']}, 'onlyoffice': {'id': 'onlyoffice', 'display_name': 'Office', 'aliases': ['only office', 'onlyoffice', 'office app', 'office'], 'detection': {'category': 'office', 'commands': ['desktopeditors', 'onlyoffice-desktopeditors'], 'paths': ['/opt/onlyoffice/desktopeditors/DesktopEditors'], 'flatpaks': ['org.onlyoffice.desktopeditors']}, 'categories': ['office'], 'capabilities': ['open', 'focus', 'minimize', 'maximize', 'close']}, 'claude_desktop': {'id': 'claude_desktop', 'display_name': 'Claude', 'aliases': ['claude desktop', 'claude app', 'clawed desktop', 'clawed app', 'claude', 'clawed'], 'detection': {'category': 'claude', 'commands': ['claude-desktop'], 'desktop_ids': ['com.anthropic.Claude.desktop']}, 'categories': ['claude'], 'capabilities': ['open', 'focus', 'minimize', 'maximize', 'close']}, 'chatgpt_desktop': {'id': 'chatgpt_desktop', 'display_name': 'ChatGPT', 'aliases': ['chat g p t', 'chatgpt desktop', 'chatgpt app', 'chatgpt', 'g p t', 'gpt', 'chat'], 'detection': {'category': 'chatgpt', 'commands': ['chatgpt'], 'desktop_ids': ['chatgpt.desktop', 'com.openai.ChatGPT.desktop']}, 'categories': ['chatgpt'], 'capabilities': ['open', 'focus', 'minimize', 'maximize', 'close']}, 'hermes_desktop': {'id': 'hermes_desktop', 'display_name': 'Hermes', 'aliases': ['hermes desktop', 'hermes app', 'hermes'], 'detection': {'category': 'hermes', 'home_paths': ['.hermes/hermes-agent/apps/desktop/release/linux-unpacked/Hermes']}, 'categories': ['hermes'], 'capabilities': ['open', 'focus', 'minimize', 'maximize', 'close']}, 'default_mail': {'id': 'default_mail', 'display_name': 'Mail', 'aliases': ['default mail', 'email app', 'mail app', 'email', 'mail'], 'detection': {'category': 'mail', 'mime': 'x-scheme-handler/mailto'}, 'categories': ['mail'], 'capabilities': ['open', 'focus', 'minimize', 'maximize', 'close']}, 'proton_mail': {'id': 'proton_mail', 'display_name': 'Proton Mail', 'aliases': ['proton mail app', 'proton email', 'proton mail'], 'detection': {'category': 'proton_mail', 'commands': ['proton-mail'], 'desktop_ids': ['proton-mail.desktop']}, 'categories': ['mail', 'proton_mail'], 'capabilities': ['open', 'focus', 'minimize', 'maximize', 'close']}, 'proton_calendar': {'id': 'proton_calendar', 'display_name': 'Proton Calendar', 'aliases': ['proton calendar', 'calendar app', 'my calendar', 'calendar'], 'detection': {'category': 'calendar', 'desktop_contains': ['calendar.proton.me']}, 'categories': ['calendar'], 'capabilities': ['open', 'focus', 'minimize', 'maximize', 'close']}}
+_APPLICATIONS = {}
+for integration, metadata in APPLICATION_INTEGRATIONS.items():
+    categories = [
+        category for category, integrations in CATEGORY_INTEGRATIONS.items()
+        if integration in integrations
+    ]
+    if categories:
+        _APPLICATIONS[integration] = {
+            "display_name": metadata["display_name"],
+            "detection": {"category": categories[0]},
+            "categories": categories,
+        }
 
 def _unique_object(pairs):
     result = {}
@@ -51,6 +66,7 @@ def payload_for(utterance, catalogue, profile=None):
         'media.next': 'Skip to the next song, track or video',
         'media.previous': 'Return to the previous song, track or video',
         'media.search': 'Find a specifically named song or track on YouTube and play it in Brave',
+        'media.prompt': 'Ask which song or artist to play, then collect one spoken answer',
         'browser.back': 'Return to the previously visited page in browser history',
         'browser.top': 'Scroll to the top of the same page; NOT browser history',
         'files.search': 'Find local files by filename and show clickable results; supports a spoken filename or document title',
@@ -78,6 +94,7 @@ def payload_for(utterance, catalogue, profile=None):
         ('media.next', 'Skip this tune. => {"action":"media.next"}'),
         ('media.previous', 'Go back one song. => {"action":"media.previous"}'),
         ('media.search', 'Put on Get Lucky. => {"action":"media.search"}'),
+        ('media.prompt', 'Could you play some music? => {"action":"media.prompt"}'),
         ('text.write', 'Start writing for me. => {"action":"text.write"}'),
         ('dictation.start', 'Begin continuous dictation. => {"action":"dictation.start"}'),
         ('browser.search_brave', 'Can I search through Brave? => {"action":"browser.search_brave"}'),

@@ -90,11 +90,11 @@ def media_search_request(utterance, *, model_approved=False):
         r'i want (?:to )?)*', '', text, flags=re.I,
     )
     has_operation = bool(re.match(
-            r'^(?:find and play|find|search for|look for|play|put on|spin up|listen to|hear)\b',
+            r'^(?:find and play|find|search for|look for|play|lay|put on|spin up|listen to|hear)\b',
             text, re.I))
     if has_operation:
         text = re.sub(
-            r'^(?:find and play|find|search for|look for|play|put on|spin up|'
+            r'^(?:find and play|find|search for|look for|play|lay|put on|spin up|'
             r'listen to|hear)\s+', '', text, flags=re.I,
         )
     elif model_approved:
@@ -117,7 +117,8 @@ def media_search_request(utterance, *, model_approved=False):
     if (not query or len(query) > 200
             or (model_approved and not has_operation and len(query.split()) < 2)
             or query.casefold() in {
-                'music', 'a song', 'song', 'a track', 'track', 'something'
+                'music', 'the music', 'some music', 'a song', 'song',
+                'a track', 'track', 'something'
             }):
         return None
     return query
@@ -242,12 +243,18 @@ def candidates_for(utterance, catalogue, profile):
         'files.search' in catalogue and file_search_request(utterance)) else {}
     media_request=media_search_request(utterance)
     media_explicit=bool(re.search(
-        r'\b(?:play|put on|spin up|listen to|hear|song|track|record|music)\b',
+        r'\b(?:play|lay|put on|spin up|listen to|hear|song|track|record|music)\b',
         normalise(utterance)))
     media_candidate = {'media.search': catalogue['media.search']} if (
         'media.search' in catalogue and media_request and media_explicit) else {}
+    media_prompt_candidate = {'media.prompt': catalogue['media.prompt']} if (
+        'media.prompt' in catalogue and not media_request and re.search(
+            r'\b(?:play|lay|put on)\b.*\b(?:music|tunes)\b', normalise(utterance)
+        )) else {}
     if file_candidate:
         return file_candidate
+    if media_prompt_candidate:
+        return media_prompt_candidate
     if len(targets) > 1 or any(t.startswith('!disabled:') for t in targets):
         return {}
     if targets:

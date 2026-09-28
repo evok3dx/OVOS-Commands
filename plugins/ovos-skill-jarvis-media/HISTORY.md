@@ -1,5 +1,16 @@
 # Jarvis Media plugin history
 
+## 0.3.0 — bundled with Jarvis 3.7
+
+- “Play music” begins a bounded two-turn request: Jarvis asks what to play,
+  then sends only the supplied title to the existing Media event.
+- Direct “Play {title}” requests still take the fast Media pipeline.
+- The observed Faster-Whisper `play` → `lay` error is accepted only at the
+  beginning of a deliberate title request; generic “lay music” starts the
+  same bounded prompt instead of inventing a title.
+- The dispatcher adds exact `pose` and `poze` music-pause variants for accent
+  tolerance without registering the ambiguous bare words.
+
 ## 0.2.0 — bundled with Jarvis 3.6
 
 - A valid title request now receives one short acknowledgement: “Let me spin

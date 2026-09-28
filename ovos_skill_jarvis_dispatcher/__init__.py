@@ -258,6 +258,12 @@ class JarvisDispatcherSkill(
         self._run_media_action("play")
 
     @intent_handler(
+        IntentBuilder("PromptMusicIntent").require("PromptMusicCommand")
+    )
+    def handle_prompt_music(self, _message):
+        self._prompt_for_music()
+
+    @intent_handler(
         IntentBuilder("PauseMediaIntent").require("PauseMediaCommand")
     )
     def handle_pause_media(self, _message):

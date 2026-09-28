@@ -9,7 +9,7 @@ import sys
 
 
 VIDEO_ID = re.compile(r"^[A-Za-z0-9_-]{11}$")
-GENERIC_PLAY = frozenset(("media", "the media", "music", "the music",
+GENERIC_PLAY = frozenset(("media", "the media", "music", "the music", "some music",
                           "this", "this song", "something"))
 ACTIONS = frozenset(("play", "pause", "stop", "next", "previous"))
 
@@ -47,7 +47,7 @@ def query_from_utterance(value: object) -> str | None:
         return None
     patterns = (
         r"(?:(?:can|could|would|will) you\s+)?(?:please\s+)?"
-        r"(?:play|put on|listen to)\s*,?\s+(.+?)(?:\s+please)?",
+        r"(?:play|lay|put on|listen to)\s*,?\s+(.+?)(?:\s+please)?",
         r"(?:i(?:'d| would) like(?: you)? to\s+)"
         r"(?:play|put on)\s*,?\s+(.+?)(?:\s+please)?",
     )

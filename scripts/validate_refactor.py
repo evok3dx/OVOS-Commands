@@ -94,8 +94,8 @@ for required_bootstrap_fragment in (
     'installer_archive_url="${installer_repository%.git}/archive/${installer_commit}.tar.gz"',
     "hashlib.sha256()",
     "if actual != expected:",
-    'workspace="$(mktemp -d /var/tmp/jarvis-ovos-root.XXXXXX)"',
-    '/var/tmp/jarvis-ovos-root.*) rm -rf -- "$workspace"',
+    'installer_parent="$(mktemp -d "$state_root/bootstrap.XXXXXX")"',
+    'workspace="$(dirname "$archive")/workspace"',
     'actual_sha256="$(sha256sum "$archive"',
     'tar -xzf "$archive" --strip-components=1 -C "$installer_root"',
     'TMPDIR="$installer_tmp" bash setup.sh',
@@ -113,6 +113,10 @@ for required_bootstrap_fragment in (
 assert 'for command in git sudo bash' not in installer_source
 assert "sudo -n rm -rf" not in installer_source
 assert '(cd "$installer_root" && sudo bash setup.sh)' not in installer_source
+assert "sudo bash -s" not in installer_source
+assert "/var/tmp/jarvis-ovos-root" not in installer_source
+assert '${TMPDIR:-/tmp}/jarvis-voice-stack' not in installer_source
+assert 'mktemp -d "$state_root/voice-stack.XXXXXX"' in installer_source
 doctor_source = (ROOT / "scripts/doctor.py").read_text(encoding="utf-8")
 assert "metadata.entry_points(group=group)" in doctor_source
 assert 'entries_for("opm.skill")' in doctor_source
@@ -156,6 +160,13 @@ assert "background-color: #2F6FED" in control_center
 assert "background-color: #20A464" in control_center
 assert "def uninstall(" in control_center
 assert "update_available()" not in control_center
+assert "relaunch_control_center()" in control_center
+assert "Gtk.ResponseType.CANCEL" in control_center
+control_runtime = (ROOT / 'scripts/control_runtime.py').read_text(encoding='utf-8')
+assert "relaunch-control-center.py" in control_runtime
+updater_source = (ROOT / 'scripts/update.py').read_text(encoding='utf-8')
+assert 'dir=work_dir()' in updater_source
+assert 'directory.chmod(0o700)' in updater_source
 setup_source = (ROOT / 'scripts/setup.py').read_text(encoding='utf-8')
 assert "scroll.set_min_content_height(390)" in setup_source
 assert "button.set_mode(False)" in setup_source
@@ -372,7 +383,7 @@ EXPECTED_INTENTS = {
     "MuteJarvisIntent",
     "PressEnterIntent", "InsertNewLineIntent", "InsertPeriodIntent",
     "PressEscapeIntent",
-    "PlayMediaIntent", "PauseMediaIntent", "StopMediaIntent",
+    "PlayMediaIntent", "PromptMusicIntent", "PauseMediaIntent", "StopMediaIntent",
     "NextMediaIntent", "PreviousMediaIntent",
     "CapsLockOnIntent", "CapsLockOffIntent",
     "HermesComposerIntent",
@@ -550,7 +561,7 @@ def main():
     fake = FakeSkill()
     fake._jarvis_profile = reference_profile
     namespace["register_skill_vocabulary"](fake, include_custom=False)
-    assert len(fake.registrations) == 1988, len(fake.registrations)
+    assert len(fake.registrations) == 1996, len(fake.registrations)
     assert len(fake.registrations) == len(set(fake.registrations)), (
         "Duplicate vocabulary registrations are present"
     )
@@ -665,8 +676,9 @@ def main():
     for phrase in ("press escape", "press esc", "hit escape", "escape key"):
         assert (phrase, "PressEscapeCommand") in fake.registrations
     media_commands = {
-        "PlayMediaCommand": ("play media", "resume playback", "play music"),
-        "PauseMediaCommand": ("pause media", "pause playback", "pause music"),
+        "PlayMediaCommand": ("play media", "resume playback", "resume music"),
+        "PromptMusicCommand": ("play music", "lay music", "put some music on"),
+        "PauseMediaCommand": ("pause media", "pause playback", "pause music", "poze music"),
         "StopMediaCommand": ("stop media", "stop playback", "stop playing"),
         "NextMediaCommand": ("next track", "next song", "skip track"),
         "PreviousMediaCommand": (
@@ -676,6 +688,8 @@ def main():
     for entity, phrases in media_commands.items():
         for phrase in phrases:
             assert (phrase, entity) in fake.registrations
+    assert not any(phrase in {"pose", "poze", "lay"}
+                   for phrase, _entity in fake.registrations)
     for phrase in ("caps lock on", "enable caps lock"):
         assert (phrase, "CapsLockOnCommand") in fake.registrations
     for phrase in ("caps lock off", "disable caps lock"):

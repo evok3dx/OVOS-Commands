@@ -112,6 +112,24 @@ class ConversationMixin:
         )
         self._arm_message_timeout(20)
 
+    def _prompt_for_music(self) -> None:
+        """Collect one bounded title and hand it to the Media plugin."""
+
+        with self._message_lock:
+            if self._message_stage:
+                self.speak("Please finish or cancel the current request.")
+                return
+            self._message_stage = "media_query"
+            self._pending_agent = None
+            self._pending_message = None
+            self._pending_window_id = None
+            self._message_retries = 1
+            self._confirmation_retries = 0
+
+        self.activate(duration_minutes=1)
+        self.speak("What shall I play?", expect_response=True, wait=True)
+        self._arm_message_timeout(20)
+
     def can_converse(self, message) -> bool:
         """Accept follow-up speech only during an active message flow."""
 
@@ -164,7 +182,11 @@ class ConversationMixin:
         # keeps a short spurious STT result from being sent to an external app.
         media_commands = {
             "pause music", "pause the music", "pause media",
-            "play music", "play the music", "stop music", "stop the music",
+            "pose music", "pose the music", "poze music", "poze the music",
+            "play music", "play the music", "play some music",
+            "lay music", "lay the music", "lay some music",
+            "put music on", "put some music on",
+            "stop music", "stop the music",
             "next track", "previous track",
         }
 
@@ -174,6 +196,7 @@ class ConversationMixin:
         claude_payload = None
         hermes_payload = None
         typing_payload = None
+        media_query = None
         direct_typing = False
 
         with self._message_lock:
@@ -195,6 +218,27 @@ class ConversationMixin:
             if stage in {"message", "claude_message", "hermes_message"} and token in media_commands:
                 self._clear_message_state()
                 return False
+
+            if stage == "media_query":
+                title = re.sub(r"\s+", " ", utterance).strip(" \t.,!?")
+                if not re.search(r"[A-Za-z0-9]", title):
+                    if self._message_retries > 0:
+                        self._message_retries -= 1
+                        self.speak(
+                            "Please say the song or artist.",
+                            expect_response=True,
+                            wait=True,
+                        )
+                        self._arm_message_timeout(20)
+                    else:
+                        self._clear_message_state()
+                    return True
+                if len(title) > 200 or not title.isprintable():
+                    self._clear_message_state()
+                    self.speak("That title is too long.")
+                    return True
+                media_query = title
+                self._clear_message_state()
 
             if stage == "dictation":
                 if not re.search(r"[A-Za-z0-9]", utterance):
@@ -455,6 +499,11 @@ class ConversationMixin:
                 text,
                 press_enter
             )
+            return True
+
+        if media_query:
+            from ovos_bus_client import Message
+            self.bus.emit(Message("jarvis.media.play_query", {"query": media_query}))
             return True
 
 

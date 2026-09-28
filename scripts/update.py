@@ -32,6 +32,18 @@ def state_dir() -> Path:
     return home() / ".local/state/jarvis/updates"
 
 
+def work_dir() -> Path:
+    """Private user-owned space for downloaded and extracted releases."""
+    directory = state_dir() / "work"
+    if directory.is_symlink():
+        raise RuntimeError("Update workspace must not be a symbolic link")
+    directory.mkdir(parents=True, exist_ok=True)
+    if not directory.is_dir():
+        raise RuntimeError("Update workspace is not a directory")
+    directory.chmod(0o700)
+    return directory
+
+
 def repository() -> str:
     configured = POLICY.get("updates", {}).get("repository")
     user_config = home() / ".config/jarvis/update.json"
@@ -144,12 +156,14 @@ def safe_extract(archive: Path, destination: Path) -> Path:
         for member in members:
             path = PurePosixPath(member.name)
             normalised = str(path)
+            archive_spelling = member.name.rstrip("/")
             total_size += member.size
             if total_size > 100_000_000 or member.size > 20_000_000:
                 raise RuntimeError("Release contents exceed the extraction safety limit")
             if (
                 path.is_absolute() or ".." in path.parts
                 or not normalised or normalised == "."
+                or archive_spelling != normalised
                 or len(member.name) > MAX_ARCHIVE_PATH_LENGTH
                 or normalised in names
                 or not (member.isdir() or member.isreg())
@@ -175,7 +189,9 @@ def install(assume_yes: bool) -> int:
         if answer not in {"y", "yes"}:
             print("Update cancelled.")
             return 0
-    with tempfile.TemporaryDirectory(prefix="jarvis-update-") as temporary_name:
+    with tempfile.TemporaryDirectory(
+        prefix="jarvis-update-", dir=work_dir()
+    ) as temporary_name:
         temporary = Path(temporary_name)
         archive_name = f"ovos-commands-{release['version']}.tar.gz"
         archive = temporary / archive_name

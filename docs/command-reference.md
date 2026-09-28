@@ -160,7 +160,9 @@ handles deliberate `Play {title}` requests with one bounded YouTube lookup.
 - `Play {title}` or `Put on {title}` searches for one YouTube video and opens
   the result in enabled Brave, with enabled Firefox as the fallback. Replace
   `{title}` with an actual song or video name.
-- `Pause music`, `Resume playback`, `Stop media`, `Next song` and `Previous
+- `Play music` asks “What shall I play?”; say one song, artist or video title.
+  The direct `Play {title}` form remains available.
+- `Pause music`, `Pose music`, `Poze music`, `Resume playback`, `Stop media`, `Next song` and `Previous
   track` control a compatible MPRIS player. Next and previous require a queue.
 - `Find {filename}` or `Look in my Documents for {query}` searches local
   filenames and shows a picker. Nothing opens until you select a result.

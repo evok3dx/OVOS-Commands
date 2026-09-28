@@ -932,6 +932,18 @@ with patch.object(module, 'run') as run:
     assert module.maintenance('install') == 'Update installed.'
     assert run.call_args.args[0] == [str(Path.home() / '.local/bin/jarvis-update'),
                                       'install', '--yes']
+helper = Path(sys.argv[1]).with_name('relaunch-control-center.py')
+launcher = Path.home() / '.local/bin/jarvis-setup'
+helper.touch(exist_ok=True)
+launcher.parent.mkdir(parents=True, exist_ok=True)
+launcher.touch(exist_ok=True)
+with patch.object(module.subprocess, 'Popen') as popen:
+    popen.return_value.pid = 987
+    assert module.relaunch_control_center(wait_pid=123) == 987
+    command = popen.call_args.args[0]
+    assert command[1:] == [str(helper), '--wait-pid', '123',
+                           '--launcher', str(launcher)]
+    assert popen.call_args.kwargs['start_new_session'] is True
 with patch.object(module, 'run') as run:
     run.return_value.returncode = 0
     run.return_value.stdout = 'Speech Note installed\n'

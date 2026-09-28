@@ -1,6 +1,6 @@
 # Installer, updates and rollback
 
-This page describes the current 3.6.1 deployment contract. Historical release
+This page describes the current 3.7.0 deployment contract. Historical release
 trials and their failures are retained under [`docs/history/`](history/README.md).
 
 ## Supported target
@@ -32,10 +32,11 @@ A fresh setup performs these bounded steps:
 6. Install the combined tray, Control Centre, menu entry and user services.
 7. Start the services and run the health check.
 
-The official OVOS bootstrap and missing operating-system tools are the only
-one-time administrator boundary. Jarvis source is never executed from a
-user-owned privileged working tree. Normal installation, updates and daily use
-run as the desktop user.
+Missing operating-system tools and any system preparation explicitly requested
+by the official OVOS installer are the only one-time administrator boundary.
+Jarvis downloads and extracts the pinned upstream installer in private
+user-owned state and launches it as the desktop user; only the upstream system
+step may elevate. Normal installation, updates and daily use remain user-space.
 
 The reviewed package set is recorded in
 [`voice/reviewed-stack.json`](../voice/reviewed-stack.json). Exact voice pins,
@@ -66,7 +67,8 @@ silently replaced.
 
 ## Transaction and rollback
 
-Installation stages files under the user's Jarvis state directory. A clean
+Installation and downloaded updates stage files under the user's private
+Jarvis state directory. A clean
 OVOS environment is built separately and validated for exact versions,
 dependencies, entry points, Adapt compatibility, ONNX wake loading, Bella and
 permanent launcher paths. The live environment changes only after these checks
@@ -102,6 +104,11 @@ overlong paths, excessive entry counts and excessive sizes. It then invokes the
 same transactional installer. SHA-256 detects corruption; publisher
 authentication still depends on obtaining the release through a trusted GitHub
 channel. See [Security and updates](security-and-updates.md).
+
+When an update is started from the Control Centre, the successful transaction
+starts a fixed user-space relaunch helper, closes the old window, waits for its
+process to exit and opens the newly installed Control Centre on the Updates
+page. The combined tray is also restarted idempotently by the installer.
 
 ## Speech Note and live acceptance
 

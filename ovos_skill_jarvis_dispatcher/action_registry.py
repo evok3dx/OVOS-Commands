@@ -46,6 +46,9 @@ BASE_ACTIONS = {
     "media.search": _action(
         "Media", "Find and play a named song", "play a song called Get Lucky"
     ),
+    "media.prompt": _action(
+        "Media", "Ask what music to play", "play music", "play some music"
+    ),
     "hermes.focus_composer": _action(
         "Hermes", "Focus the composer", "focus Hermes composer"
     ),
@@ -288,7 +291,7 @@ ROUTER_ACTIONS = frozenset({
     "reading.last_typed", "reading.page", "reading.selection",
     "reading.page_fast", "reading.selection_fast",
     "media.play", "media.pause", "media.stop", "media.next", "media.previous",
-    "media.search",
+    "media.search", "media.prompt",
     "text.write", "dictation.start", "dictation.pause", "dictation.resume",
     "dictation.stop",
     "browser.scroll_down", "browser.scroll_up", "browser.page_down",
@@ -377,6 +380,9 @@ def dispatch_action(skill, action_id, message, *, source="personal"):
             return False
         from ovos_bus_client import Message
         skill.bus.emit(Message('jarvis.media.play_query', {"query": query}))
+        return True
+    if action_id == "media.prompt":
+        skill._prompt_for_music()
         return True
     direct_handlers = {
         "system.mute_all_audio": "handle_mute_system_audio",

@@ -22,6 +22,7 @@ ENTITY_ACTIONS = {
     "InsertPeriodCommand": "system.insert_period",
     "PressEscapeCommand": "system.press_escape",
     "PlayMediaCommand": "media.play",
+    "PromptMusicCommand": "media.prompt",
     "PauseMediaCommand": "media.pause",
     "StopMediaCommand": "media.stop",
     "NextMediaCommand": "media.next",

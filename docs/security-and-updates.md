@@ -35,12 +35,12 @@ recorded in `compatibility.json`. The installer deliberately omits unrelated
 CUDA and agent packages; they are neither required for Bella on CPU
 nor appropriate for a portable desktop installation.
 
-The official OVOS installer requires elevated execution. Jarvis never runs it
-inside a user-owned source tree: the archive is verified again, extracted into
-a private root workspace under `/var/tmp`, and that workspace is removed by
-the same privileged process on success, failure or interruption. The ordinary
-download directory remains user-owned and is removed without `sudo`, so the
-bootstrap cannot leave root-owned debris in the user's temporary directory.
+Jarvis does not elevate the complete official OVOS installer. Its pinned
+archive is verified, downloaded and extracted under private user-owned Jarvis
+state, then launched as the desktop user. The upstream installer may request
+administrator access for its own operating-system preparation. Ordinary
+updates use the same user-owned state boundary and cannot leave root-owned
+temporary files or staging-path launchers behind.
 
 Claude Desktop and ChatGPT Desktop are launched only into ordinary chat. Jarvis
 does not open Claude Code, Cowork, ChatGPT Codex or Work, approve their prompts,
@@ -63,7 +63,7 @@ created or silently managed by this repository.
 Before installing a downloaded archive:
 
 ```bash
-version=3.6.1
+version=3.7.0
 sha256sum --check "ovos-commands-$version.tar.gz.sha256"
 tar -tzf "ovos-commands-$version.tar.gz"
 ```

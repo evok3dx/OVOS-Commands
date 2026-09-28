@@ -1,6 +1,6 @@
 # OVOS voice stack
 
-This page records the stable voice-stack boundary for Jarvis 3.6.1. It contains
+This page records the stable voice-stack boundary for Jarvis 3.7.0. It contains
 portable behaviour and reviewed versions, not workstation logs or private
 machine configuration.
 
@@ -36,6 +36,14 @@ Sources: [openWakeWord releases](https://github.com/dscripka/openWakeWord/releas
 The plugin's NumPy metadata warning remains visible. Jarvis does not call the
 environment dependency-clean merely because the tested ONNX runtime works;
 the installer proves the actual ONNX model can load before switching.
+
+The reviewed OpenWakeWord model recognises one trained phrase: **Hey Jarvis**.
+The GUI retains the existing option to replace that one active phrase with a
+short local Vosk phrase. It does not claim that such a replacement is an
+OpenWakeWord model. OVOS can load multiple compatible trained models, but a
+free-text phrase does not create one; 3.7 therefore does not add an untested
+multiple-wake-word selector. Multiple choices belong there only after each
+model has independent false-positive and latency evidence.
 
 ## Microphone and listening cue
 

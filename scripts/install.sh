@@ -201,35 +201,29 @@ confirm_default_no() {
 
 cleanup_ovos_download() {
   local path="$1"
-  local temporary_base="${TMPDIR:-/tmp}"
   case "$path" in
-    "$temporary_base"/jarvis-ovos-installer.*) ;;
+    "$state_root"/bootstrap.*) ;;
     *)
       echo "Refusing to clean unexpected OVOS download path: $path" >&2
       return 0
       ;;
   esac
-  # Only the unprivileged download and scenario backup live here. The
-  # privileged upstream installer uses and removes its own isolated workspace.
+  # Downloads, extraction and upstream temporary files remain user-owned.
   rm -rf -- "$path"
 }
 
 run_official_ovos_archive() {
   local archive="$1"
   local expected_sha256="$2"
-  sudo bash -s -- "$archive" "$expected_sha256" <<'ROOT_SCRIPT'
+  local workspace
+  workspace="$(dirname "$archive")/workspace"
+  mkdir -m 0700 -- "$workspace"
+  bash -s -- "$archive" "$expected_sha256" "$workspace" <<'INSTALLER_SCRIPT'
 set -euo pipefail
 
 archive="$1"
 expected_sha256="$2"
-workspace="$(mktemp -d /var/tmp/jarvis-ovos-root.XXXXXX)"
-
-cleanup() {
-  case "$workspace" in
-    /var/tmp/jarvis-ovos-root.*) rm -rf -- "$workspace" ;;
-  esac
-}
-trap cleanup EXIT
+workspace="$3"
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
@@ -250,14 +244,14 @@ tar -xzf "$archive" --strip-components=1 -C "$installer_root"
 
 cd "$installer_root"
 TMPDIR="$installer_tmp" bash setup.sh
-ROOT_SCRIPT
+INSTALLER_SCRIPT
 }
 
 install_official_ovos() {
   local installer_repository installer_commit installer_archive_sha256
   local installer_archive_url installer_parent installer_archive
   local scenario_dir scenario_path scenario_backup installer_status
-  for command in python3 tar sudo bash; do
+  for command in python3 tar bash; do
     command -v "$command" >/dev/null 2>&1 || {
       echo "Cannot prepare OVOS because '$command' is unavailable." >&2
       return 1
@@ -268,7 +262,9 @@ install_official_ovos() {
   installer_commit="$(read_compatibility_value upstream.installer_reference_commit)"
   installer_archive_sha256="$(read_compatibility_value upstream.installer_archive_sha256)"
   installer_archive_url="${installer_repository%.git}/archive/${installer_commit}.tar.gz"
-  installer_parent="$(mktemp -d "${TMPDIR:-/tmp}/jarvis-ovos-installer.XXXXXX")"
+  mkdir -p "$state_root"
+  chmod 0700 "$state_root"
+  installer_parent="$(mktemp -d "$state_root/bootstrap.XXXXXX")"
   installer_archive="$installer_parent/ovos-installer.tar.gz"
   scenario_dir="$jarvis_home/.config/ovos-installer"
   scenario_path="$scenario_dir/scenario.yaml"
@@ -283,7 +279,7 @@ import urllib.request
 from pathlib import Path
 
 url, destination, expected = sys.argv[1:]
-request = urllib.request.Request(url, headers={"User-Agent": "OVOS-Commands/3.6.1"})
+request = urllib.request.Request(url, headers={"User-Agent": "OVOS-Commands/3.7.0"})
 digest = hashlib.sha256()
 try:
     with urllib.request.urlopen(request, timeout=60) as response, Path(destination).open("wb") as output:
@@ -353,8 +349,8 @@ EOF
 
   printf '%s\n' \
     "Starting the reviewed official Open Voice OS installer." \
-    "It may request your administrator password for system preparation." \
-    "Privileged temporary work is isolated and removed before control returns to Jarvis."
+    "It may request your administrator password only for system preparation." \
+    "Downloads and temporary work remain private and user-owned."
   installer_status=0
   run_official_ovos_archive "$installer_archive" \
     "$installer_archive_sha256" || installer_status=$?
@@ -521,7 +517,7 @@ PY
 cleanup_voice_stack_work() {
   local work="${1:-}"
   case "$work" in
-    "${TMPDIR:-/tmp}"/jarvis-voice-stack.*) rm -rf -- "$work" ;;
+    "$state_root"/voice-stack.*) rm -rf -- "$work" ;;
     "") ;;
     *) echo "Refusing to remove unexpected voice-stack path: $work" >&2 ;;
   esac
@@ -551,7 +547,9 @@ ensure_voice_stack() {
   mkdir -p "$source_dir"
   if [[ ! -f "$cached_archive" ]] || \
      [[ "$(sha256sum "$cached_archive" | awk '{print $1}')" != "$expected_sha" ]]; then
-    work="$(mktemp -d "${TMPDIR:-/tmp}/jarvis-voice-stack.XXXXXX")"
+    mkdir -p "$state_root"
+    chmod 0700 "$state_root"
+    work="$(mktemp -d "$state_root/voice-stack.XXXXXX")"
     archive="$work/phoonnx.tar.gz"
     printf '%s\n' "Downloading the reviewed Bella voice engine source..."
     if ! download_verified \
@@ -986,8 +984,8 @@ release_roots=(
   scripts system_helpers systemd tray voice
 )
 release_files=(
-  .gitignore COMMAND-EDITOR.md README.md compatibility.json
-  deployment-manifest.json pyproject.toml
+  .gitignore AGENTS.md COMMAND-EDITOR.md LAUNCHER.md LICENSE NOTICE.md README.md
+  compatibility.json deployment-manifest.json pyproject.toml
 )
 tar --create --file=- \
   --directory "$repo_root" \

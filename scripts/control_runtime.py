@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import re
 import subprocess
+import sys
 import tempfile
 import time
 
@@ -339,6 +340,24 @@ def maintenance(action):
     text=(result.stdout+'\n'+result.stderr).strip()
     if result.returncode:raise RuntimeError(text[-16000:] or 'Action failed')
     return text[-20000:] or 'Completed.'
+
+
+def relaunch_control_center(wait_pid=None):
+    """Start the installed post-update GUI after this process has exited."""
+    helper = Path(__file__).with_name('relaunch-control-center.py')
+    launcher = Path.home()/'.local/bin/jarvis-setup'
+    if not helper.is_file() or not launcher.is_file():
+        raise RuntimeError('Updated Control Centre launcher is unavailable')
+    process = subprocess.Popen(
+        [sys.executable, str(helper), '--wait-pid',
+         str(wait_pid or os.getpid()), '--launcher', str(launcher)],
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        start_new_session=True,
+        close_fds=True,
+    )
+    return process.pid
 
 
 @exclusive

@@ -34,6 +34,7 @@ required = {
     "dictation.stop", "reading.last_typed", "reading.selection",
     "reading.selection_fast", "reading.page", "reading.page_fast",
     "browser.search_firefox", "browser.search_brave", "media.search",
+    "media.prompt",
     "hermes.message", "claude_desktop.message", "codex.message",
     "claude_agent.message",
 }
@@ -61,6 +62,7 @@ cases = (
     ("Start a message for the Codex agent", "codex.message"),
     ("Let me ask the Claude agent something", "claude_agent.message"),
     ("Put on Get Lucky", "media.search"),
+    ("Could you play some music?", "media.prompt"),
 )
 for spoken, expected in cases:
     payload, allowed = routing_model.payload_for(spoken, catalogue, configured)
@@ -83,6 +85,7 @@ for spoken in ("Can I search through Brave?", "Can I dictate something to Hermes
     assert "information-seeking question" in system_prompt
 
 assert routing_model.media_search_request("Could you play a song called Get Lucky?") == "Get Lucky"
+assert routing_model.media_search_request("Lay Get Lucky") == "Get Lucky"
 assert routing_model.media_search_request("I would like to hear Teardrop please") == "Teardrop"
 assert routing_model.media_search_request("play music") is None
 assert routing_model.media_search_request("Could you start writing for me?") is None
@@ -128,9 +131,10 @@ assert action_registry.dispatch_action(
     fake_skill, "media.search", title_only, source="router",
 )
 assert emitted[1].data == {"query": "All Eyes on Me by Tupac"}
-assert not action_registry.dispatch_action(
+assert action_registry.dispatch_action(
     fake_skill, "media.search", title_only, source="personal",
 )
+assert emitted[2].data == {"query": "All Eyes on Me by Tupac"}
 
 # The model can only start message capture. It never receives a message body,
 # and ambiguous multi-target requests fail closed.

@@ -83,6 +83,7 @@ media_spec = importlib.util.spec_from_file_location("jarvis_media_parser", media
 media = importlib.util.module_from_spec(media_spec)
 media_spec.loader.exec_module(media)
 assert media.query_from_utterance("Play a song called Brave New World") == "a song called Brave New World"
+assert media.query_from_utterance("Lay Get Lucky") == "Get Lucky"
 assert media.query_from_utterance("do not play a song") is None
 assert media.query_from_utterance("play music") is None
 assert media.first_result(json.dumps({"entries": [{"id": "ABCDEFGHIJK", "title": "Example"}]})) == (
@@ -98,6 +99,62 @@ except ValueError:
     pass
 else:
     raise AssertionError("Unreviewed media action accepted")
+
+# “Play music” is a bounded two-turn flow. The reply is data on the fixed
+# Media event and never becomes a command line or an action identifier.
+conversation_spec = importlib.util.spec_from_file_location(
+    "jarvis_conversation", ROOT / "ovos_skill_jarvis_dispatcher/conversation.py"
+)
+conversation = importlib.util.module_from_spec(conversation_spec)
+conversation_spec.loader.exec_module(conversation)
+
+class BusMessage:
+    def __init__(self, msg_type, data=None):
+        self.msg_type = msg_type
+        self.data = data or {}
+
+sys.modules["ovos_bus_client"] = SimpleNamespace(Message=BusMessage)
+
+class FakeConversation(conversation.ConversationMixin):
+    def __init__(self):
+        self._message_lock = threading.RLock()
+        self._message_timer = None
+        self._message_generation = 0
+        self._message_stage = None
+        self._pending_agent = None
+        self._pending_message = None
+        self._pending_window_id = None
+        self._message_retries = 0
+        self._confirmation_retries = 0
+        self.spoken = []
+        self.emitted = []
+        self.bus = SimpleNamespace(emit=self.emitted.append)
+        self.log = SimpleNamespace(exception=lambda *_args: None)
+
+    def speak(self, text, **kwargs):
+        self.spoken.append((text, kwargs))
+
+    def activate(self, **_kwargs):
+        pass
+
+    def deactivate(self):
+        pass
+
+    def _arm_message_timeout(self, _seconds):
+        pass
+
+    @staticmethod
+    def _confirmation_token(value):
+        return " ".join(re.findall(r"[a-z0-9]+", value.casefold()))
+
+flow = FakeConversation()
+flow._prompt_for_music()
+assert flow._message_stage == "media_query"
+assert flow.spoken[-1][0] == "What shall I play?"
+assert flow.converse(BusMessage("converse", {"utterances": ["Get Lucky"]}))
+assert flow._message_stage is None
+assert flow.emitted[0].msg_type == "jarvis.media.play_query"
+assert flow.emitted[0].data == {"query": "Get Lucky"}
 
 # A valid title receives one concise acknowledgement before the asynchronous
 # Brave lookup starts. Empty or generic requests never reach this handler.
@@ -230,7 +287,7 @@ with tempfile.TemporaryDirectory() as temporary:
         files = namespace["file_search_patterns"]()
         media = namespace["media_title_patterns"]()
     assert len(files) == 47, len(files)
-    assert len(media) == 7, len(media)
+    assert len(media) == 8, len(media)
     assert any("{query}" in phrase for _, phrase in files)
     assert any("{title}" in phrase for phrase in media)
     assert "if action_id == 'files.search':" in source
