@@ -102,6 +102,18 @@ laptop deployment until the [live acceptance gates](v4-acceptance.md) pass.
 
 ## Application focus
 
+If the first V4 test installer rejects `phoonnx -> ovos-number-parser>=0.4.0`
+during runtime staging, use the verified dependency-lock hotfix in the current
+testing instructions. Older host packaging libraries reject the selected OVOS
+alpha in an implicit membership check. The hotfix makes prerelease handling
+explicit for the exact reviewed inventory; all constraints and hashes remain
+enforced. Do not downgrade OVOS, change the lock or skip dependency validation.
+
+At `Review application selection now? [y/N]`, Enter keeps the saved selection.
+Choosing `y` intentionally opens setup; choosing Recommended there recalculates
+the selected apps. Failed runtime staging leaves those staged app choices
+unapplied, so the retry can keep the original configuration.
+
 When one application-specific action fails, verify the application mapping and
 focus helper before changing Jarvis or the app shortcut:
 

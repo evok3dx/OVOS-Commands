@@ -9,6 +9,16 @@ than repeating release narratives.
 
 ## 4.0.0rc1 (published laptop test; stable release pending)
 
+**Post-publication dependency verifier finding:** the laptop's bundle staging
+rejected `phoonnx -> ovos-number-parser>=0.4.0` although the exact selected
+version is `0.22.17a1`. Packaging before 26 rejects prereleases by default in
+membership checks; the CI library accepts them. The source hotfix explicitly
+checks the exact reviewed pins with prereleases enabled, retaining every bound,
+exclusion, complete-inventory check and wheel hash. No package, dependency
+metadata or zero-exemption policy changes. CI now tests the actual packaging
+24.2 source and complete 296-package closure in addition to current hosts.
+The laptop failed before its runtime or app configuration was replaced.
+
 **Current password-free hotfix:** owner requires routine updates to remain
 password-free. The revised guard invokes only read-only system-manager show
 for the exact five worker identities, with authentication explicitly disabled.

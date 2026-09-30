@@ -39,6 +39,20 @@ with tempfile.TemporaryDirectory() as directory:
         optional=wheel(wheels,'optional');inventory['packages']['optional']='1.0'
         records=lock.wheel_records(wheels)
         assert lock.verify_closure(records,inventory)==[]
+        # Exact laptop failure: the selected OVOS alpha satisfies >=0.4.0.
+        # Run this against real packaging 24.2 as well as the current library.
+        alpha={
+            'phoonnx':{'version':'1.93.0a1','file':'phoonnx-1.93.0a1-py3-none-any.whl',
+                       'requires':['ovos-number-parser>=0.4.0']},
+            'ovos-number-parser':{'version':'0.22.17a1','file':'ovos_number_parser-0.22.17a1-py3-none-any.whl','requires':[]},
+        }
+        selected={'packages':{name:value['version'] for name,value in alpha.items()}}
+        assert lock.verify_closure(alpha,selected)==[]
+        for bound in ('>=1.0','<0.4','!=0.22.17a1'):
+            alpha['phoonnx']['requires']=['ovos-number-parser'+bound]
+            try:lock.verify_closure(alpha,selected)
+            except RuntimeError as error:assert 'Dependency version conflict' in str(error)
+            else:raise AssertionError('Out-of-range or excluded prerelease accepted')
         with zipfile.ZipFile(optional,'a') as archive:
             archive.writestr('optional/_vendor/library-2.0.dist-info/METADATA','Name: library\nVersion: 2.0\n')
         assert lock.wheel_records(wheels)['optional']['version']=='1.0'

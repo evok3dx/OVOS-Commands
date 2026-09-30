@@ -95,3 +95,31 @@ jobs:
           python3 scripts/test-update-security.py
           bash scripts/test-deployment.sh
           python3 scripts/routing-benchmark.py --policy-only --output "$RUNNER_TEMP/jarvis-clean-routing.md"
+      - name: Fetch immutable legacy packaging source for host compatibility
+        if: matrix.python-version == '3.11'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: pypa/packaging
+          ref: d8e3b31b734926ebbcaff654279f6855a73e052f # 24.2
+          path: .jarvis-legacy-packaging-host
+          persist-credentials: false
+      - name: Reproduce legacy prerelease filtering and verify the complete closure
+        if: matrix.python-version == '3.11'
+        env:
+          PYTHONPATH: ${{ github.workspace }}/.jarvis-legacy-packaging-host/src
+        run: |
+          python3 scripts/test-dependency-lock.py
+          python3 - <<'PY'
+          import json, runpy
+          from pathlib import Path
+          import packaging
+          from packaging.specifiers import SpecifierSet
+          assert packaging.__version__ == '24.2'
+          assert '0.22.17a1' not in SpecifierSet('>=0.4.0')
+          verifier = runpy.run_path('scripts/dependency-lock.py')
+          records = json.loads(Path('voice/runtime-wheels-linux-x86_64-py311.artifacts.json').read_text())['packages']
+          inventory = json.loads(Path('voice/runtime-linux-x86_64-py311.json').read_text())
+          assert verifier['verify_closure'](records, inventory) == []
+          assert len(records) == 296
+          print('PASS: real packaging 24.2 reproduces the former false conflict; all 296 exact reviewed dependencies pass with zero exemptions.')
+          PY

@@ -179,7 +179,11 @@ def verify_closure(records, inventory):
             if target not in records: raise RuntimeError('Missing transitive dependency: '+name+' -> '+target)
             queue.extend((target,item) for item in requirement.extras)
             if requirement.url: raise RuntimeError('Unreviewed direct dependency URL: '+name)
-            if requirement.specifier and records[target]['version'] not in requirement.specifier:
+            # The inventory already selects exact reviewed versions, including
+            # the OVOS alpha stack. Older host packaging rejects prereleases by
+            # default; that resolver preference is not a version conflict here.
+            # Explicit handling keeps every actual bound/exclusion enforced.
+            if requirement.specifier and not requirement.specifier.contains(records[target]['version'],prereleases=True):
                 raise RuntimeError('Dependency version conflict: '+name+' -> '+text)
     return exceptions
 
