@@ -103,6 +103,23 @@ Contradictions stay visible in the [historical audit](history/v2.4-audit.md).
   identify new collectors separately and revalidate reconstructed source/artifacts.
   Publication remains conditional on the full agreed V4 acceptance.
 
+## Owner-authorised V4 laptop test, 30 September 2026
+
+- **VERIFIED owner decision:** publish 4.0.0rc1 as a laptop-testing prerelease
+  with the exact retained full-hash runtime and independently versioned plugins.
+  Keep the stable channel on 3.9.0 and record unverified live acceptance openly.
+- **VERIFIED owner decision:** production signing can wait until deployment
+  beyond the current client. Byte checksums do not authenticate a publisher.
+- **VERIFIED owner decision:** response speed as in 3.9 is accepted; GPU tuning
+  is unnecessary for this release. Brave session expiry remains accepted, with
+  tab reopening or a new song as recovery.
+- **VERIFIED installer scope:** install Jarvis/OVOS dependencies and local models;
+  require existing Ollama. Do not install Hermes, Claude, Codex or another agent
+  platform. Keep Speech Note installation optional with explicit approval.
+- **VERIFIED reporting constraint:** automated reading/writing and clipboard
+  checks are separate from acoustic transcript accuracy; preserve writing and
+  offer the distinct speak-selected/highlighted alternatives. Test on the laptop.
+
 **HISTORICAL:** the original 2.3.1 fresh-install pins still describe the
 previously reviewed baseline. They do not describe the reference system's upgraded media
 and alpha voice stack. The broader five-reviewer model design belongs outside

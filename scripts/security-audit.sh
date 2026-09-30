@@ -3,6 +3,7 @@
 set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 mode="${1:-quick}"
+mode="${mode#--}"
 command -v gitleaks >/dev/null 2>&1 || {
   echo 'BLOCKED: gitleaks is required; no secret-scan pass can be claimed.' >&2
   exit 2

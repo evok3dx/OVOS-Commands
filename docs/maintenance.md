@@ -78,11 +78,12 @@ voice commands.
 - Focused-window actions refuse the desktop and Cinnamon panel.
 - Application actions resolve through capabilities and fixed helper cases.
 - Window-class alternatives are fixed in reviewed helpers, never supplied by speech or arbitrary profile values.
-- Terminal text entry never presses Enter automatically.
+- V4 generic writing and submission refuse terminal windows.
 - Zoom links are validated locally before invoking the registered URI handler.
 - Claude and ChatGPT controls are limited to ordinary chat applications.
 - Agent users, sudo rules and privileged helpers are outside normal setup.
-- Hermes terminal execution remains isolated from the host home directory.
+- Actual Hermes helper permissions and tool access require owner-machine review;
+  ordinary installation does not install an agent platform or prove its isolation.
 - Secrets, raw logs, audio captures, backups and local configuration are
   excluded from Git and release archives.
 

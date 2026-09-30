@@ -200,4 +200,9 @@ The three dependency stages remain V4 work. If full hashes or core isolation
 cannot pass safely, the owner must decide **delay V4** or **accept the precisely
 documented exception** before release. Elapsed time and successful unit tests
 do not constitute that decision. Do not mark final 4.0.0, install live, tag, push
-or publish this candidate until the relevant gates and immediate approval pass.
+or publish a stable release until the relevant gates and immediate approval pass.
+The owner has separately authorised the named 4.0.0rc1 laptop test prerelease,
+with the exact verified runtime and these live checks explicitly outstanding.
+Production signing is deferred for the one-client test. See the
+[test release instructions](v4-laptop-test-release.md); this testing approval
+does not certify live isolation or silently waive remaining stable acceptance.

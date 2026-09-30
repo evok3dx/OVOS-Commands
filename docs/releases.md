@@ -7,11 +7,20 @@ acceptance work. Durable design choices belong in
 under [`history/`](history/README.md). Other current documents link here rather
 than repeating release narratives.
 
-## 4.0.0rc1 (published source candidate; stable release pending)
+## 4.0.0rc1 (owner-authorised laptop test; stable release pending)
 
 Status: **Implementation in progress. Owner authorised completion and publication;
 artifact and live acceptance gates remain open.** This entry supersedes the collection-only checklist; the full
 agreed scope is retained in the owner's V4 implementation plan.
+
+**Owner decision, 30 September 2026:** publish this candidate as a prerelease
+for the current laptop, including the exact verified runtime and plugin wheels.
+The stable channel remains 3.9.0. Production signing is deferred until wider
+deployment; 3.9 response speed and Brave session-expiry recovery are accepted.
+This approval does not assert live voice/startup/isolation acceptance. See
+[test release and installation](v4-laptop-test-release.md). Native notices and
+source pointers accompany the assets; exact upstream binary/source correspondence
+and wider redistribution review remain explicitly open.
 
 **Recovery history, 30 September 2026:** a workspace reset restored an earlier
 checkout and lost later local commits and original runtime bytes. Source recovery
@@ -48,7 +57,8 @@ DNS/proxy/inherited-socket, voice, GUI, login, stage-switch and recovery
 acceptance; effective Hermes permissions and owner repository review. Fresh source and full-history Gitleaks scans pass after tool recovery; the
 production shell check also passes after correcting an unused loop variable.
 The complete source recovery branch is published under the owner's authorisation.
-No V4 release/tag or live migration has been performed. The complete V4 scope remains.
+The publication workflow validates and releases only this named test candidate;
+no live laptop migration is performed remotely. The complete V4 scope remains.
 
 **VERIFIED current ordinary-user GitHub evidence:** source run `36765769296`
 passes security scans, production ShellCheck and the complete required suite

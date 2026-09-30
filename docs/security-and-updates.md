@@ -70,7 +70,7 @@ tar -tzf "ovos-commands-$version.tar.gz"
 
 ## V4 candidate safeguards
 
-**VERIFIED in isolated tests; unpublished:** generic writing and submission
+**VERIFIED in isolated tests; V4 test candidate:** generic writing and submission
 refuse terminal windows and recheck the focused target. Prompts to the
 tool-capable private agent require readback and an exact, single-use `send it`.
 Reading clears its temporary clipboard text after a bounded handoff and never
@@ -93,8 +93,10 @@ boundary. Signed updates are a prototype, not an enabled production feature.
 
 The restored V4 installer requires full wheel hashes and private installation
 provenance before a staged runtime can be reused. Its separate bundle builder
-and failure checks pass on real fixture wheels; the full artifact lost in the
-workspace reset remains a recovery/revalidation gate. Installation receipts
+and failure checks pass on real fixture wheels. The recovered complete runtime
+has passed ordinary-user offline hash installation and byte verification; its
+exact retained archive is used for the owner-authorised laptop test. Actual
+laptop acceptance remains open. Installation receipts
 record provenance; they do not rehash installed files on every run.
 
 The [service isolation candidate](core-isolation.md) prepares reviewed native
