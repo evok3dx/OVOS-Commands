@@ -78,15 +78,41 @@ with tempfile.TemporaryDirectory() as directory:
             else:raise AssertionError('Partial systemctl failure reported success')
         assert not state['enabled'] and not startup.inspect(home)['enabled']
 
+        # Every combination is intentional; neither toggle changes the other.
+        for tray_value,voice_value in ((True,False),(False,True),(True,True),(False,False)):
+            startup.set_options(home,tray_enabled=tray_value,voice_enabled=voice_value)
+            value=startup.inspect(home)
+            assert value['tray_enabled']==tray_value and value['voice_enabled']==voice_value and value['consistent']
+            saved=json.loads(settings.read_text())
+            assert saved['future_setting']=={'keep':True}
+            assert saved['tray_enabled']==tray_value and saved['voice_enabled']==voice_value
+            assert startup.preference(home,component='tray')==tray_value
+            assert startup.preference(home,component='voice')==voice_value
+            assert '--start-voice-at-login' in (home/'.config/autostart/jarvis-voice.desktop').read_text()
+        count=len(calls)
+        startup.set_options(home,tray_enabled=True)
+        assert startup.inspect(home)['tray_enabled'] and not state['enabled']
+        assert all(args[0]=='is-enabled' for args in calls[count:])
+        before=(tray.read_text(),settings.read_text(),(home/'.config/autostart/jarvis-voice.desktop').read_text())
+        with patch.object(startup,'write_file',side_effect=OSError('Injected independent write failure')):
+            try:startup.set_options(home,voice_enabled=True)
+            except OSError:pass
+            else:raise AssertionError('Failed independent setting accepted')
+        assert not state['enabled']
+        assert before==(tray.read_text(),settings.read_text(),(home/'.config/autostart/jarvis-voice.desktop').read_text())
+
 with tempfile.TemporaryDirectory() as directory:
     home=Path(directory)
-    for mode in ('off','stopped','muted','starting','missing','failed-request'):
+    for mode in ('off','tray-only','voice-only','stopped','muted','starting','missing','failed-request'):
         requests=[]
         state={'enabled':mode!='off','preference':False if mode=='off' else True}
+        if mode in {'tray-only','voice-only'}:
+            state.update(voice_enabled=mode=='voice-only',voice_preference=mode=='voice-only',
+                         tray_enabled=mode=='tray-only',enabled=False,preference=False)
         def login_command(*args):
             requests.append(args)
             if args[0]=='show':
-                live='inactive' if mode in {'stopped','off','failed-request','missing'} else 'active'
+                live='inactive' if mode in {'stopped','off','tray-only','voice-only','failed-request','missing'} else 'active'
                 if mode=='muted' and args[1]=='ovos-listener.service':live='inactive'
                 if mode=='starting':live='activating'
                 return subprocess.CompletedProcess(args,0,'LoadState='+('not-found' if mode=='missing' else 'loaded')+'\nActiveState='+live+'\n','')
@@ -99,6 +125,6 @@ with tempfile.TemporaryDirectory() as directory:
                 else:raise AssertionError('Unsafe login request reported success')
             else:startup.start_at_login(home)
         mutations=[args for args in requests if args[0]=='start']
-        assert len(mutations)==(1 if mode in {'stopped','failed-request'} else 0)
+        assert len(mutations)==(1 if mode in {'stopped','voice-only','failed-request'} else 0)
 
 print('PASS: quiet login, one-shot/off/mute guards, unknown-field preservation and failure recovery')

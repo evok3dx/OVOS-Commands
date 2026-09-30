@@ -47,10 +47,15 @@ def daemon_context():
 def prepare(output):
     if os.getuid()<=0 or os.getuid()!=os.geteuid() or os.getgid()!=os.getegid():
         raise ValueError('Run as the normal desktop user, never sudo Python')
-    root=Path.home()/'.local/state/jarvis/model-isolation-candidates'
-    if root not in output.parents or any(p.is_symlink() for p in (output,*output.parents)):
-        raise ValueError('Use a new private Jarvis model-isolation-candidates directory')
+    roots=(Path.home()/'Downloads/jarvis-v4-model-isolation-candidates',
+           Path.home()/'.local/state/jarvis/model-isolation-candidates')
+    root=next((root for root in roots if root in output.parents),None)
+    if root is None or any(p.is_symlink() for p in (output,*output.parents)):
+        raise ValueError('Use a new private Jarvis model-isolation-candidates directory in Downloads')
     context=daemon_context()
+    root.mkdir(parents=True,exist_ok=True,mode=0o700)
+    if root.stat().st_uid!=os.getuid() or root.stat().st_mode & 0o077:
+        raise ValueError('Candidate directory must be private and user-owned')
     output.parent.mkdir(parents=True,exist_ok=True,mode=0o700);output.mkdir(mode=0o700)
     try:
         private_file(output/'90-jarvis-isolation.conf',POLICY)
@@ -84,5 +89,5 @@ def prepare(output):
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--output',type=Path)
     args=parser.parse_args()
-    output=args.output or Path.home()/'.local/state/jarvis/model-isolation-candidates'/secrets.token_hex(8)
+    output=args.output or Path.home()/'Downloads/jarvis-v4-model-isolation-candidates'/secrets.token_hex(8)
     print(prepare(output))

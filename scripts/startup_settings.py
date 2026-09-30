@@ -22,14 +22,25 @@ def read_file(path):
     return path.read_text()
 
 
-def preference(home=None):
+def saved_preferences(home=None):
     raw=read_file(Path(home or Path.home())/'.config/jarvis/startup.json')
     if raw is None:return None
     value=json.loads(raw)
     if not isinstance(value,dict):raise RuntimeError('Saved auto-start preference is invalid.')
     enabled=value.get('enabled')
-    if type(enabled) is not bool:raise RuntimeError('Saved auto-start preference is invalid.')
-    return enabled
+    tray=value.get('tray_enabled',enabled);voice=value.get('voice_enabled',enabled)
+    if type(tray) is not bool or type(voice) is not bool:
+        raise RuntimeError('Saved auto-start preference is invalid.')
+    return {'tray_enabled':tray,'voice_enabled':voice}
+
+
+def preference(home=None,*,component=None):
+    saved=saved_preferences(home)
+    if saved is None:return None
+    if component is not None:
+        if component not in {'tray','voice'}:raise ValueError('Unknown login component')
+        return saved[component+'_enabled']
+    return saved['tray_enabled'] and saved['voice_enabled']
 
 
 def inspect(home=None):
@@ -45,10 +56,13 @@ def inspect(home=None):
         config.read_string(raw)
         entry=config['Desktop Entry']
         tray=entry.get('Hidden','false').lower()!='true' and entry.get('X-GNOME-Autostart-enabled','true').lower()!='false'
-    saved=preference(home)
+    saved=saved_preferences(home)
     return {'enabled':enabled and tray,'voice_enabled':enabled,'tray_enabled':tray,
             'target_state':state if state in {'enabled','enabled-runtime','disabled','static','masked','not-found','indirect'} else 'unknown',
-            'preference':saved,'consistent':saved is None or (saved==enabled and saved==tray)}
+            'preference':None if saved is None else saved['voice_enabled'] and saved['tray_enabled'],
+            'voice_preference':None if saved is None else saved['voice_enabled'],
+            'tray_preference':None if saved is None else saved['tray_enabled'],
+            'consistent':saved is None or (saved['voice_enabled']==enabled and saved['tray_enabled']==tray)}
 
 
 def write_file(path,text,mode):
@@ -64,13 +78,16 @@ def write_file(path,text,mode):
         Path(name).unlink(missing_ok=True)
 
 
-def tray_text(home,enabled,previous=None):
+def tray_text(home,enabled,previous=None,*,voice=False):
+    name='Jarvis Voice Services' if voice else 'Jarvis Voice Controls'
+    launcher=home/'.local/bin'/('jarvis-setup' if voice else 'ovos-tray')
+    suffix=' --start-voice-at-login' if voice else ' --login'
     if previous:
         config=configparser.ConfigParser(interpolation=None,strict=True)
         config.read_string(previous)
         entry=config['Desktop Entry']
-        if (entry.get('Name')!='Jarvis Voice Controls'
-                or entry.get('Exec') not in {str(home/'.local/bin/ovos-tray'), str(home/'.local/bin/ovos-tray')+' --login'}):
+        if (entry.get('Name')!=name
+                or entry.get('Exec') not in {str(launcher), str(launcher)+suffix}):
             raise RuntimeError('The existing tray launcher is customised; review it first.')
         lines=[];in_entry=False;written=False
         flags=[f'Hidden={str(not enabled).lower()}',f'X-GNOME-Autostart-enabled={str(enabled).lower()}']
@@ -80,54 +97,74 @@ def tray_text(home,enabled,previous=None):
                 in_entry=line.strip()=='[Desktop Entry]'
             if in_entry and line.split('=',1)[0].strip() in {'Hidden','X-GNOME-Autostart-enabled'}:continue
             if in_entry and line.startswith('Exec='):
-                line='Exec='+str(home/'.local/bin/ovos-tray')+' --login'
+                line='Exec='+str(launcher)+suffix
             lines.append(line)
         if not written:lines.extend(flags)
         return '\n'.join(lines)+'\n'
     else:
-        lines=['[Desktop Entry]','Type=Application','Name=Jarvis Voice Controls',
-               'Exec='+str(home/'.local/bin/ovos-tray')+' --login','TryExec='+str(home/'.local/bin/ovos-tray'),
+        lines=['[Desktop Entry]','Type=Application','Name='+name,
+               'Exec='+str(launcher)+suffix,'TryExec='+str(launcher),
                'Terminal=false','X-GNOME-Autostart-Delay=5']
     return '\n'.join(lines)+f'\nHidden={str(not enabled).lower()}\nX-GNOME-Autostart-enabled={str(enabled).lower()}\n'
 
 
-def set_enabled(enabled,home=None):
-    if type(enabled) is not bool:raise ValueError('Auto-start must be on or off.')
+def voice_text(home,enabled,previous=None):
+    # A separate quiet desktop-session request also works when the tray is off.
+    return tray_text(home,enabled,previous,voice=True)
+
+
+def set_options(home=None,*,tray_enabled=None,voice_enabled=None):
+    if any(value is not None and type(value) is not bool for value in (tray_enabled,voice_enabled)):
+        raise ValueError('Login options must be on or off.')
+    if tray_enabled is None and voice_enabled is None:raise ValueError('Choose a login option.')
     home=Path(home or Path.home())
     before=inspect(home)
-    if before['target_state'] not in {'enabled','disabled'}:
+    if voice_enabled is not None and before['target_state'] not in {'enabled','disabled'}:
         raise RuntimeError('OVOS login target is unavailable, masked or not installable; review it first.')
     tray=home/'.config/autostart/ovos-tray.desktop'
+    voice=home/'.config/autostart/jarvis-voice.desktop'
     settings=home/'.config/jarvis/startup.json'
     previous_tray,previous_settings=read_file(tray),read_file(settings)
-    text=tray_text(home,enabled,previous_tray)
+    previous_voice=read_file(voice)
+    tray_value=before['tray_enabled'] if tray_enabled is None else tray_enabled
+    voice_value=before['voice_enabled'] if voice_enabled is None else voice_enabled
+    tray_body=tray_text(home,tray_value,previous_tray) if tray_enabled is not None else None
+    voice_body=voice_text(home,voice_value,previous_voice) if voice_enabled is not None else None
     try:
-        result=command('enable' if enabled else 'disable',TARGET)
-        if result.returncode:
-            raise RuntimeError('Could not change the OVOS login target. Current running services were left alone.')
-        write_file(tray,text,0o644)
+        if voice_enabled is not None:
+            result=command('enable' if voice_value else 'disable',TARGET)
+            if result.returncode:
+                raise RuntimeError('Could not change the OVOS login target. Current running services were left alone.')
+            write_file(voice,voice_body,0o644)
+        if tray_body is not None:write_file(tray,tray_body,0o644)
         saved=json.loads(previous_settings) if previous_settings else {'schema_version':1}
-        saved['enabled']=enabled
+        saved.update(schema_version=2,enabled=tray_value and voice_value,
+                     tray_enabled=tray_value,voice_enabled=voice_value)
         write_file(settings,json.dumps(saved,indent=2)+'\n',0o600)
         after=inspect(home)
-        if after['voice_enabled']!=enabled or after['tray_enabled']!=enabled:
+        if after['voice_enabled']!=voice_value or after['tray_enabled']!=tray_value:
             raise RuntimeError('Auto-start state did not match the requested setting.')
     except Exception:
-        recovery=command('enable' if before['voice_enabled'] else 'disable',TARGET)
-        for path,original,mode in ((tray,previous_tray,0o644),(settings,previous_settings,0o600)):
+        recovery=command('enable' if before['voice_enabled'] else 'disable',TARGET) if voice_enabled is not None else None
+        for path,original,mode in ((tray,previous_tray,0o644),(voice,previous_voice,0o644),(settings,previous_settings,0o600)):
             if original is None:path.unlink(missing_ok=True)
             else:write_file(path,original,mode)
-        if recovery.returncode:raise RuntimeError('Auto-start change failed; restoring the login target also needs attention.')
+        if recovery is not None and recovery.returncode:raise RuntimeError('Auto-start change failed; restoring the login target also needs attention.')
         raise
-    return 'Auto-start at login is on. The tray opens quietly.' if enabled else 'Auto-start at login is off. Current running services were left alone.'
+    return 'Login settings saved. Current running services were left alone.'
+
+
+def set_enabled(enabled,home=None):
+    """Compatibility for callers of the previous combined preference."""
+    return set_options(home,tray_enabled=enabled,voice_enabled=enabled)
 
 
 def start_at_login(home=None):
     """One explicit login request, never a polling restart or manual-tray action."""
     home=Path(home or Path.home())
     settings=inspect(home)
-    if settings['preference'] is False or not settings['enabled']:
-        return 'Auto-start is off.'
+    if settings.get('voice_preference',settings['preference']) is False or not settings.get('voice_enabled',settings['enabled']):
+        return 'Voice auto-start is off.'
     from control_runtime import UNITS
     from isolation_services import active as isolation_active,refresh_session,state_arguments,physical
     isolated=isolation_active(home)
@@ -154,3 +191,13 @@ def start_at_login(home=None):
     if result.returncode:
         raise RuntimeError('Login start request failed. Use Run Jarvis to retry.')
     return 'Login voice start requested once.'
+
+
+if __name__=='__main__':
+    import argparse
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--login',action='store_true',required=True)
+    parser.parse_args()
+    if os.getuid()<=0 or os.getuid()!=os.geteuid():parser.error('Use the ordinary desktop user')
+    from control_runtime import save_with_lock
+    print(save_with_lock(start_at_login))

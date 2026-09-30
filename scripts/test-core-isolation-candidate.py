@@ -193,6 +193,29 @@ with tempfile.TemporaryDirectory(prefix='jarvis-isolation-transaction-') as dire
         assert (configuration.read_bytes(),settings.read_bytes())==original_files
 print('PASS: activation/removal transactions, partial-failure recovery, private files and configuration preservation')
 
+# Downloads contains private candidates directly; legacy paths still work.
+with tempfile.TemporaryDirectory(prefix='jarvis-download-candidates-') as directory:
+    home=Path(directory);account=Mock(pw_uid=os.getuid(),pw_gid=os.getgid(),pw_name='fixture',pw_dir=str(home))
+    deployment=Path(__file__).resolve().parents[1]
+    with patch.object(prepare.pwd,'getpwuid',return_value=account),patch.object(prepare,'verify_pins'),\
+         patch.object(prepare,'source_hashes',return_value={'fixture':'hash'}),patch.object(Path,'home',return_value=home):
+        for relative in ('Downloads/jarvis-v4-isolation-candidates/new', '.local/state/jarvis/isolation-candidates/legacy'):
+            output=home/relative
+            assert prepare.prepare(output,deployment)==output
+            assert output.stat().st_mode & 0o777==0o700
+            assert all(path.stat().st_mode & 0o777==0o600 for path in output.iterdir())
+            prepare.read_candidate(output)
+            assert str(output) in (output/'REVIEW.md').read_text()
+        rejected(prepare.prepare,home/'Downloads/unreviewed',deployment)
+        root=home/'Downloads/jarvis-v4-isolation-candidates';root.chmod(0o755)
+        rejected(prepare.prepare,root/'unsafe',deployment);root.chmod(0o700)
+    with patch.object(Path,'home',return_value=home),patch.object(model,'daemon_context',return_value={'fixture':True}):
+        output=home/'Downloads/jarvis-v4-model-isolation-candidates/new'
+        assert model.prepare(output)==output and output.stat().st_mode & 0o777==0o700
+        assert all(path.stat().st_mode & 0o777==0o600 for path in output.iterdir())
+        rejected(model.prepare,home/'Downloads/unreviewed-model')
+print('PASS: direct Downloads preparation, private permissions, exact review paths and legacy candidate compatibility')
+
 forecast={'latitude':0,'longitude':0,'hourly':'temperature_2m','daily':'temperature_2m_max','current_weather':True,
           'temperature_unit':'celsius','windspeed_unit':'kmh','precipitation_unit':'mm','timezone':'UTC'}
 assert weather.parameters(weather.FORECAST,forecast)['latitude']==0

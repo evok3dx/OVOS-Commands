@@ -16,6 +16,7 @@ launcher="$jarvis_home/.local/share/applications/hermes.desktop"
 jarvis_launcher="$jarvis_home/.local/share/applications/jarvis-ovos.desktop"
 tray_icon_dir="$jarvis_home/.local/share/icons/ovos-tray"
 tray_autostart="$jarvis_home/.config/autostart/ovos-tray.desktop"
+voice_autostart="$jarvis_home/.config/autostart/jarvis-voice.desktop"
 mic_icon_dir="$jarvis_home/.local/share/jarvis"
 mic_autostart="$jarvis_home/.config/autostart/jarvis-mic-indicator.desktop"
 ovos_config="$jarvis_home/.config/mycroft/mycroft.conf"
@@ -222,6 +223,7 @@ restore_file "$backup_root/hermes.desktop" "$launcher" 0644
 restore_file "$backup_root/jarvis-ovos.desktop" "$jarvis_launcher" 0644
 restore_file "$backup_root/tray/ovos-tray" "$target_bin/ovos-tray" 0755
 restore_file "$backup_root/tray/ovos-tray.desktop" "$tray_autostart" 0644
+restore_file "$backup_root/tray/jarvis-voice.desktop" "$voice_autostart" 0644
 for icon in \
   ovos-ready.svg ovos-ready-update.svg \
   ovos-starting.svg ovos-starting-update.svg \

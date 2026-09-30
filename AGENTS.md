@@ -85,7 +85,9 @@ If any one of these layers is missing, the command change is incomplete.
 - Keep future login enablement separate from current Run/Stop controls. Preserve
   explicit auto-start choices across updates, launch only the quiet tray at
   login, and restore enablement/files if a preference change fails. Only the
-  explicit quiet login launch requests the stopped voice units once. Leave
+  explicit quiet voice-login launch requests the stopped voice units once.
+  Tray login and voice login have independent preferences in General; a tray
+  launch alone never starts voice. Retain legacy combined settings on migration. Leave
   running or muted services and manual tray opens alone; never poll-restart.
 - Run normal build, install, update, test and repair work as the desktop user.
   Never run the repository, pip, tar extraction or a whole upstream installer

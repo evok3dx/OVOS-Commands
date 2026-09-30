@@ -14,6 +14,7 @@ launcher="$jarvis_home/.local/share/applications/hermes.desktop"
 jarvis_launcher="$jarvis_home/.local/share/applications/jarvis-ovos.desktop"
 tray_icon_dir="$jarvis_home/.local/share/icons/ovos-tray"
 tray_autostart="$jarvis_home/.config/autostart/ovos-tray.desktop"
+voice_autostart="$jarvis_home/.config/autostart/jarvis-voice.desktop"
 mic_icon_dir="$jarvis_home/.local/share/jarvis"
 mic_autostart="$jarvis_home/.config/autostart/jarvis-mic-indicator.desktop"
 ovos_config="$jarvis_home/.config/mycroft/mycroft.conf"
@@ -1084,6 +1085,7 @@ backup_file "$launcher" hermes.desktop
 backup_file "$jarvis_launcher" jarvis-ovos.desktop
 backup_file "$target_bin/ovos-tray" tray/ovos-tray
 backup_file "$tray_autostart" tray/ovos-tray.desktop
+backup_file "$voice_autostart" tray/jarvis-voice.desktop
 for icon in \
   ovos-ready.svg ovos-ready-update.svg \
   ovos-starting.svg ovos-starting-update.svg \
@@ -1390,7 +1392,7 @@ import sys
 from pathlib import Path
 sys.path.insert(0,sys.argv[2])
 from startup_settings import preference
-enabled=preference(Path(sys.argv[3]))
+enabled=preference(Path(sys.argv[3]),component='tray')
 enabled=True if enabled is None else enabled
 
 path = Path(sys.argv[1])
@@ -1411,6 +1413,17 @@ PY
 else
   echo "GTK 3 tray support is unavailable; jarvis-setup remains available in the terminal." >&2
 fi
+
+# Voice startup is independent of showing the tray and does not require GTK.
+"$desktop_python" - "$voice_autostart" "$repo_root/scripts" "$jarvis_home" <<'PY'
+import sys
+from pathlib import Path
+sys.path.insert(0,sys.argv[2])
+from startup_settings import preference,read_file,voice_text,write_file
+home=Path(sys.argv[3]);path=Path(sys.argv[1])
+enabled=preference(home,component='voice')
+write_file(path,voice_text(home,True if enabled is None else enabled,read_file(path)),0o644)
+PY
 
 # Older releases started a second tray icon. The unified tray displays the
 # listener state itself. Retire only the autostart entry we created, after its
@@ -1538,7 +1551,7 @@ import sys
 from pathlib import Path
 sys.path.insert(0,sys.argv[1])
 from startup_settings import preference
-print('no' if preference(Path(sys.argv[2])) is False else 'yes')
+print('no' if preference(Path(sys.argv[2]),component='voice') is False else 'yes')
 PY
 )"
   if [[ "$startup_enabled" == yes ]]; then

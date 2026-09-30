@@ -59,7 +59,8 @@ After stopping Jarvis, prepare private candidate data as the ordinary user:
   "$HOME/.local/src/ovos-skill-jarvis-dispatcher/scripts/prepare_core_isolation.py" prepare
 ```
 
-The command prints a new private candidate directory. Inspect its units,
+The command prints a new private candidate directory under
+`~/Downloads/jarvis-v4-isolation-candidates`. Inspect its units,
 manifest and `REVIEW.md`. It changes no service, firewall or login setting.
 The generated administrator commands install root-owned service **data only**.
 Never sudo Python, pip, extraction, repository code or a whole generated script.
@@ -78,8 +79,9 @@ drop-ins, the X11 session environment and a private mapping receipt, then reload
 the user manager. Failed activation restores those files. Voice remains stopped.
 
 Run/Stop, microphone, restart and GUI readiness query/control the physical
-workers. The quiet login launch refreshes session data and requests stopped
-workers once; manual tray opens, explicit off and a running/muted stack stay
+workers. General separates quiet tray login from voice-service login. The quiet
+voice login refreshes session data and requests stopped workers once; tray
+opens, explicit voice off and a running/muted stack stay
 unchanged. Root units are not enabled at system boot. Fresh-login ordering,
 audio-session access and journal visibility still need laptop acceptance.
 
@@ -115,7 +117,10 @@ refuses unavailable identity or pre-existing custom IP policy. Its private
 review instructions restrict only IP/accounting properties, preserving the
 daemon account, executable, environment, models and CPU/GPU settings. Native
 activation/restart/removal remains an explicitly reviewed owner-terminal step.
-Model pulls will be blocked while that network policy is enforced. No extra
+New model candidates go directly to private directories under
+`~/Downloads/jarvis-v4-model-isolation-candidates`. Existing private-state core
+and model candidates remain supported; do not move a candidate without updating
+the reviewed native source paths. Model pulls will be blocked while that network policy is enforced. No extra
 Ollama control privilege is granted. Actual daemon evidence remains required.
 
 Stop workers, then normal-user deactivate the exact reviewed core candidate.

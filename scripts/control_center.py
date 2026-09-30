@@ -6,7 +6,7 @@ import gi
 gi.require_version('Gtk','3.0')
 from gi.repository import Gtk, GLib, Gdk, Pango
 from settings_export import export_settings
-from startup_settings import inspect as startup_status, set_enabled as set_startup
+from startup_settings import inspect as startup_status, set_options as set_startup
 from control_runtime import (service_action, microphone_action, speech_stop, status,
                              maintenance, voice_setting, read_json, update_status,
                              speech_note_status, speech_note_action, audio_settings,
@@ -30,6 +30,9 @@ CSS = b'''
 .jarvis-restart:hover { background-color: #285FCF; border-color: #1E4DA7; color: #FFFFFF; }
 .jarvis-update { background-image: none; background-color: #20A464; border-color: #16814C; color: #FFFFFF; }
 .jarvis-update:hover { background-color: #198F56; border-color: #106E40; color: #FFFFFF; }
+.jarvis-update:disabled { background-image: none; background-color: #20A464; border-color: #16814C; color: #FFFFFF; opacity: 1; }
+.jarvis-update-available { background-image: none; background-color: #2F6FED; border-color: #2459C2; color: #FFFFFF; }
+.jarvis-update-available:hover { background-color: #285FCF; border-color: #1E4DA7; color: #FFFFFF; }
 .jarvis-enable { background-image: none; background-color: #20A464; border-color: #16814C; color: #FFFFFF; }
 .jarvis-enable:hover { background-color: #198F56; border-color: #106E40; color: #FFFFFF; }
 .jarvis-service-row { border: 1px solid alpha(@theme_fg_color, 0.10); border-radius: 9px; padding: 7px 11px; background-color: alpha(@theme_base_color, 0.42); }
@@ -106,8 +109,10 @@ class ControlCenter:
         self.stack=Gtk.Stack();self.stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
         self.stack.set_transition_duration(120);self.layout.pack_start(self.stack,True,True,0)
         self.pages={}
-        overview=self.page('overview','Overview','Your voice assistant, at a glance.','view-grid-symbolic')
+        overview=self.page('overview','Dashboard','Your voice assistant, at a glance.','view-grid-symbolic')
         self.build_overview(overview)
+        general=self.page('general','General','Choose what starts when you sign in.','preferences-system-symbolic')
+        self.build_general(general)
         app_page=self.page('apps','Apps & Commands','Choose what Jarvis can open and what you say.','applications-other-symbolic',scroll=False)
         app_page.pack_start(notebook,True,True,0)
         voice=self.page('voice','Voice','Wake phrase and keyboard shortcuts.','audio-input-microphone-symbolic')
@@ -180,7 +185,7 @@ class ControlCenter:
     @staticmethod
     def colour(obj, style):
         context=obj.get_style_context()
-        for name in ('jarvis-danger','jarvis-warning','jarvis-restart','jarvis-update','jarvis-enable'):
+        for name in ('jarvis-danger','jarvis-warning','jarvis-restart','jarvis-update','jarvis-update-available','jarvis-enable'):
             context.remove_class(name)
         if style:context.add_class(style)
 
@@ -203,14 +208,6 @@ class ControlCenter:
         self.start_stop=self.action(controls,'Run Jarvis','media-playback-start-symbolic',self.power,True)
         self.restart=self.action(controls,'Restart commands','view-refresh-symbolic',lambda _:self.task('Restarting commands',lambda:self.services('commands')))
         self.colour(self.restart,'jarvis-restart')
-        startup=Gtk.Box(spacing=10);card.pack_start(startup,False,False,0)
-        startup.pack_start(label('Auto-start at login'),True,True,0)
-        self.auto_start=Gtk.Switch();self.auto_start.set_sensitive(False)
-        self.auto_start.get_accessible().set_name('Auto-start Jarvis and tray at login')
-        self.auto_start.connect('state-set',self.change_startup)
-        startup.pack_end(self.auto_start,False,False,0);self.buttons.append(self.auto_start)
-        self.startup_note=label('Checking login settings…','jarvis-subtitle')
-        card.pack_start(self.startup_note,False,False,0)
         service_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6)
         card.pack_start(service_box,False,False,0)
         self.service_labels={}
@@ -453,11 +450,30 @@ class ControlCenter:
 
     def services(self,action):return service_action(action,self.report)
 
-    def change_startup(self,_switch,enabled):
+    def build_general(self,parent):
+        card=self.card(parent,'Startup')
+        self.startup_switches={}
+        for component,title,detail in (
+                ('tray','Start app minimised at login','Show the tray icon without opening this window.'),
+                ('voice','Start voice services at login','Enable Jarvis voice services automatically when you sign in.')):
+            row=Gtk.Box(spacing=16);card.pack_start(row,False,False,0)
+            text=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4)
+            text.pack_start(label(title,'jarvis-default-label'),False,False,0)
+            text.pack_start(label(detail,'jarvis-subtitle'),False,False,0)
+            row.pack_start(text,True,True,0)
+            switch=Gtk.Switch();switch.set_valign(Gtk.Align.CENTER);switch.set_sensitive(False)
+            switch.get_accessible().set_name(title)
+            switch.connect('state-set',self.change_startup,component)
+            row.pack_end(switch,False,False,0)
+            self.startup_switches[component]=switch;self.buttons.append(switch)
+        self.startup_note=label('Checking login settings…','jarvis-subtitle')
+        card.pack_start(self.startup_note,False,False,0)
+
+    def change_startup(self,_switch,enabled,component):
         if getattr(self,'updating_startup',False):return False
         if self.state['busy'] or self.busy:return True
         from control_runtime import save_with_lock
-        self.task('Saving auto-start',lambda:save_with_lock(lambda:set_startup(bool(enabled))),
+        self.task('Saving login setting',lambda:save_with_lock(lambda:set_startup(**{component+'_enabled':bool(enabled)})),
                   on_finish=self.refresh_startup)
         return True
 
@@ -468,13 +484,14 @@ class ControlCenter:
             try:
                 if error:
                     self.startup_note.set_text('Login settings need attention. See Maintenance for details.')
-                    self.auto_start.set_sensitive(False)
+                    for switch in self.startup_switches.values():switch.set_sensitive(False)
                 else:
-                    self.auto_start.set_active(value['enabled'])
-                    self.auto_start.set_sensitive(value['target_state'] in {'enabled','disabled'} and not self.state['busy'])
-                    self.startup_note.set_text('Voice and tray start quietly after login.' if value['enabled'] else
-                        'Auto-start is off. Use Run Jarvis whenever you need it.' if not value['voice_enabled'] and not value['tray_enabled'] else
-                        'Voice and tray login settings differ. Toggle on to align them.')
+                    for component,switch in self.startup_switches.items():
+                        switch.set_active(value[component+'_enabled'])
+                        switch.set_sensitive((component=='tray' or value['target_state'] in {'enabled','disabled'})
+                                             and not self.state['busy'] and not self.busy)
+                    self.startup_note.set_text('These options affect the next login. Run/Stop on Dashboard controls this session.'
+                        if value['consistent'] else 'Saved and system login settings differ. Review the two options above.')
             finally:self.updating_startup=False
             return False
         worker(startup_status,done)
@@ -580,14 +597,7 @@ class ControlCenter:
                     self.overview_update.set_text('Check the service status below')
                     self.overview_icon.set_from_icon_name('dialog-warning-symbolic',Gtk.IconSize.LARGE_TOOLBAR)
                     summary_context.add_class('jarvis-summary-warn')
-                healthy=information['checked'] and not information['available']
-                self.update_health.set_text('Up to date' if healthy else 'Check failed' if information['failed'] else 'Update available' if self.latest else 'Not checked')
-                context=self.update_health.get_style_context()
-                context.remove_class('jarvis-led-ready')
-                if healthy:context.add_class('jarvis-led-ready')
-                self.install_update.set_label('Update available ('+self.latest+')' if self.latest else 'Up to date' if healthy else 'Check for updates')
-                self.install_update.set_sensitive(bool(self.latest))
-                self.colour(self.install_update,'jarvis-update' if self.latest else None)
+                self.refresh_update_button(information)
             self.refresh_startup()
             return False
         worker(status,done);return True
@@ -612,7 +622,17 @@ class ControlCenter:
         visible=row.key=='apps'
         self.footer.set_visible(visible);self.save.set_visible(visible)
 
+    def refresh_update_button(self,information):
+        available=information['available']
+        healthy=information['checked'] and not available and not information['failed']
+        self.update_health.set_text('Check failed' if information['failed'] else 'Update available' if available else 'Not checked' if not healthy else '')
+        self.update_health.get_style_context().remove_class('jarvis-led-ready')
+        self.install_update.set_label('Update available ('+information['latest']+')' if available else 'Everything is up to date' if healthy else 'Check for updates')
+        self.install_update.set_sensitive(available)
+        self.colour(self.install_update,'jarvis-update-available' if available else 'jarvis-update' if healthy else None)
+
     def show_tab(self,tab='overview'):
+        if tab=='dashboard':tab='overview'
         key='apps' if tab in {'applications','commands','apps'} else tab
         self.nav.select_row(self.pages.get(key,self.pages['overview']))
         if tab in {'applications','commands'}:self.notebook.set_current_page(1 if tab=='commands' else 0)

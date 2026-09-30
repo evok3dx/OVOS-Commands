@@ -10,7 +10,10 @@ Automated checks cover routing, safe writing, temporary clipboard clearing,
 transactional deployment and rollback. Reading has distinct **Speak selected
 text** and **Speak highlighted text** alternatives. Real microphone confusion
 between “read” and “write” still needs a laptop test; writing is not remapped.
-The GUI provides separate auto-start-at-login and current Run/Stop controls.
+The updated source GUI labels Overview as Dashboard and puts independent tray
+and voice-service login options in General, separate from current Run/Stop.
+The frozen prerelease archive predates that refinement; use its matching source
+update rather than expecting the initial single-file picker fix to add General.
 
 **Not yet verified on this laptop:** startup after a fresh login, positive wake
 and microphone behaviour, selected-text reading and typing/focus, actual
@@ -97,7 +100,9 @@ isolation policy, follow the reviewed removal instructions before updating;
 do not disable the guard.
 
 After installation, open the Control Centre and confirm the installed version,
-Run Jarvis, test normal commands, and choose Auto-start at login if wanted.
+Run Jarvis, test normal commands, and choose the required login options in
+General in the updated source candidate (the initial archive has one combined
+auto-start switch).
 Test one fresh login separately. Run `jarvis-health-check` and report any failure
 without posting raw logs or credentials publicly. Rollback is available through
 `jarvis-update rollback`; native isolation must be deactivated first if enabled.

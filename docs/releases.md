@@ -9,6 +9,27 @@ than repeating release narratives.
 
 ## 4.0.0rc1 (published laptop test; stable release pending)
 
+**Owner-directed controls refinement, source candidate:** Overview is labelled
+Dashboard; General contains separate **Start app minimised at login** and
+**Start voice services at login** switches. Tray startup alone never starts
+voice. A separate quiet voice-login entry makes service startup work when the
+tray is disabled; enablement, settings and launcher writes recover together on
+failure, and changing a future-login preference never starts/stops current
+services. Legacy combined preferences retain their meaning; independent
+settings and unknown fields survive updates. Install/rollback/uninstall include
+the new owned voice-login entry. The Updates button itself is green when current
+and blue when an update is available, with neutral unknown/failed states and no
+duplicate green status line. Real GTK and four-combination startup regressions
+are added; current automated verification and owner laptop checks are pending.
+
+**Owner-directed review location:** new core and Ollama candidate directories
+default to Downloads, with private directories/files and accurate native source
+paths in REVIEW.md. Existing private-state candidates remain supported. Source
+fingerprints still reject stale candidates; nothing is installed or activated
+by preparation. The owner's supplied candidate has matching file/source hashes
+and reviewed narrow policy; that is file review, not actual egress enforcement.
+The uploaded candidate and client account/path/model data remain outside Git.
+
 **Post-install GUI finding:** owner reports working V4 commands, but opening
 the Control Centre fails when restoring a default app. Icon rows use a custom
 GTK child, so the radio button's `get_label()` returns `None`. The source fix

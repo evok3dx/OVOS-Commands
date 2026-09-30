@@ -105,6 +105,15 @@ Contradictions stay visible in the [historical audit](history/v2.4-audit.md).
 
 ## Owner-authorised V4 laptop test, 30 September 2026
 
+- **VERIFIED owner requirement; implemented source candidate:** General has
+  separate tray-minimised and voice-service login options. Dashboard keeps
+  current Run/Stop. Preserve the legacy combined preference and all unknown
+  fields; new independent choices survive updates and failed writes recover
+  both launchers and service enablement. A dedicated quiet voice-login entry
+  supports service startup without showing the tray. Neither preference change
+  changes current listening/running state. Future candidate review files go
+  directly to private Downloads directories; operational receipts remain state.
+
 - **VERIFIED owner requirement:** routine updates remain password-free. An
   unreadable polkit directory alone must not introduce sudo; require complete
   ordinary-user system-manager evidence that all five fixed native workers are

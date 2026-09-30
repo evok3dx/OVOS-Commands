@@ -2,6 +2,9 @@
 set -euo pipefail
 
 jarvis_home="${JARVIS_HOME:-$HOME}"
+if [[ $# == 1 && "$1" == --start-voice-at-login ]]; then
+  exec /usr/bin/python3 "$jarvis_home/.local/src/ovos-skill-jarvis-dispatcher/scripts/startup_settings.py" --login
+fi
 setup="$jarvis_home/.local/src/ovos-skill-jarvis-dispatcher/scripts/setup.py"
 tray="$jarvis_home/.local/bin/ovos-tray"
 tray_log="$jarvis_home/.local/state/jarvis/ovos-tray.log"

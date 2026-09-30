@@ -702,7 +702,7 @@ def choose_with_gui(detected, existing=None, on_save=None, *, output=None,
         # display a window, save settings, restart services or launch apps.
         editor.refresh_profile(resolve_profile(prospective()))
         dialog.destroy()
-        print('PASS: Jarvis window, five sections and existing apps/commands initialise.')
+        print('PASS: Jarvis window, six sections and existing apps/commands initialise.')
         return None
     dialog.show_all()
     centre.show_tab(tab)
@@ -922,7 +922,7 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--mode", choices=("recommended", "all", "custom"))
     result.add_argument("--apps", default="", help="Comma-separated detected integration IDs")
     result.add_argument("--gui", action="store_true")
-    result.add_argument("--tab", choices=("overview", "applications", "commands", "voice", "updates", "maintenance"), default="overview")
+    result.add_argument("--tab", choices=("overview", "dashboard", "general", "applications", "commands", "voice", "updates", "maintenance"), default="dashboard")
     result.add_argument("--show", action="store_true")
     result.add_argument("--check-gui", action="store_true", help=argparse.SUPPRESS)
     result.add_argument("--migrate-profile", type=Path)

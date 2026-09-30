@@ -448,6 +448,9 @@ assert stat.S_IMODE(path.stat().st_mode) == 0o600
 PY
 test -x "$fresh_home/.local/bin/jarvis-restart"
 test -f "$fresh_home/.config/autostart/ovos-tray.desktop"
+test -f "$fresh_home/.config/autostart/jarvis-voice.desktop"
+grep -Fxq "Exec=$fresh_home/.local/bin/jarvis-setup --start-voice-at-login" \
+  "$fresh_home/.config/autostart/jarvis-voice.desktop"
 grep -Fxq 'X-GNOME-Autostart-Delay=5' \
   "$fresh_home/.config/autostart/ovos-tray.desktop"
 grep -Fxq "TryExec=$fresh_home/.local/bin/ovos-tray" \
@@ -1235,6 +1238,7 @@ test ! -e "$upgrade_target/legacy-only.txt"
 test ! -e "$upgrade_home/.config/autostart/jarvis-mic-indicator.desktop"
 grep -Fxq 'Hidden=true' "$upgrade_home/.config/autostart/ovos-tray.desktop"
 grep -Fxq 'X-GNOME-Autostart-enabled=false' "$upgrade_home/.config/autostart/ovos-tray.desktop"
+grep -Fxq 'Hidden=true' "$upgrade_home/.config/autostart/jarvis-voice.desktop"
 cmp "$test_root/old-startup.json" "$upgrade_home/.config/jarvis/startup.json"
 
 JARVIS_HOME="$upgrade_home" JARVIS_TEST_MODE=1 \

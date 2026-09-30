@@ -98,9 +98,14 @@ def prepare(output,deployment):
     verify_pins()
     for name in ('isolation_worker.py','weather_boundary.py','verify_core_isolation.py'):
         regular(deployment/'scripts'/name)
-    root=Path(account.pw_dir)/'.local/state/jarvis/isolation-candidates'
-    if root not in output.parents or any(p.is_symlink() for p in (output,*output.parents)):
-        raise ValueError('Use a new private candidate directory under Jarvis isolation-candidates')
+    roots=(Path(account.pw_dir)/'Downloads/jarvis-v4-isolation-candidates',
+           Path(account.pw_dir)/'.local/state/jarvis/isolation-candidates')
+    root=next((root for root in roots if root in output.parents),None)
+    if root is None or any(p.is_symlink() for p in (output,*output.parents)):
+        raise ValueError('Use a new private Jarvis isolation-candidates directory in Downloads')
+    root.mkdir(parents=True,exist_ok=True,mode=0o700)
+    if root.stat().st_uid!=os.getuid() or root.stat().st_mode & 0o077:
+        raise ValueError('Candidate directory must be private and user-owned')
     output.parent.mkdir(parents=True,exist_ok=True,mode=0o700);output.mkdir(mode=0o700)
     try:
         units,rule,dropins=render(account.pw_uid,account.pw_gid,account.pw_name,account.pw_dir,deployment)
@@ -273,7 +278,7 @@ def main():
     if os.getuid()<=0 or os.getuid()!=os.geteuid() or os.getgid()!=os.getegid():parser.error('Never sudo Python; use the ordinary desktop account')
     if args.action=='prepare':
         if args.candidate:parser.error('prepare needs a new output, not --candidate')
-        output=args.output or Path.home()/'.local/state/jarvis/isolation-candidates'/secrets.token_hex(8)
+        output=args.output or Path.home()/'Downloads/jarvis-v4-isolation-candidates'/secrets.token_hex(8)
         print(prepare(output,args.deployment));return
     if not args.candidate or args.output:parser.error('Use the exact reviewed --candidate directory')
     from control_runtime import operation_lock

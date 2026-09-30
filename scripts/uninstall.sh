@@ -97,6 +97,7 @@ done
 rm -f -- "$target_bin/ovos-tray" "$target_bin/jarvis-mic-indicator" \
   "$target_bin/jarvis-mic-toggle"
 rm -f -- "$jarvis_home/.config/autostart/ovos-tray.desktop" \
+  "$jarvis_home/.config/autostart/jarvis-voice.desktop" \
   "$jarvis_home/.config/autostart/jarvis-mic-indicator.desktop" \
   "$jarvis_home/.local/share/applications/jarvis-ovos.desktop"
 for unit in "${unit_files[@]}"; do
