@@ -29,6 +29,7 @@ jobs:
         with:
           artifact-ids: '11120453380'
           run-id: '36765769244'
+          merge-multiple: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path: ${{ runner.temp }}/jarvis-runtime-retained
       - name: Verify exact candidate policies before staging
