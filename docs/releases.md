@@ -7,7 +7,7 @@ acceptance work. Durable design choices belong in
 under [`history/`](history/README.md). Other current documents link here rather
 than repeating release narratives.
 
-## 4.0.0rc1 (owner-authorised laptop test; stable release pending)
+## 4.0.0rc1 (published laptop test; stable release pending)
 
 Status: **Implementation in progress. Owner authorised completion and publication;
 artifact and live acceptance gates remain open.** This entry supersedes the collection-only checklist; the full
@@ -21,6 +21,21 @@ This approval does not assert live voice/startup/isolation acceptance. See
 [test release and installation](v4-laptop-test-release.md). Native notices and
 source pointers accompany the assets; exact upstream binary/source correspondence
 and wider redistribution review remain explicitly open.
+
+**VERIFIED publication:** public prerelease
+[v4.0.0rc1](https://github.com/evok3dx/OVOS-Commands/releases/tag/v4.0.0rc1),
+release `400441025`, points to commit
+`f31eeab5a77c7d2eaa52e47057ec583180bb27a0`. Publication run `36777754236`
+passes the final archive's complete source/deployment suite, 350/350 policy
+cases, source/history/archive/asset scans, exact retained runtime staging and
+current-source parity for all three tested plugin wheels. It publishes 11 fixed
+assets and downloads them again to verify every checksum. Independent public
+tag and asset metadata verification also passes. Source run `36777753941`
+passes Python 3.10–3.13 and security checks. The code archive is 728331 bytes,
+SHA-256 `763bb5bf8a75e90b1615d90758bdc30a54bfb937c3a5d437f3cf7082fa283ec4`.
+The public runtime has the unchanged 453638809-byte identity recorded below;
+all asset digests are in public `SHA256SUMS`. Stable latest remains `v3.9.0`.
+No laptop installation or live isolation enforcement is claimed.
 
 **Recovery history, 30 September 2026:** a workspace reset restored an earlier
 checkout and lost later local commits and original runtime bytes. Source recovery
@@ -51,10 +66,12 @@ Ollama has a separate data-only network policy candidate preserving its existing
 ordinary-user daemon, executable, models and CPU/GPU settings. Nothing has been
 applied to the laptop. See [the bounded service candidate](core-isolation.md).
 
-**Current release blockers:** retain the exact verified runtime as final release
-assets; close bundled licence/corresponding-source handling; final asset scans; actual OVOS/Ollama, model,
+**Remaining stable acceptance:** actual OVOS/Ollama, model,
 DNS/proxy/inherited-socket, voice, GUI, login, stage-switch and recovery
-acceptance; effective Hermes permissions and owner repository review. Fresh source and full-history Gitleaks scans pass after tool recovery; the
+acceptance; effective Hermes permissions and owner repository review. Native
+binary/source correspondence and licence review remain open before wider
+redistribution. Runtime asset retention and final scans are completed for this
+test release. Fresh source and full-history Gitleaks scans pass after tool recovery; the
 production shell check also passes after correcting an unused loop variable.
 The complete source recovery branch is published under the owner's authorisation.
 The publication workflow validates and releases only this named test candidate;

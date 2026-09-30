@@ -131,5 +131,74 @@
     "upstream_vendor_commit": "a71bf9279f7a4659154b68ba6783e89be460bcd5",
     "source_recipe": "https://github.com/PyAV-Org/pyav-ffmpeg/blob/a71bf9279f7a4659154b68ba6783e89be460bcd5/scripts/pkg.py",
     "status": "Source inputs/hash-pinned upstream recipe identified; complete notice/source companion remains OPEN"
+  },
+  "test_release": {
+    "tag": "v4.0.0rc1",
+    "release_id": 400441025,
+    "source_commit": "f31eeab5a77c7d2eaa52e47057ec583180bb27a0",
+    "publication_run": 36777754236,
+    "source_ci_run": 36777753941,
+    "prerelease": true,
+    "public_assets_downloaded_and_hash_checked": true,
+    "tag_and_asset_metadata_independently_checked": true,
+    "live_laptop_acceptance_verified": false,
+    "production_signing_owner_deferred": true,
+    "assets": [
+      {
+        "name": "espeak-ng-COPYING",
+        "bytes": 35147,
+        "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903"
+      },
+      {
+        "name": "jarvis-runtime-linux-x86_64-py311.zip",
+        "bytes": 453638809,
+        "sha256": "03cbba7effa9046d9ce7a63b26d9a0b886eebf4f58f445dda2ae37af07e8c288"
+      },
+      {
+        "name": "jarvis-runtime-linux-x86_64-py311.zip.sha256",
+        "bytes": 104,
+        "sha256": "0a73f711389364f3647b400d7b846441f4291313e5eb472009c6525b89f0e21f"
+      },
+      {
+        "name": "jarvis_file_search_skill-0.3.0-py3-none-any.whl",
+        "bytes": 12319,
+        "sha256": "eb598ec9e17b9a4ef25ee3a30ebbbc4c5f87e17c42efeb900f2419efb2633c9e"
+      },
+      {
+        "name": "ovos-commands-4.0.0rc1.tar.gz",
+        "bytes": 728331,
+        "sha256": "763bb5bf8a75e90b1615d90758bdc30a54bfb937c3a5d437f3cf7082fa283ec4"
+      },
+      {
+        "name": "ovos-commands-4.0.0rc1.tar.gz.sha256",
+        "bytes": 96,
+        "sha256": "818c4087f519a9aa34a0b334c769634917cac2d7cfe55e2f6d7d61b49a3ab2ba"
+      },
+      {
+        "name": "ovos_skill_jarvis_dispatcher-4.0.0rc1-py3-none-any.whl",
+        "bytes": 96470,
+        "sha256": "c7174dab7e4834d6892357d46ba8fa0de20890ec95ea711646acef50f63026cb"
+      },
+      {
+        "name": "ovos_skill_jarvis_media-0.3.1-py3-none-any.whl",
+        "bytes": 7733,
+        "sha256": "e1e64eff5c0508012585ddf61e0bc44b2e39fea773f203dfc4c86032522281d7"
+      },
+      {
+        "name": "RUNTIME-NOTICES.md",
+        "bytes": 2088,
+        "sha256": "5f90b8b06696fe1b93f7786110723f46cd3e1b0d1609b5007939b22729c063f6"
+      },
+      {
+        "name": "SHA256SUMS",
+        "bytes": 1023,
+        "sha256": "3a38bda0de4851e2a69e9fb74ce2367e31c5d49a788c41dd8e5f754966ce6992"
+      },
+      {
+        "name": "third-party-licenses.json",
+        "bytes": 213369,
+        "sha256": "a3e49d9e3d97ffa39a15269fa46b980d60b2ce7e93b2a936c6d3f0952e892a75"
+      }
+    ]
   }
 }
