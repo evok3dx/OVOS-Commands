@@ -57,8 +57,45 @@ Contradictions stay visible in the [historical audit](history/v2.4-audit.md).
 | Treat generic music as a bounded two-turn request (**VERIFIED in source/tests; live pending**) | “Play music” asks what to play and sends one bounded reply as title data to the separate Media skill. Direct `Play {title}` stays fast. Exact `lay` and `pose`/`poze music` variants address observed STT/accent errors without fuzzy media execution or bare-word collisions. | Live recognition shows harmful collisions or a stable structured Media search API replaces the title event. |
 | Relaunch the Control Centre after its own update (**VERIFIED in source/tests; live pending**) | The updater can replace GUI code while the old Python process remains loaded. After a successful transaction, a fixed user-space helper waits for the old PID to exit and starts the installed launcher once; failed updates do not relaunch. | GTK gains a supported in-process code reload or the desktop application lifecycle changes. |
 | Make Control Centre update cancellation explicit and bounded (**VERIFIED in source/tests; live pending**) | The Updates page exposes **Stop update** only while its exact fixed update process is active. Closing the GUI at that time asks before sending `SIGTERM` to the update process group, escalates to `SIGKILL` only after five seconds, and restores the page state. This is recovery for a stuck GUI operation, not permission to kill unrelated installers. | The updater gains a transactional cancellation API or live testing finds a phase that must not be interrupted. |
-| Keep browser music control on MPRIS (**VERIFIED in source; live idle test pending**) | Jarvis controls the media session Brave exposes through `playerctl`; it does not guess tabs, inject webpage clicks or bypass YouTube inactivity prompts. Play reports when no compatible session exists. Brave Memory Saver should keep `music.youtube.com` and `youtube.com` active on a dedicated music machine. | Brave exposes a safer persistent-session API or live testing proves MPRIS remains present without the exception. |
+| Keep browser music control on MPRIS (**VERIFIED in source; external idle limit accepted**) | Jarvis controls the media session Brave exposes through `playerctl`; it does not guess tabs, inject webpage clicks or bypass YouTube inactivity prompts. Play reports when no compatible session exists. Bring the tab forward or choose a new song if the session disappears. No Brave performance-setting guarantee is assumed. | Brave exposes a safer persistent-session API. |
+
+| Block generic input in terminal windows (**VERIFIED in V4 offline failure tests; live pending**) | Text editing, generic writing, Enter and soft line breaks use one terminal-identity test. Refuse input before typing, including modern terminal classes. Recheck window identity before typing and submission. Opening an allowlisted Terminal application does not authorise input to it. | A separately designed, explicitly approved terminal mode has a stronger execution boundary. |
+| Confirm tool-capable private agent prompts (**VERIFIED in V4 offline tests; live pending**) | Capture and read back the message; require exactly `send it`; cancellation, timeout or native-command escape clears it. Confirmation is single-use and uses the fixed private helper. Ordinary desktop messaging is preserved; actual desktop tool permissions remain a live review gate. | A desktop agent gains tools or private helper permissions change. |
+| Separate version pins, hashes and isolation claims (**VERIFIED policy; production gates open**) | A resolver hash lock is a candidate, not proof of laptop parity or reproducible source builds. Preserve the actual capture and record each proposed change. A verified wheel closure must account for extras, reject all conflicts and pass isolated/live tests. The historical NumPy exemption is superseded by the separately versioned ONNX-only plugin while retaining NumPy 2. Loopback model use is not egress enforcement. Unresolved full-hash or core-isolation gates require an owner decision before release. | The owner explicitly revises release scope after reviewing evidence. |
 | Keep all Jarvis and upstream-bootstrap staging user-owned (**VERIFIED in source/tests**) | Earlier copied launchers retained deleted staging paths, and a root `/var/tmp` bootstrap broadened the privilege boundary. Stage under private Jarvis state, relocate and validate launchers before switching, and let only explicit upstream/system-package steps request administrator access. | The supported upstream installer publishes a narrower noninteractive system-package API. |
+| Separate login auto-start from current run state (**VERIFIED in isolated V4 tests; next-login acceptance pending**) | Auto-start controls only enablement of the existing OVOS user target and quiet tray launcher. Run/Stop controls this session. Preserve the private saved preference, including unknown fields, across upgrades; restore prior enablement/files after failure. Never unmask services, launch the Control Centre on login or silently override an explicit off choice. | A real login shows the reviewed user target cannot provide reliable session startup. |
+
+## V4 isolation and recovered runtime decisions
+
+- **VERIFIED privacy boundary:** public runtime manifests describe the reviewed
+  installer package policy and its wheel hashes. Keep original laptop captures,
+  observed model digests, source-install indicators and private diagnostic
+  snapshots outside Git and release archives. Full dependency hash enforcement
+  does not authorise publishing a client's diagnostic inventory.
+
+- **VERIFIED policy; live acceptance open:** use five fixed system-manager
+  services with ordinary-user workers after the supplied temporary-policy
+  experiment. Grant only their exact account/service names and start/stop/restart
+  verbs. Prepare administrator-owned service data; never execute repository
+  Python, pip or a generated script as root. Keep Weather/Media separate and
+  desktop handoffs in the existing user-session launcher.
+- **VERIFIED in isolated recovery tests:** activation requires stopped services,
+  reviewed native data, current source identities and complete runtime provenance.
+  Removal remains possible if worker source is damaged. Install/update/rollback/
+  uninstall refuse remaining owned native policy until it is safely removed.
+  Settings, models, login choice and deliberate mute stay preserved.
+- **VERIFIED policy:** a temporary filtering pass, installation receipt or unit
+  property is insufficient for an isolation badge. Require actual OVOS and Ollama
+  socket/application evidence, including DNS/proxy/inherited-socket paths. The
+  existing local bus and same-user session are trusted, not hostile-user isolation.
+- **VERIFIED policy:** default staged installation uses the separately verified
+  full runtime bundle with no resolver/source fallback. Explicit source-build
+  experiments do not satisfy the full-hash gate. Retain NumPy 2.4.6, the documented
+  ONNX-only downstream wake plugin and zero dependency exemptions.
+- **VERIFIED recovery limitation:** missing artifacts and source fingerprints
+  cannot be reconstructed from a previous checksum. Preserve historical reports,
+  identify new collectors separately and revalidate reconstructed source/artifacts.
+  Publication remains conditional on the full agreed V4 acceptance.
 
 **HISTORICAL:** the original 2.3.1 fresh-install pins still describe the
 previously reviewed baseline. They do not describe the reference system's upgraded media

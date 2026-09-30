@@ -1,0 +1,23 @@
+{
+  "url": "https://files.pythonhosted.org/packages/bf/02/9c0fe618255991113a4087f0cfcf8403b8b48ffa895c95733c00f2e3bea4/ovos_ww_plugin_openwakeword-0.4.5a2.tar.gz",
+  "sha256": "a24eaf5173982cff42619f4e445c2d5f66ecb7b479d609650b6095663635305d",
+  "version": "0.4.5a2",
+  "downstream_version": "0.4.5a2+jarvis.1",
+  "status": "unpublished candidate; ONNX inference verified, laptop acceptance pending",
+  "changes": [
+    "Reject TFLite before model creation",
+    "Select default model paths for ONNX",
+    "Require preinstalled models; no runtime download",
+    "Declare actual NumPy 2 / ONNX dependencies"
+  ],
+  "upstream_signature_verified": false,
+  "source_files_sha256": {
+    "LICENSE": "7d81e4a305bd25c68472a08f4d76016b2349f49d6519d6156fb31ff68cbaa046",
+    "ovos_ww_plugin_openwakeword/__init__.py": "0e5d31593d40a57022f247b0cdff95b5429f9157051045f74af832073be934aa",
+    "ovos_ww_plugin_openwakeword/utils/__init__.py": "7aca51649a1bf27c90d6617e7a39d6c5ad47cd3db2b9f6d415cf5e99d4533500",
+    "ovos_ww_plugin_openwakeword/version.py": "f8edf50d8bb5d5b6786053fb3c6b11611b064ea07687426104ef10167dbc2663",
+    "pyproject.toml": "7dff952d4624bc56e26873a4ed5aefac95ddfa8b2c5d6058a4c59adb68274520",
+    "readme.md": "4fa280032c7f0737e72a432488d7a36f6367322207a63a5f94c7ed1ecef4af2a"
+  },
+  "source_date_epoch": 315532800
+}

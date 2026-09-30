@@ -45,8 +45,8 @@ def configure(
     spoken_phrase = spoken_phrase or wake_phrase.replace("_", " ")
     listener["wake_word"] = wake_phrase
     if wake_phrase == DEFAULT_WAKE_PHRASE and spoken_phrase == "hey jarvis":
-        # The installed plugin defaults to TFLite; that binary cannot load with
-        # reference system's NumPy 2 stack. Bind the verified ONNX file in the final venv.
+        # Preserve the reviewed ONNX engine and bind its verified model in the
+        # final venv; a dependency repair must not silently change engines.
         if onnx_model is None or not onnx_model.is_file() or "hey_jarvis" not in onnx_model.name or onnx_model.suffix != ".onnx":
             raise ValueError("A verified Hey Jarvis ONNX model is required")
         hotwords[wake_phrase] = {

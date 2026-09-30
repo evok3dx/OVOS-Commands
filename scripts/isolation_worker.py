@@ -1,0 +1,116 @@
+"""Ordinary-user entry points for reviewed V4 system-manager service data."""
+import argparse
+from copy import deepcopy
+import importlib.metadata as metadata
+import json
+import os
+from pathlib import Path
+import re
+import sys
+
+COMPONENTS=('core','listener','audio','weather','media')
+ONLINE_SKILLS=tuple('ovos-skill-'+name+'.openvoiceos' for name in
+                    ('weather','jarvis-media','ddg','wolfie','wikipedia','wikihow','ip','speedtest'))
+ONLINE_STAGES={'ovos-common-query-pipeline-plugin','ovos-persona-pipeline-plugin','ovos-ocp-pipeline-plugin',
+               'common_qa','ocp_high','ocp_medium','ocp_low','ocp_legacy'}
+
+
+def worker_identity(component,uid,gid):
+    if (component not in COMPONENTS or type(uid) is not int or type(gid) is not int or uid<=0 or gid<=0
+            or (os.getuid(),os.geteuid(),os.getgid(),os.getegid())!=(uid,uid,gid,gid)):
+        raise RuntimeError('Worker must run as the ordinary desktop user/group')
+    props=dict(line.split(':',1) for line in Path('/proc/self/status').read_text().splitlines() if ':' in line)
+    if int(props.get('CapEff','-1').strip(),16) or props.get('NoNewPrivs','').strip()!='1':
+        raise RuntimeError('Worker privileges need review')
+    expected=f'0::/system.slice/jarvis-v4-{uid}-{component}.service'
+    if expected not in Path('/proc/self/cgroup').read_text().splitlines():
+        raise RuntimeError('Worker is outside its reviewed service cgroup')
+
+
+def verify_pins():
+    root=Path(__file__).resolve().parents[1]
+    inventory=root/'voice/runtime-linux-x86_64-py311.json'
+    lock=root/'voice/runtime-wheels-linux-x86_64-py311.txt'
+    pins=json.loads(inventory.read_text())['packages']
+    for name in pins:
+        if metadata.version(name)!=pins[name]:raise RuntimeError('Stage the reviewed V4 runtime before isolation')
+    from runtime_provenance import matches
+    if not matches(Path(sys.prefix),inventory,lock):
+        raise RuntimeError('A verified full-runtime installation receipt is required before isolation')
+
+
+def overlay(config,component):
+    """Preserve disk settings; enforce known online ownership on every reload."""
+    value=deepcopy(config)
+    if component=='core':
+        skills=value.setdefault('skills',{})
+        blocked=skills.get('blacklisted_skills',[])
+        if not isinstance(blocked,list) or not all(isinstance(s,str) for s in blocked):
+            raise ValueError('Custom skill blacklist needs review')
+        skills['blacklisted_skills']=list(dict.fromkeys([*blocked,*ONLINE_SKILLS]))
+        intents=value.setdefault('intents',{})
+        stages=intents.get('pipeline',[])
+        if not isinstance(stages,list) or not all(isinstance(s,str) for s in stages):
+            raise ValueError('Custom intent pipeline needs review')
+        intents['pipeline']=[s for s in stages if s not in ONLINE_STAGES
+                            and re.sub(r'-(?:high|medium|low|legacy)$','',s) not in ONLINE_STAGES]
+    expected={'listener':('stt','ovos-stt-plugin-fasterwhisper'),'audio':('tts','ovos-tts-plugin-phoonnx')}
+    if component in expected:
+        category,module=expected[component]
+        if value.get(category,{}).get('module')!=module:
+            raise ValueError('Isolation requires the reviewed local voice configuration')
+    return value
+
+
+def install_overlay(component):
+    from ovos_config import Configuration
+    original=Configuration.filter_and_merge
+    Configuration.filter_and_merge=staticmethod(lambda configs:overlay(original(configs),component))
+    Configuration.load_all_configs()
+
+
+def run_component(component):
+    if component in {'weather','media'}:
+        from ovos_config import Configuration
+        from ovos_workshop.skill_launcher import SkillContainer
+        skill_id='ovos-skill-'+('weather' if component=='weather' else 'jarvis-media')+'.openvoiceos'
+        if skill_id in Configuration().get('skills',{}).get('blacklisted_skills',[]):
+            return  # Retain the owner's explicit disabled-skill choice.
+        container=SkillContainer(skill_id)
+        container.skill_directory=None
+        container.run()
+    elif component=='core':
+        from ovos_core.__main__ import main
+        main(enable_installer=False)
+    elif component=='listener':
+        from ovos_dinkum_listener.__main__ import main
+        main()
+    elif component=='audio':
+        from ovos_audio.__main__ import main
+        main()
+
+
+def main():
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('component',choices=COMPONENTS)
+    parser.add_argument('--uid',type=int,required=True)
+    parser.add_argument('--gid',type=int,required=True)
+    args=parser.parse_args()
+    worker_identity(args.component,args.uid,args.gid)
+    sys.path.insert(0,str(Path(__file__).resolve().parent))
+    verify_pins()
+    for key in tuple(os.environ):
+        if key.lower().endswith('_proxy'):os.environ.pop(key,None)
+    os.environ.update(HF_HUB_OFFLINE='1',TRANSFORMERS_OFFLINE='1',HF_DATASETS_OFFLINE='1')
+    install_overlay(args.component)
+    if args.component=='weather':
+        from weather_boundary import install
+        install()
+    from verify_core_isolation import attach
+    bus=attach(args.component,args.uid,args.gid)
+    try:run_component(args.component)
+    finally:
+        if bus is not None:bus.close()
+
+
+if __name__=='__main__':main()

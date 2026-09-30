@@ -56,6 +56,8 @@ while (($#)); do
   esac
 done
 
+python3 "$repo_root/scripts/isolation_services.py" --guard-rollback "$jarvis_home"
+
 if [[ -z "$backup_root" ]]; then
   [[ -f "$latest" ]] || {
     echo "No Jarvis deployment backup was found." >&2

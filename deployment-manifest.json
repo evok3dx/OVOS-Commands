@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "release_version": "3.9.0",
+  "release_version": "4.0.0rc1",
   "package_modules": [
     "__init__.py",
     "agents.py",
@@ -80,7 +80,35 @@
     ],
     "reference_stack": [
       "voice/reviewed-stack.json",
-      "scripts/validate-staged-ovos.py"
+      "scripts/validate-staged-ovos.py",
+      "scripts/dependency-lock.py",
+      "scripts/core-isolation-preflight.py",
+      "scripts/probe-offline-runtime.py",
+      "scripts/runtime_provenance.py",
+      "scripts/runtime_bundle.py",
+      "voice/runtime-bundle.json",
+      "scripts/v4-laptop-check.py",
+      "scripts/startup_settings.py",
+      "scripts/isolation_services.py",
+      "scripts/isolation_worker.py",
+      "scripts/prepare_core_isolation.py",
+      "scripts/prepare_model_isolation.py",
+      "scripts/verify_core_isolation.py",
+      "scripts/weather_boundary.py",
+      "voice/runtime-linux-x86_64-py311.json",
+      "voice/runtime-sources-linux-x86_64-py311.txt",
+      "voice/runtime-wheels-linux-x86_64-py311.txt",
+      "voice/runtime-wheels-linux-x86_64-py311.artifacts.json",
+      "voice/runtime-candidate-evidence.json",
+      "voice/runtime-build-tools.txt",
+      "voice/model-identities.json",
+      "extras/ovos-ww-plugin-openwakeword-onnx/LICENSE",
+      "extras/ovos-ww-plugin-openwakeword-onnx/PROVENANCE.json",
+      "extras/ovos-ww-plugin-openwakeword-onnx/ovos_ww_plugin_openwakeword/__init__.py",
+      "extras/ovos-ww-plugin-openwakeword-onnx/ovos_ww_plugin_openwakeword/utils/__init__.py",
+      "extras/ovos-ww-plugin-openwakeword-onnx/ovos_ww_plugin_openwakeword/version.py",
+      "extras/ovos-ww-plugin-openwakeword-onnx/pyproject.toml",
+      "extras/ovos-ww-plugin-openwakeword-onnx/readme.md"
     ],
     "plugin_rollback_preflight": [
       "scripts/check-plugin-rollback.py"

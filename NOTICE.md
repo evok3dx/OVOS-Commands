@@ -13,6 +13,10 @@ possible:
 - David Scripka and the
   [openWakeWord](https://github.com/dscripka/openWakeWord) contributors for the
   local wake-word engine and Hey Jarvis model (Apache-2.0).
+- The OpenVoiceOS OpenWakeWord plugin is included under Apache-2.0 in
+  `extras/ovos-ww-plugin-openwakeword-onnx` as a clearly versioned Jarvis
+  ONNX-only patch. Its upstream license, source hash and changes are retained
+  beside the source; this candidate is not an upstream release.
 - SYSTRAN and the
   [faster-whisper](https://github.com/SYSTRAN/faster-whisper) contributors for
   local speech recognition (MIT). The compatibility-checked adapter retains

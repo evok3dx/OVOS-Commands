@@ -10,7 +10,7 @@ from openwakeword import Model, get_pretrained_model_paths
 
 def reviewed_onnx_model() -> Path:
     # openWakeWord defaults to TFLite. Its ONNX paths must be requested
-    # explicitly; the NumPy 2 setup on reference system cannot load TFLite.
+    # explicitly to preserve the reviewed engine across dependency repairs.
     paths = get_pretrained_model_paths(inference_framework="onnx") or []
     models = [Path(path) for path in paths
               if Path(path).name.startswith("hey_jarvis_")

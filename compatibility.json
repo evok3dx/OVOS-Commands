@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "release_version": "3.9.0",
+  "release_version": "4.0.0rc1",
   "validated_on": "2026-09-28",
   "support": {
     "operating_system": "Linux",
@@ -30,7 +30,7 @@
       "phrase": "hey_jarvis",
       "module": "ovos-ww-plugin-openwakeword",
       "package": "ovos-ww-plugin-openwakeword",
-      "validated_version": "0.4.5a2",
+      "validated_version": "0.4.5a2+jarvis.1",
       "engine_package": "openwakeword",
       "engine_version": "0.6.0",
       "threshold": 0.4
@@ -147,6 +147,16 @@
         "onnxruntime": "1.30.0",
         "numpy": "2.4.6"
       }
+    },
+    "runtime_candidate": {
+      "inventory": "voice/runtime-linux-x86_64-py311.json",
+      "source_lock": "voice/runtime-sources-linux-x86_64-py311.txt",
+      "wheel_lock": "voice/runtime-wheels-linux-x86_64-py311.txt",
+      "wheel_manifest": "voice/runtime-wheels-linux-x86_64-py311.artifacts.json",
+      "evidence": "voice/runtime-candidate-evidence.json",
+      "build_lock": "voice/runtime-build-tools.txt",
+      "production_approved": false,
+      "wake_plugin_source": "extras/ovos-ww-plugin-openwakeword-onnx"
     }
   },
   "updates": {

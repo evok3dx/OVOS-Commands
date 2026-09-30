@@ -126,13 +126,15 @@ with patch.object(integration.time, "sleep"):
     assert reply(skill, "Hello Hermes")
     assert skill.typed == ["Hello Hermes"] and "Return" not in skill.keys
 
-    # The private agent flow sends once via its helper, with no second prompt.
+    # Tool-capable private agents require an explicit, single-use confirmation.
     skill = FakeSkill()
     skill.sent_agent = []
     skill._send_agent_message = lambda *args: skill.sent_agent.append(args)
     skill._message_agent("codex")
     assert skill.spoken[-1] == "Ready."
     assert reply(skill, "Research this")
+    assert skill.sent_agent == [] and skill._pending_message == "Research this"
+    assert reply(skill, "send it")
     assert skill.sent_agent == [("codex", "Research this")]
     assert skill._message_stage is None
 
@@ -145,7 +147,19 @@ with patch.object(integration.time, "sleep"):
     assert skill.spoken[-1] == "Ready."
     skill._message_agent("claude")
     assert reply(skill, "Review this")
+    assert reply(skill, "send it")
     assert skill.sent_agent[-1] == ("claude", "Review this")
+
+    skill._message_agent("claude")
+    assert reply(skill, "Do a dangerous thing")
+    assert reply(skill, "cancel")
+    assert len(skill.sent_agent) == 2
+    skill._message_agent("claude")
+    assert reply(skill, "Review again")
+    skill._message_timeout(skill._message_generation)
+    assert skill._message_stage is None and skill._pending_message is None
+    assert len(skill.sent_agent) == 2
+    assert reply(skill, "send it") is False
 
     # Real helper path gets exactly the dictated text and acknowledges only
     # when the allowlisted submission succeeds.

@@ -7,7 +7,7 @@ assume_yes=false
 
 usage() {
   cat >&2 <<'EOF'
-Usage: jarvis-speechnote-setup [--install|--open|--status] [--yes]
+Usage: jarvis-speechnote-setup [--install|--open|--status|--guide] [--yes]
 
 Manage the optional Speech Note Flatpak for the current user. This command
 never invokes sudo and never changes existing Speech Note settings.
@@ -16,7 +16,7 @@ EOF
 
 while (($#)); do
   case "$1" in
-    --install|--open|--status)
+    --install|--open|--status|--guide)
       [[ "$action" == interactive ]] || { usage; exit 2; }
       action="${1#--}"
       shift
@@ -139,6 +139,11 @@ open_speechnote() {
 }
 
 case "$action" in
+  guide)
+    printf '%s\n' "Models" "Choose an English STT model and a local TTS voice in Speech Note's Models tab." "Continuous dictation"
+    show_dictation_rule_guide
+    printf '%s\n' "Reading" "If fresh lines fade in or out, check Settings → Text to Speech → Normalise audio."
+    ;;
   install)
     install_speechnote
     show_installation

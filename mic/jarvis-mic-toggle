@@ -1,6 +1,21 @@
 #!/usr/bin/env bash
 set -u
 
+if [[ -e "$HOME/.local/state/jarvis/isolation/active.json" || -L "$HOME/.local/state/jarvis/isolation/active.json" ]]; then
+  /usr/bin/python3 - <<'PY'
+from pathlib import Path
+import subprocess,sys
+sys.path.insert(0,str(Path.home()/'.local/src/ovos-skill-jarvis-dispatcher/scripts'))
+from control_runtime import microphone_action
+try:
+    message=microphone_action()
+except (OSError,RuntimeError,ValueError,subprocess.SubprocessError):
+    raise SystemExit('Microphone control failed. Check Jarvis Overview.')
+subprocess.run(['notify-send','Jarvis',message],check=False)
+PY
+  exit $?
+fi
+
 if systemctl --user is-active --quiet ovos-listener.service; then
     systemctl --user stop ovos-listener.service
 

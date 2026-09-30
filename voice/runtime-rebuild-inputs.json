@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "policy": "Public reviewed source build inputs, not a laptop capture. New wheel bytes require complete validation and explicit hash-difference review before lock promotion.",
+  "sources": {
+    "combo-lock": {
+      "filename": "combo_lock-0.3.1.tar.gz",
+      "sha256": "11527448c6598a3e1aa73381e9d590d9ce3f0544c2f364f3fbfaaae0d2e1d359",
+      "url": "https://files.pythonhosted.org/packages/e8/a5/fcf51431606ee64436aeef7f07afeb250ae2b2ad9cd30f2ff7a2de9e667b/combo_lock-0.3.1.tar.gz"
+    },
+    "docopt": {
+      "filename": "docopt-0.6.2.tar.gz",
+      "sha256": "49b3a825280bd66b3aa83585ef59c4a8c82f2c8a522dbe754a8bc8d08c85c491",
+      "url": "https://files.pythonhosted.org/packages/a2/55/8f8cab2afd404cf578136ef2cc5dfb50baa1761b68c9da1fb1e4eed343c9/docopt-0.6.2.tar.gz"
+    },
+    "phoonnx": {
+      "filename": "ce0568ae7a552bce79ccf40d13b785c61dbb9e77.tar.gz",
+      "url": "https://github.com/TigreGotico/phoonnx/archive/ce0568ae7a552bce79ccf40d13b785c61dbb9e77.tar.gz",
+      "sha256": "b680c039c4e764f741652eb6fac7ce64c475414852342393e9fcef5eba90ec04"
+    },
+    "pyalsaaudio": {
+      "filename": "pyalsaaudio-0.11.0.tar.gz",
+      "sha256": "a78a9dca33524b2c9064b34e21f5ab874272313cf324a9a77592f396a5e0fddc",
+      "url": "https://files.pythonhosted.org/packages/21/a6/3d833079b030d449345e35ce0e2874e330d3612135734f07b9ceace25bcf/pyalsaaudio-0.11.0.tar.gz"
+    },
+    "pywikihow": {
+      "filename": "pywikihow-0.5.7.tar.gz",
+      "sha256": "2457bf87945eb46113fffad7ee663e4e151381ac9a8a5d5924dc84ae8d3f82c3",
+      "url": "https://files.pythonhosted.org/packages/42/a3/5fcafb957e491ccfe5b34e9e4e218f5897f6aeb164a2c775c5f928c0cab4/pywikihow-0.5.7.tar.gz"
+    },
+    "sonopy": {
+      "filename": "sonopy-0.1.2.tar.gz",
+      "sha256": "d7cd2c055bf5f1183bb4d28af3a1188554aa5c8f1bdf8e2e89042d233a870c45",
+      "url": "https://files.pythonhosted.org/packages/2b/4d/862855fb391bc30351f90d6c50ea913df9d18b0ae3b6b8ef3c7aa3ac976f/sonopy-0.1.2.tar.gz"
+    },
+    "srt": {
+      "filename": "srt-3.5.3.tar.gz",
+      "sha256": "4884315043a4f0740fd1f878ed6caa376ac06d70e135f306a6dc44632eed0cc0",
+      "url": "https://files.pythonhosted.org/packages/66/b7/4a1bc231e0681ebf339337b0cd05b91dc6a0d701fa852bb812e244b7a030/srt-3.5.3.tar.gz"
+    },
+    "wallpaper-finder": {
+      "filename": "wallpaper_finder-0.1.2.tar.gz",
+      "sha256": "61292d31286c91a4f1c6a62cd43dca4d8843a39410e29d3ec03d46a0ca962b4e",
+      "url": "https://files.pythonhosted.org/packages/36/54/e8370ccc92ad496fb2cda1b2640d9647b1e9079d1baf74efcdf23e2d2a0b/wallpaper_finder-0.1.2.tar.gz"
+    },
+    "webrtcvad": {
+      "filename": "webrtcvad-2.0.10.tar.gz",
+      "sha256": "f1bed2fb25b63fb7b1a55d64090c993c9c9167b28485ae0bcdd81cf6ede96aea",
+      "url": "https://files.pythonhosted.org/packages/89/34/e2de2d97f3288512b9ea56f92e7452f8207eb5a0096500badf9dfd48f5e6/webrtcvad-2.0.10.tar.gz"
+    }
+  },
+  "alsa_headers": {
+    "filename": "libasound2-dev_1.2.11-1ubuntu0.3_amd64.deb",
+    "url": "https://archive.ubuntu.com/ubuntu/pool/main/a/alsa-lib/libasound2-dev_1.2.11-1ubuntu0.3_amd64.deb",
+    "sha256": "b83795b1ba0e40cfa8363359fd17a06260838d8ae0f315531771a62f7c7e215a"
+  }
+}

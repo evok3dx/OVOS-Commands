@@ -6,6 +6,9 @@
 *.wav
 !voice/jarvis-ready.wav
 *.pyc
+*.ses
+*.sqlite
+*.sqlite3
 __pycache__/
 *.egg-info/
 .venv/
@@ -22,3 +25,4 @@ settings.json
 *.key
 *.token
 .env
+voice/runtime-observed-*.json

@@ -14,6 +14,7 @@ import tarfile
 import tempfile
 import urllib.error
 import urllib.request
+from urllib.parse import urlsplit
 from pathlib import Path, PurePosixPath
 
 
@@ -22,6 +23,28 @@ POLICY = json.loads((ROOT / "compatibility.json").read_text(encoding="utf-8"))
 VERSION = str(POLICY["release_version"])
 MAX_ARCHIVE_MEMBERS = 4096
 MAX_ARCHIVE_PATH_LENGTH = 240
+UPDATE_HOSTS = frozenset({'api.github.com', 'github.com',
+                          'release-assets.githubusercontent.com',
+                          'objects.githubusercontent.com'})
+
+
+def validate_update_url(url: str) -> None:
+    parsed = urlsplit(url)
+    if (parsed.scheme != 'https' or parsed.hostname not in UPDATE_HOSTS
+            or parsed.username is not None or parsed.password is not None
+            or parsed.port not in (None, 443) or parsed.fragment):
+        raise RuntimeError('Update transport rejected an untrusted URL')
+
+
+class UpdateRedirectHandler(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, request, response, code, message, headers, new_url):
+        validate_update_url(new_url)
+        return super().redirect_request(request, response, code, message, headers, new_url)
+
+
+def open_update(request, timeout):
+    validate_update_url(request.full_url)
+    return urllib.request.build_opener(UpdateRedirectHandler()).open(request, timeout=timeout)
 
 
 def home() -> Path:
@@ -63,13 +86,13 @@ def request_json(url: str) -> dict[str, object]:
     request = urllib.request.Request(
         url, headers={"Accept": "application/vnd.github+json", "User-Agent": "Jarvis-Updater"},
     )
-    with urllib.request.urlopen(request, timeout=20) as response:
+    with open_update(request, timeout=20) as response:
         return json.load(response)
 
 
 def download(url: str, destination: Path, limit: int = 100_000_000) -> None:
     request = urllib.request.Request(url, headers={"User-Agent": "Jarvis-Updater"})
-    with urllib.request.urlopen(request, timeout=60) as response, destination.open("wb") as stream:
+    with open_update(request, timeout=60) as response, destination.open("wb") as stream:
         written = 0
         while chunk := response.read(1024 * 1024):
             written += len(chunk)
@@ -119,6 +142,7 @@ def save_status(release: dict[str, object]) -> bool:
         "latest": release["version"],
         "release_date": release.get("release_date", ""),
         "update_available": available,
+        "check_succeeded": True,
     }, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     temporary.chmod(0o600)
     temporary.replace(path)
@@ -126,7 +150,18 @@ def save_status(release: dict[str, object]) -> bool:
 
 
 def check(quiet: bool = False) -> tuple[dict[str, object], bool]:
-    release = latest_release()
+    try:
+        release = latest_release()
+    except (OSError, RuntimeError, ValueError, urllib.error.URLError):
+        directory = state_dir()
+        directory.mkdir(parents=True, exist_ok=True)
+        path = directory / 'latest.json'
+        fd, name = tempfile.mkstemp(prefix='.check-', dir=directory)
+        with os.fdopen(fd, 'w', encoding='utf-8') as stream:
+            json.dump({'schema_version': 1, 'installed': VERSION,
+                       'check_succeeded': False, 'update_available': False}, stream)
+        Path(name).replace(path)
+        raise
     available = save_status(release)
     if not quiet:
         if available:
@@ -170,7 +205,10 @@ def safe_extract(archive: Path, destination: Path) -> Path:
             ):
                 raise RuntimeError(f"Unsafe release entry: {member.name}")
             names.add(normalised)
-        bundle.extractall(destination)
+        if hasattr(tarfile, 'data_filter'):
+            bundle.extractall(destination, filter='data')
+        else:
+            bundle.extractall(destination)
     roots = [path for path in destination.iterdir() if path.is_dir()]
     if len(roots) != 1 or not (roots[0] / "scripts/install.sh").is_file():
         raise RuntimeError("Release archive has an unexpected layout")

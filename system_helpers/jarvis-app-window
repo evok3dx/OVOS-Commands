@@ -122,7 +122,7 @@ find_window() {
     window_id="$(
       wmctrl -lx |
         awk -v wanted="$candidate" '
-          index(tolower($0), tolower(wanted)) {
+          index(tolower($3), tolower(wanted)) {
             print $1
             exit
           }
@@ -177,7 +177,8 @@ show_window() {
 }
 
 detached_launch() {
-  local unit="jarvis-launch-${app}-$(date +%s%N)"
+  local unit
+  unit="jarvis-launch-${app}-$(date +%s%N)"
 
   "$systemd_run" 8>&- \
     --user \
@@ -342,6 +343,11 @@ case "$action" in
       exit 0
     fi
 
+    if [[ "$app" == "zoom" ]] && pgrep -u "$(id -u)" -x zoom >/dev/null 2>&1; then
+      echo "Zoom is running in the tray; select its tray icon to reopen it." >&2
+      exit 24
+    fi
+
     launch_window || {
       echo "Could not launch $title" >&2
       exit 1
@@ -352,6 +358,10 @@ case "$action" in
       exit 0
     fi
 
+    if [[ "$app" == "zoom" ]] && pgrep -u "$(id -u)" -x zoom >/dev/null 2>&1; then
+      echo "Zoom is running in the tray; select its tray icon to reopen it." >&2
+      exit 24
+    fi
     echo "Could not find the $title window" >&2
     exit 1
     ;;

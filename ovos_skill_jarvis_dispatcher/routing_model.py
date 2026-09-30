@@ -319,7 +319,7 @@ def candidates_for(utterance, catalogue, profile):
                       'reading.last_typed' if read_last_typed else
                       'reading.' + reading_target + ('_fast' if speed_fast else ''))
     current_window = bool(re.search(
-        r'\b(?:this|current|active|focused) (?:(?:maximised|maximized|normal|resizable) )?window\b'
+        r'\b(?:this|current|active|focused) (?:(?:maximised|maximized|normal|resizable) )?(?:window|app|application)\b'
         r'|\bwhat i am looking at\b|\bthe window i am (?:using|looking at)\b', text))
     # A known named target is required for every application-specific action.
     # Generic window operations additionally need an explicit current-window

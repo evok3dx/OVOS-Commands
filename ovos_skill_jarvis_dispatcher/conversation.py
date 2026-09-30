@@ -161,11 +161,7 @@ class ConversationMixin:
         utterance = str(utterances[0]).strip() if utterances else ""
         token = self._confirmation_token(utterance)
 
-        accepted = {
-            "confirm",
-            "send it",
-            "yes do it"
-        }
+        accepted = {"send it"}
 
         cancelled = {
             "cancel",
@@ -469,10 +465,15 @@ class ConversationMixin:
                     self._arm_message_timeout(15)
                     return True
                 else:
-                    send_payload = (self._pending_agent, utterance, self._pending_window_id)
-                    self._clear_message_state()
-                    # Agents are enabled only on reviewed installations; the
-                    # allowlisted helper still decides whether submission works.
+                    self._pending_message = utterance
+                    self._message_stage = "confirmation"
+                    self._confirmation_retries = 1
+                    self.speak(
+                        f"I heard: {utterance}. Say send it to confirm, or cancel.",
+                        expect_response=True, wait=True,
+                    )
+                    self._arm_message_timeout(15)
+                    return True
 
             if stage == "confirmation":
                 if token in accepted:

@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "status": "REBUILD REQUIRED: the recorded original runtime archive is unavailable after workspace recovery",
+  "previous_archive_bytes": 453603622,
+  "previous_archive_sha256": "9455c4853b716666ba7d7ffe3cce0c6d1ba94fbbe9ba47a790b9d1702d673437",
+  "policy": "Historical identity only. Never use this as a verified new bundle policy or a resolver fallback. Rebuild against the canonical wheel lock, verify actual bytes and review the new policy before publication."
+}

@@ -86,19 +86,19 @@ BASE_ACTIONS = {
     ),
     "window.close": _action("Windows", "Close focused window", "close window"),
     "window.minimize": _action(
-        "Windows", "Minimize focused window", "minimize window"
+        "Windows", "Minimize focused window", "minimize this app"
     ),
     "window.maximize": _action(
-        "Windows", "Maximize focused window", "maximize window"
+        "Windows", "Maximize focused window", "maximize this application"
     ),
     "window.restore": _action(
-        "Windows", "Restore focused window", "restore window"
+        "Windows", "Restore focused window", "restore this app"
     ),
     "reading.last_typed": _action(
         "Reading", "Read last typed text", "read it back"
     ),
     "reading.selection": _action(
-        "Reading", "Read selected text", "read selected text"
+        "Reading", "Read selected text", "speak selected text"
     ),
     "reading.selection_fast": _action(
         "Reading", "Read selected text at 2×", "read this at 2x"

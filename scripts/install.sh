@@ -22,6 +22,7 @@ listening_sound="$sound_dir/jarvis-ready.wav"
 shortcut_state="$jarvis_home/.config/jarvis/listen-shortcut.json"
 state_root="$jarvis_home/.local/state/jarvis"
 ovos_python="${OVOS_PYTHON:-$jarvis_home/.venvs/ovos/bin/python}"
+runtime_verifier_python="$ovos_python"
 desktop_python="${JARVIS_DESKTOP_PYTHON:-/usr/bin/python3}"
 existing_deployment=false
 if [[ -d "$target_root" || -f "$target_profile" || -f "$target_capabilities" ]]; then
@@ -39,6 +40,9 @@ setup_mode=""
 setup_apps=""
 speechnote_choice="ask"
 bootstrap=false
+runtime_wheelhouse=""
+runtime_bundle=""
+runtime_source_build=false
 
 usage() {
   cat >&2 <<'EOF'
@@ -50,6 +54,9 @@ Options:
   --profile NAME       Migrate a legacy bundled profile
   --ovos-python PATH   OVOS virtualenv Python (default: ~/.venvs/ovos/bin/python)
   --bootstrap          Prepare missing OVOS and minimal desktop prerequisites
+  --runtime-wheelhouse PATH  Use the verified V4 wheels offline in the staging environment
+  --runtime-bundle PATH  Use the separate code-pinned V4 wheel archive locally
+  --runtime-source-build  Explicit reviewed source-build experiment; does not satisfy the V4 hash release gate
   --speechnote         Install the optional Speech Note Flatpak for this user
   --no-speechnote      Do not offer the optional Speech Note add-on
   --check              Run preflight checks without changing files
@@ -85,6 +92,20 @@ while (($#)); do
       bootstrap=true
       shift
       ;;
+    --runtime-wheelhouse)
+      [[ $# -ge 2 ]] || { usage; exit 2; }
+      runtime_wheelhouse="$2"
+      shift 2
+      ;;
+    --runtime-source-build)
+      runtime_source_build=true
+      shift
+      ;;
+    --runtime-bundle)
+      [[ $# -ge 2 ]] || { usage; exit 2; }
+      runtime_bundle="$2"
+      shift 2
+      ;;
     --speechnote)
       speechnote_choice="install"
       shift
@@ -115,6 +136,16 @@ while (($#)); do
       ;;
   esac
 done
+
+if [[ -n "$runtime_wheelhouse" && -n "$runtime_bundle" ]] || \
+   { "$runtime_source_build" && [[ -n "$runtime_wheelhouse" || -n "$runtime_bundle" ]]; }; then
+  echo "Choose one reviewed runtime input or the explicit source-build experiment." >&2
+  exit 2
+fi
+
+if ! "$check_only"; then
+  python3 "$repo_root/scripts/isolation_services.py" --guard-install "$jarvis_home"
+fi
 
 source_profile=""
 if [[ -n "$profile_name" ]]; then
@@ -148,9 +179,10 @@ PY
 }
 
 reviewed_stack_manifest="$repo_root/$(read_compatibility_value ovos.reviewed_stack_manifest)"
+runtime_inventory_manifest="$repo_root/$(read_compatibility_value ovos.runtime_candidate.inventory)"
 
 read_reference_stack_requirements() {
-  python3 - "$reviewed_stack_manifest" <<'PY'
+  python3 - "$runtime_inventory_manifest" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -158,9 +190,7 @@ from pathlib import Path
 packages = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))["packages"]
 for name, version in sorted(packages.items()):
     # PhōnNX is installed from the checksum-verified source archive below.
-    # NumPy is installed after resolution because the reviewed ONNX runtime
-    # deliberately uses NumPy 2 while OpenWakeWord's metadata still says <2.
-    if name not in {"phoonnx", "numpy"}:
+    if name not in {"phoonnx", "en-core-web-sm", "ovos-ww-plugin-openwakeword"}:
         print(f"{name}=={version}")
 PY
 }
@@ -527,6 +557,17 @@ ensure_voice_stack() {
   local work="" archive repository commit expected_sha phoonnx_version
   local source_dir cached_archive
   local -a requirements
+  if [[ -n "$runtime_wheelhouse" ]]; then
+    "$runtime_verifier_python" "$repo_root/scripts/probe-offline-runtime.py" \
+      --inventory "$runtime_inventory_manifest" \
+      --wheelhouse "$runtime_wheelhouse" \
+      --lock "$repo_root/$(read_compatibility_value ovos.runtime_candidate.wheel_lock)" \
+      --staged-target "$stage_root/ovos-venv" \
+      --output "$stage_root/runtime-hash-proof.json" || return 1
+  else
+    # Source builds use the explicit hashed toolchain in the unpublished stage.
+    # The complete runtime wheel path above also disables all network indexes.
+    pip_install --require-hashes --no-deps -r "$repo_root/voice/runtime-build-tools.txt" || return 1
   repository="$(read_compatibility_value ovos.tts.repository)"
   commit="$(read_compatibility_value ovos.tts.reference_commit)"
   expected_sha="$(read_compatibility_value ovos.tts.archive_sha256)"
@@ -535,6 +576,7 @@ ensure_voice_stack() {
   cached_archive="$source_dir/phoonnx-$commit.tar.gz"
   mapfile -t requirements < <(read_reference_stack_requirements)
   requirements+=(
+    "$repo_root/$(read_compatibility_value ovos.runtime_candidate.wake_plugin_source)"
     "$(read_compatibility_value ovos.wakeword.engine_package)==$(read_compatibility_value ovos.wakeword.engine_version)"
     "espeakng-loader==$(read_compatibility_value ovos.tts.espeakng_loader_version)"
     "phonemizer-fork==$(read_compatibility_value ovos.tts.phonemizer_fork_version)"
@@ -576,16 +618,14 @@ ensure_voice_stack() {
   printf '%s\n' \
     "Installing the reviewed local OVOS voice stack." \
     "Wake word, speech recognition and Bella run without administrator access."
-  if ! pip_install "${requirements[@]}"; then
+  if ! pip_install --no-build-isolation "${requirements[@]}"; then
     cleanup_voice_stack_work "$work"
     return 1
   fi
-  # OpenWakeWord 0.4.5a2 still declares numpy<2, whereas reference system's tested
-  # ONNX/Bella environment uses 2.4.6. Keep this mismatch visible to doctor
-  # and install the exact reviewed version after resolving other dependencies.
-  pip_install --no-deps "numpy==$(read_compatibility_value ovos.tts.numpy_version)" || return 1
+  "$ovos_python" -m pip uninstall --yes wheel || return 1
+  fi
   "$ovos_python" "$repo_root/scripts/validate-staged-ovos.py" \
-    "$reviewed_stack_manifest" || return 1
+    "$runtime_inventory_manifest" || return 1
   cleanup_voice_stack_work "$work"
 
   # Workshop's declarative intent must be converted to a matchable Adapt
@@ -623,7 +663,7 @@ PY
 }
 
 stack_matches_target() {
-  "$ovos_python" - "$repo_root/compatibility.json" "$reviewed_stack_manifest" <<'PY'
+  "$ovos_python" - "$repo_root/compatibility.json" "$runtime_inventory_manifest" <<'PY'
 import importlib.metadata as metadata
 import json
 import sys
@@ -663,6 +703,14 @@ reviewed_onnx_model() {
 stage_ovos_stack() {
   local old_python="$ovos_python" venv_root="$jarvis_home/.venvs/ovos"
   local stage_venv="$stage_root/ovos-venv" base_python free
+  if [[ "${JARVIS_TEST_MODE:-0}" != 1 && -z "$runtime_wheelhouse" ]] && ! "$runtime_source_build"; then
+    local -a runtime_input=()
+    if [[ -n "$runtime_bundle" ]]; then runtime_input=(--bundle "$runtime_bundle"); fi
+    python3 "$repo_root/scripts/runtime_bundle.py" obtain \
+      --policy "$repo_root/voice/runtime-bundle.json" \
+      --output "$stage_root/runtime-wheels" "${runtime_input[@]}" || return 1
+    runtime_wheelhouse="$stage_root/runtime-wheels"
+  fi
   [[ "$old_python" == "$venv_root/bin/python" && -d "$venv_root" &&
      ! -L "$venv_root" ]] || {
     echo "V3.1 stack migration requires the normal ~/.venvs/ovos virtualenv." >&2
@@ -1105,11 +1153,13 @@ if [[ "${JARVIS_TEST_MODE:-0}" == 1 ]]; then
     stage_ovos_stack
   fi
 else
-  tts_commit="$(read_compatibility_value ovos.tts.reference_commit)"
-  tts_version="$(read_compatibility_value ovos.tts.validated_version)"
-  tts_archive="$jarvis_home/.local/share/jarvis/sources/phoonnx-$tts_commit.tar.gz"
-  if ! "$existing_deployment" || ! stack_matches_target || \
-     ! installed_phoonnx_is_reviewed "$tts_version" "$tts_commit" "$tts_archive"; then
+  runtime_provenance=false
+  if [[ -z "$runtime_wheelhouse" && -z "$runtime_bundle" ]] && ! "$runtime_source_build" && stack_matches_target && \
+     "$ovos_python" "$repo_root/scripts/runtime_provenance.py" \
+       "$runtime_inventory_manifest" "$repo_root/$(read_compatibility_value ovos.runtime_candidate.wheel_lock)"; then
+    runtime_provenance=true
+  fi
+  if ! "$existing_deployment" || ! "$runtime_provenance"; then
     if ! "$restart"; then
       echo "An OVOS stack change needs a service restart; remove --no-restart." >&2
       exit 1
@@ -1158,9 +1208,9 @@ fi
 if [[ "${JARVIS_TEST_MODE:-0}" != 1 ]]; then
   if "$ovos_python" -m pip --version >/dev/null 2>&1; then
     "$ovos_python" -m pip install --disable-pip-version-check \
-      --no-deps --editable "$target_root"
+      --no-deps --no-build-isolation --editable "$target_root"
   elif command -v uv >/dev/null 2>&1; then
-    uv pip install --python "$ovos_python" --no-deps --editable "$target_root"
+    uv pip install --python "$ovos_python" --no-deps --no-build-isolation --editable "$target_root"
   else
     echo "Neither pip in the OVOS virtualenv nor uv is available." >&2
     exit 1
@@ -1180,10 +1230,17 @@ PY
   # These are bundled, reviewed first-party skills. Do not resolve their
   # dependencies or replace working OVOS voice packages on an upgrade.
   if ! "$ovos_python" -c 'import yt_dlp' >/dev/null 2>&1; then
-    pip_install --no-deps yt-dlp
+    yt_dlp_version="$(python3 - "$runtime_inventory_manifest" <<'PY'
+import json
+import sys
+from pathlib import Path
+print(json.loads(Path(sys.argv[1]).read_text())['packages']['yt-dlp'])
+PY
+)"
+    pip_install --no-deps "yt-dlp==$yt_dlp_version"
   fi
-  pip_install --no-deps --editable "$target_root/plugins/ovos-skill-jarvis-media"
-  pip_install --no-deps --editable "$target_root/plugins/jarvis-file-search"
+  pip_install --no-deps --no-build-isolation --editable "$target_root/plugins/ovos-skill-jarvis-media"
+  pip_install --no-deps --no-build-isolation --editable "$target_root/plugins/jarvis-file-search"
 fi
 
 if "$existing_deployment"; then
@@ -1327,19 +1384,24 @@ if [[ "${JARVIS_TEST_MODE:-0}" == 1 ]] || \
    "$desktop_python" -c 'import gi; gi.require_version("Gtk", "3.0")' 2>/dev/null; then
   install -m 0755 "$target_root/tray/ovos-tray.py" "$target_bin/ovos-tray"
   install -m 0644 "$target_root/tray/"*.svg "$tray_icon_dir/"
-  TRAY_EXEC="$target_bin/ovos-tray" "$desktop_python" - "$tray_autostart" <<'PY'
+  TRAY_EXEC="$target_bin/ovos-tray" "$desktop_python" - "$tray_autostart" "$repo_root/scripts" "$jarvis_home" <<'PY'
 import os
 import sys
 from pathlib import Path
+sys.path.insert(0,sys.argv[2])
+from startup_settings import preference
+enabled=preference(Path(sys.argv[3]))
+enabled=True if enabled is None else enabled
 
 path = Path(sys.argv[1])
 temporary = path.with_suffix(".desktop.new")
 temporary.write_text(
     "[Desktop Entry]\nType=Application\nName=Jarvis Voice Controls\n"
-    f"Exec={os.environ['TRAY_EXEC']}\n"
+    f"Exec={os.environ['TRAY_EXEC']} --login\n"
     f"TryExec={os.environ['TRAY_EXEC']}\nTerminal=false\n"
     "X-GNOME-Autostart-Delay=5\n"
-    "X-GNOME-Autostart-enabled=true\n",
+    f"X-GNOME-Autostart-enabled={str(enabled).lower()}\n"
+    f"Hidden={str(not enabled).lower()}\n",
     encoding="utf-8",
 )
 temporary.chmod(0o644)
@@ -1471,7 +1533,19 @@ PY
     echo "The official OVOS user service is unavailable; refusing an install that cannot start at login." >&2
     exit 1
   fi
-  systemctl --user enable ovos.service >/dev/null
+  startup_enabled="$("$desktop_python" - "$target_root/scripts" "$jarvis_home" <<'PY'
+import sys
+from pathlib import Path
+sys.path.insert(0,sys.argv[1])
+from startup_settings import preference
+print('no' if preference(Path(sys.argv[2])) is False else 'yes')
+PY
+)"
+  if [[ "$startup_enabled" == yes ]]; then
+    systemctl --user enable ovos.service >/dev/null
+  else
+    systemctl --user disable ovos.service >/dev/null
+  fi
   if [[ "$profile_has_hermes" == yes ]]; then
     systemctl --user enable --now hermes-launcher-repair.path >/dev/null
     "$target_bin/hermes-launcher-repair"

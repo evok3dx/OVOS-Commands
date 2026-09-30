@@ -78,6 +78,15 @@ If any one of these layers is missing, the command change is incomplete.
   dispatcher merely for convenience.
 - Preserve user configuration, models, enabled apps, spoken names, personal
   commands, shortcuts and private helpers during updates.
+- Keep observed laptop inventory separate from a proposed runtime. Record every
+  intentional dependency change, freeze the complete closure and validate its
+  actual wheel hashes. V4 dependency checks reject all conflicts; do not restore
+  the historical NumPy exemption or edit upstream metadata to hide a failure.
+- Keep future login enablement separate from current Run/Stop controls. Preserve
+  explicit auto-start choices across updates, launch only the quiet tray at
+  login, and restore enablement/files if a preference change fails. Only the
+  explicit quiet login launch requests the stopped voice units once. Leave
+  running or muted services and manual tray opens alone; never poll-restart.
 - Run normal build, install, update, test and repair work as the desktop user.
   Never run the repository, pip, tar extraction or a whole upstream installer
   with `sudo`, and never use a root-owned checkout or temporary directory.
@@ -85,9 +94,22 @@ If any one of these layers is missing, the command change is incomplete.
   use a private temporary path beside the output. No launcher may retain a
   staging, `/tmp`, root-temporary or deleted-interpreter shebang. Administrator
   access is only for a missing operating-system package or an explicitly
-  bounded upstream system-preparation step.
+  bounded upstream system-preparation step, or explicitly reviewed V4 native
+  isolation service data. Prepare the private candidate and test removal and
+  failure recovery first. Owner-terminal native commands install/remove data;
+  never execute generated review text as a root script. Worker Python remains
+  the ordinary user with no effective capabilities and NoNewPrivileges. Only
+  the exact account, five static unit names and start/stop/restart verbs may
+  receive a polkit grant. Activation verifies only its exact public native rule
+  with fixed native stat/checksum commands using cached owner authorisation;
+  it must never request/read a password or other root file. A temporary-policy
+  pass proves no actual-service, model or mediated egress enforcement.
 - Do not publish machine names, usernames, paths, IP addresses, credentials,
   logs or private helper contents.
+- Public dependency manifests contain reviewed installer pins and hashes only.
+  Keep raw runtime captures, observed model digests and source-install indicators
+  in private evidence outside Git. Packaging and release scans must reject
+  `runtime-observed-*`, including untracked captures and backups.
 
 ## Change discipline
 

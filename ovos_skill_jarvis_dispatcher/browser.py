@@ -372,6 +372,7 @@ class BrowserActionsMixin:
                         "--clearmodifiers",
                         "--delay",
                         "1",
+                        "--",
                         url
                     ],
                     check=True,

@@ -38,10 +38,10 @@ confirm_focus() {
 
 if [[ "$window_class" == *terminal* ]]; then
   case "$action" in
-    scroll_down|page_down) key="shift+Page_Down" ;;
-    scroll_up|page_up) key="shift+Page_Up" ;;
-    top) key="ctrl+shift+Home" ;;
-    bottom) key="ctrl+shift+End" ;;
+    scroll_down|page_down) shortcut="shift+Page_Down" ;;
+    scroll_up|page_up) shortcut="shift+Page_Up" ;;
+    top) shortcut="ctrl+shift+Home" ;;
+    bottom) shortcut="ctrl+shift+End" ;;
     *)
       echo "Usage: jarvis-focused-navigation {scroll_down|scroll_up|page_down|page_up|top|bottom}" >&2
       exit 2
@@ -50,7 +50,7 @@ if [[ "$window_class" == *terminal* ]]; then
 
   xdotool windowactivate --sync "$window_id"
   confirm_focus
-  xdotool key --clearmodifiers "$key"
+  xdotool key --clearmodifiers "$shortcut"
   exit 0
 fi
 

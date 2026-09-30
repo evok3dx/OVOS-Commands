@@ -1,0 +1,4 @@
+# Reviewed public navigation shortcut Ctrl+Shift+End, not a credential.
+# Exact historical fingerprints only; working-tree scans have no exclusion.
+b967f882762eaaf279ea55d377771c964f059817:system_helpers/jarvis-focused-navigation:generic-api-key:44
+c0adce764ad07b91349f93738cce28b7a3108f12:system_helpers/jarvis-focused-navigation:generic-api-key:21

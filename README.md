@@ -76,7 +76,16 @@ replace full desktop and voice acceptance testing.
 | Media | “Play {title}”, “Play music”, “Pause music” | Media plugin |
 | Files | “Find {filename}”, “Search my documents” | File Search plugin |
 | Voice | Wake phrase, hotkeys and background-audio level | Voice |
+| Startup (V4 candidate) | Auto-start quietly at login, or Run/Stop for this session | Overview |
 | Updates | Installed version, release date, check and install | Updates |
+
+The unpublished V4 candidate adds terminal-input protection, confirmation for
+tool-capable agent messages, short-lived reading clipboard text and stronger
+private-report/update checks. Earlier complete-runtime hash tests passed;
+the restored candidate requires its full runtime artifact to be revalidated.
+Live acceptance and core network isolation remain open;
+see [security details](docs/security-and-updates.md) and the
+[release record](docs/releases.md).
 
 Fresh setup offers **Recommended**, **All** and **Custom** application modes.
 Only detected and enabled applications enter the voice catalogue, Whisper

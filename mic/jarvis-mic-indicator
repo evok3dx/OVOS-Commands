@@ -30,13 +30,20 @@ last_state = None
 
 
 def listener_active():
+    receipt=HOME/'.local/state/jarvis/isolation/active.json'
+    if receipt.exists() or receipt.is_symlink():
+        import sys
+        sys.path.insert(0,str(HOME/'.local/src/ovos-skill-jarvis-dispatcher/scripts'))
+        from isolation_services import physical
+        scope,unit=physical('ovos-listener.service')
+    else:scope,unit='--user','ovos-listener.service'
     result = subprocess.run(
         [
             "systemctl",
-            "--user",
+            scope,
             "is-active",
             "--quiet",
-            "ovos-listener.service",
+            unit,
         ],
         check=False,
         timeout=5,
@@ -46,13 +53,17 @@ def listener_active():
 
 def update_indicator():
     global last_state
-    active = listener_active()
+    try:active=listener_active()
+    except (OSError,RuntimeError,ValueError,subprocess.SubprocessError):active='unknown'
 
     if active != last_state:
-        indicator.set_from_file(str(ACTIVE_ICON if active else MUTED_ICON))
+        indicator.set_from_file(str(ACTIVE_ICON if active is True else MUTED_ICON))
         indicator.set_tooltip_text(
+            "Jarvis microphone state unavailable\nOpen Control Centre to check"
+            if active=='unknown'
+            else
             "Jarvis microphone active\nClick to mute"
-            if active
+            if active is True
             else "Jarvis microphone MUTED\nClick to activate"
         )
         last_state = active

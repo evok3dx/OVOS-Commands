@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "status": "HISTORICAL pre-reset isolated offline install passed; rebuilt bytes and live acceptance required",
+  "python_full_version": "3.11.16",
+  "package_count": 296,
+  "metadata_exceptions": [],
+  "ensurepip_bootstrap": {},
+  "network_indexes_enabled": false,
+  "live_environment_modified": false,
+  "model_inference_verified": false,
+  "source_builds": 10,
+  "build_tools": {
+    "pip": "24.0",
+    "setuptools": "79.0.1",
+    "wheel": "0.48.0",
+    "packaging": "26.3"
+  },
+  "compiler_version": "13.3.0",
+  "glibc_version": "2.39",
+  "alsa_header_package": "libasound2-dev 1.2.11-1ubuntu0.3",
+  "alsa_header_sha256": "b83795b1ba0e40cfa8363359fd17a06260838d8ae0f315531771a62f7c7e215a",
+  "uv_version": "0.12.18",
+  "uv_binary_sha256": "b97ae0e1ed3661fcd0c446cc59d81f5720c24d35627b21814a7581fb67eba673",
+  "wheelhouse_bytes": 453554686,
+  "downstream_wheel_rebuild_identical": true,
+  "wake_inference": {
+    "numpy": "2.4.6",
+    "plugin": "0.4.5a2+jarvis.1",
+    "real_onnx_loaded": true,
+    "silent_frames": 50,
+    "no_false_wake_in_silent_fixture": true,
+    "network_connect_forbidden": true,
+    "tflite_not_imported": true,
+    "microphone_or_positive_recognition_tested": false
+  },
+  "staged_hash_install": {
+    "schema_version": 1,
+    "status": "HISTORICAL pre-reset staged install passed; rebuilt bytes and live acceptance required",
+    "python_full_version": "3.11.16",
+    "package_count": 296,
+    "metadata_exceptions": [],
+    "ensurepip_bootstrap": {},
+    "network_indexes_enabled": false,
+    "live_environment_modified": false,
+    "model_inference_verified": false,
+    "staged_target_modified": true
+  }
+}

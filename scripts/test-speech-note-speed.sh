@@ -14,18 +14,23 @@ cat > "$test_root/mock-bin/xclip" <<'EOF'
 if [[ " $* " == *' -silent '* && " $* " == *' -i '* ]]; then
   cat >/dev/null
   printf 'clipboard-owner-start\n' >> "$MOCK_SEQUENCE"
-  trap 'printf "clipboard-owner-stop\n" >> "$MOCK_SEQUENCE"; exit 0' TERM
+  touch "$MOCK_STATE.owner"
+  trap 'rm -f "$MOCK_STATE.owner"; printf "clipboard-owner-stop\n" >> "$MOCK_SEQUENCE"; exit 0' TERM
   while true; do /usr/bin/sleep 0.02; done
 elif [[ " $* " == *' -i '* ]]; then
   cat >/dev/null
+  rm -f "$MOCK_STATE.owner" "$MOCK_STATE.copy"
   printf 'clipboard-clear\n' >> "$MOCK_SEQUENCE"
 else
+  [[ -e "$MOCK_STATE.copy" || -e "$MOCK_STATE.owner" ]] || exit 1
+  rm -f "$MOCK_STATE.copy"
   printf 'Selected text\n'
 fi
 EOF
 cat > "$test_root/mock-bin/xdotool" <<'EOF'
 #!/usr/bin/env bash
 if [[ "$1" == getactivewindow ]]; then printf '123\n'; fi
+if [[ "$*" == *'ctrl+c'* ]]; then touch "$MOCK_STATE.copy"; fi
 EOF
 cat > "$test_root/mock-bin/xprop" <<'EOF'
 #!/usr/bin/env bash

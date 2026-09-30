@@ -29,9 +29,9 @@ CORE_CASES = {
     "media.search": ("play Get Lucky", "please put on Teardrop", "find and play Imagine", "could you play the song Heroes"),
     "media.prompt": ("play some music", "please put some tunes on", "I would like to choose some music", "could you ask me what to play"),
     "hermes.message": ("message Hermes", "please tell Hermes something", "start a message in Hermes", "could you let me dictate to Hermes"),
-    "window.minimize": ("minimise this window", "please minimise the current window", "hide the window I am using", "could you minimise the focused window"),
-    "window.maximize": ("maximise this window", "please maximise the current window", "make the active window bigger", "could you maximise the focused window"),
-    "window.restore": ("restore this window", "please return the current window to normal", "unmaximise the active window", "could you restore the focused window"),
+    "window.minimize": ("minimise this app", "please minimize this application", "hide the window I am using", "could you minimise the focused window"),
+    "window.maximize": ("maximise this application", "please maximize this app", "make the active window bigger", "could you maximise the focused window"),
+    "window.restore": ("restore this app", "please return the current window to normal", "unmaximise this application", "could you restore the focused window"),
     "reading.last_typed": ("read it back", "please read my last text", "read the last text", "could you read that back to me"),
     "reading.selection": ("read this", "please read the selected text", "speak this selection aloud", "could you read this sentence to me"),
     "reading.selection_fast": ("read this at 2x", "please read the selection twice as fast", "speak this text at double speed", "could you read this sentence two times speed"),
@@ -136,7 +136,7 @@ def safe_cell(value):
 
 
 def write_report(path, records, total, profile, catalogue, started_at, interrupted,
-                 model, router_enabled):
+                 model, router_enabled, policy_only=False):
     model_records = [record for record in records
                      if record.get("seconds") is not None]
     passed = sum(record["status"] == "PASS" for record in records)
@@ -152,7 +152,8 @@ def write_report(path, records, total, profile, catalogue, started_at, interrupt
         "# Jarvis non-executing routing benchmark", "",
         f"- Started: `{started_at.isoformat()}`",
         f"- Finished: `{datetime.now(timezone.utc).isoformat()}`",
-        f"- Host: `{platform.node() or 'local'}` / `{platform.machine()}`",
+        f"- Architecture: `{platform.machine()}`",
+        f"- Mode: `{'policy only, no model calls' if policy_only else 'local model selection'}`",
         f"- Model: `{model}`",
         f"- Router enabled: `{router_enabled}`",
         f"- Profile mode: `{profile.get('mode', 'custom')}`",
@@ -162,7 +163,8 @@ def write_report(path, records, total, profile, catalogue, started_at, interrupt
         f"- Pass / fail / skipped: `{passed}` / `{len(failures)}` / `{len(skipped)}`",
         f"- Timeouts: `{timeouts}`", "", "## Scope", "",
         "This report tests typed text after speech recognition. It verifies the",
-        "request-specific allowlist and the real local Qwen selection without",
+        ("request-specific allowlist only, with no local model calls, without" if policy_only else
+         "request-specific allowlist and the real local Qwen selection without"),
         "executing any action. It does **not** test Whisper, the microphone, wake",
         "word, focused-window dispatch, typing, or application launch. Those remain",
         "separate live acceptance tests.", "", "## Runtime", "",
@@ -299,7 +301,7 @@ def main():
         print("\nInterrupted; writing a partial report.")
     finally:
         write_report(output, records, len(suite), profile, catalogue,
-                     started_at, interrupted, MODEL, settings())
+                     started_at, interrupted, MODEL, settings(), args.policy_only)
         print(f"Report: {output}")
 
     failures = sum(record["status"] == "FAIL" for record in records)

@@ -6,7 +6,6 @@ from __future__ import annotations
 import argparse
 import importlib.metadata as metadata
 import json
-import re
 import subprocess
 import sys
 from collections.abc import Mapping
@@ -23,16 +22,12 @@ REQUIRED_LAUNCHERS = (
     "ovos-audio", "ovos-core", "ovos-dinkum-listener", "ovos-listen",
     "ovos-messagebus", "ovos-say-to", "ovos-speak",
 )
-KNOWN_NUMPY_CONFLICT = re.compile(
-    r"^(?:openwakeword|ovos-ww-plugin-openwakeword)\b.*\bnumpy\b",
-    re.IGNORECASE,
-)
 
 
 def unexpected_pip_check_lines(report: str) -> list[str]:
-    """Return dependency failures except the reviewed NumPy metadata gap."""
+    """Return every dependency failure; the V4 candidate has no exemptions."""
     return [line for line in (item.strip() for item in report.splitlines())
-            if line and not KNOWN_NUMPY_CONFLICT.search(line)]
+            if line]
 
 
 def validate_versions(manifest: Path) -> None:
@@ -100,6 +95,7 @@ def validate_dependencies() -> None:
     if unexpected:
         raise SystemExit("The clean OVOS environment has unresolved dependencies:\n"
                          + "\n".join(unexpected))
+    raise SystemExit('Dependency validation failed without a usable report.')
 
 
 def main() -> None:

@@ -119,6 +119,10 @@ class DesktopActionsMixin:
                 text=True,
             )
         except Exception as error:
+            if integration == "zoom" and action in {"open", "focus"} and getattr(error, "returncode", None) == 24:
+                if announce:
+                    self.speak("Zoom is running in the tray. Select its tray icon to reopen it.")
+                return False
             detail = getattr(error, 'stderr', None)
             if detail:
                 self.log.error('Desktop helper: %s', detail.strip()[:800])

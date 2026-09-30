@@ -37,6 +37,36 @@ every `load_duration` was zero. Warm singleton prompt evaluation was usually
 below 0.4 seconds, while generation was the larger remaining variable. This is
 a small latency diagnostic, not the required 350-case accuracy benchmark.
 
+## Performance context
+
+These figures explain why Jarvis keeps deterministic commands ahead of model
+and screen-agent routing. They are deliberately scoped rather than presented as
+one interchangeable benchmark:
+
+| System and evidence | Observed timing | What the figure includes |
+| --- | ---: | --- |
+| Jarvis native route, supplied live laptop trace on 2026-09-28 | 27 ms | End of raw transcription to the matched native intent. It excludes listening, speech recognition and the application action. |
+| Jarvis local Qwen, V3.5 compact-prompt laptop diagnostic | 2.66 s warm median | Seven typed post-STT action requests. It is not an end-to-end voice result or a substitute for the pending 350-case run. |
+| Alexa Plus, one independent 2026 compound smart-home test | under 3 s | One reviewer timed a multi-device request; this is an observation, not a vendor latency guarantee. |
+| Google Gemini for Home, the same independent test | about 10 s | The same compound request; some simpler commands in that review also approached ten seconds. |
+| Agent S2 with Claude 3.7 on OSWorld-Human | 690 s average task runtime; 38.6 s average agent step | A research agent repeatedly observing, planning, grounding and reflecting over desktop tasks. The corresponding human runs were 128-183 seconds. This is not a current Claude product SLA. |
+| Microsoft Copilot computer use | no comparable published timing | Microsoft documents iterative browser/desktop clicking and typing plus background task monitoring, but does not publish a directly comparable completion-time guarantee. |
+
+The smart-speaker observation comes from [The Verge's 2026 Google Home and
+Alexa Plus comparison](https://www.theverge.com/tech/959503/google-home-speaker-review-gemini-for-home).
+The desktop-agent values come from the peer-reviewed
+[OSWorld-Human efficiency study](https://arxiv.org/abs/2506.16042) and its
+[reproducibility repository](https://github.com/WukLab/osworld-human).
+Microsoft's current scope is described in its
+[Copilot Studio computer-use documentation](https://learn.microsoft.com/en-us/microsoft-copilot-studio/computer-use)
+and [Copilot Tasks documentation](https://support.microsoft.com/en-us/microsoft-copilot/using-copilot-tasks).
+
+This is architecture context, not an assertion that unlike tasks are directly
+equivalent. A fixed local command should be faster than a general visual agent:
+Jarvis selects one reviewed action and dispatches it, while a screen agent may
+need several screenshot, reasoning, action and verification cycles. The full
+spoken path must still be measured separately from post-transcription routing.
+
 The first V3.5 singleton prompt incorrectly treated polite action requests such
 as “Can I search through Brave?” as information-seeking questions. Rc2 now
 distinguishes “Can I…”, “Could you…” and “Would you…” requests from genuine

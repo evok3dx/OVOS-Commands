@@ -9,7 +9,8 @@ class SystemControlsMixin:
     def _press_enter(self):
         """Press Enter in the currently focused application."""
         try:
-            self._focused_window_details()
+            if self._terminal_input_blocked():
+                return
             self._send_focused_keys("Return")
         except Exception:
             self.log.exception("Enter key action failed")
@@ -18,7 +19,8 @@ class SystemControlsMixin:
     def _insert_new_line(self):
         """Insert a soft line break in the focused app without submitting."""
         try:
-            self._focused_window_details()
+            if self._terminal_input_blocked():
+                return
             self._send_focused_keys("shift+Return")
         except Exception:
             self.log.exception("New-line action failed")
@@ -27,7 +29,8 @@ class SystemControlsMixin:
     def _insert_period(self):
         """Insert one literal full stop without submitting the focused field."""
         try:
-            self._focused_window_details()
+            if self._terminal_input_blocked():
+                return
             self._type_focused_text(".")
         except Exception:
             self.log.exception("Full-stop action failed")
@@ -36,7 +39,8 @@ class SystemControlsMixin:
     def _press_space(self):
         """Insert one literal space in the currently focused application."""
         try:
-            self._focused_window_details()
+            if self._terminal_input_blocked():
+                return
             self._send_focused_keys("space")
         except Exception:
             self.log.exception("Space key action failed")

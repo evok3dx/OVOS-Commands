@@ -149,6 +149,16 @@ python3 "$repo_root/scripts/test-qwen-safe-workflows.py"
 python3 "$repo_root/scripts/test-qwen-setup.py"
 python3 "$repo_root/scripts/test-preferred-apps.py"
 python3 "$repo_root/scripts/test-update-security.py"
+python3 "$repo_root/scripts/test-v4-security.py"
+python3 "$repo_root/scripts/test-release-privacy.py"
+python3 "$repo_root/scripts/test-dependency-lock.py"
+python3 "$repo_root/scripts/test-v4-handover.py"
+python3 "$repo_root/scripts/test-startup-settings.py"
+python3 "$repo_root/scripts/test-core-isolation-candidate.py"
+python3 "$repo_root/scripts/test-runtime-provenance.py"
+python3 "$repo_root/scripts/test-runtime-bundle.py"
+python3 "$repo_root/scripts/test-wake-onnx-boundary.py"
+python3 "$repo_root/scripts/test-hermes-message-safety.py"
 python3 "$repo_root/scripts/test-control-update-cancel.py"
 python3 "$repo_root/scripts/test-search-pacing.py"
 python3 "$repo_root/scripts/test-media-browser-fallback.py"
@@ -920,6 +930,7 @@ assert module.update_available() == "3.0.0"
 assert module.update_status() == {
     "installed": "2.3.1", "latest": "3.0.0",
     "release_date": "2026-09-27", "available": True,
+    "checked": False, "failed": False,
 }
 updates.write_text(json.dumps({"latest": "2.3.1", "update_available": True}))
 assert module.update_available() is None
@@ -1207,6 +1218,9 @@ cp "$repo_root/ovos_skill_jarvis_dispatcher/wakeword.py" \
   "$upgrade_target/ovos_skill_jarvis_dispatcher/agents.py"
 printf '%s\n' legacy > "$upgrade_target/legacy-only.txt"
 cp "$repo_root/profiles/default.json" "$upgrade_home/.config/jarvis/profile.json"
+printf '%s\n' '{"schema_version":1,"enabled":false,"future_setting":"preserved"}' \
+  > "$upgrade_home/.config/jarvis/startup.json"
+cp "$upgrade_home/.config/jarvis/startup.json" "$test_root/old-startup.json"
 for helper in "${helpers[@]}"; do
   printf '#!/usr/bin/env bash\necho legacy %s\n' "$helper" \
     > "$upgrade_home/.local/bin/$helper"
@@ -1219,6 +1233,9 @@ cmp "$repo_root/ovos_skill_jarvis_dispatcher/agents.py" \
   "$upgrade_target/ovos_skill_jarvis_dispatcher/agents.py"
 test ! -e "$upgrade_target/legacy-only.txt"
 test ! -e "$upgrade_home/.config/autostart/jarvis-mic-indicator.desktop"
+grep -Fxq 'Hidden=true' "$upgrade_home/.config/autostart/ovos-tray.desktop"
+grep -Fxq 'X-GNOME-Autostart-enabled=false' "$upgrade_home/.config/autostart/ovos-tray.desktop"
+cmp "$test_root/old-startup.json" "$upgrade_home/.config/jarvis/startup.json"
 
 JARVIS_HOME="$upgrade_home" JARVIS_TEST_MODE=1 \
   bash "$upgrade_target/scripts/rollback.sh" --no-restart
@@ -1229,6 +1246,7 @@ cmp "$test_root/old-mic-autostart.desktop" "$upgrade_home/.config/autostart/jarv
 cmp "$test_root/old-jarvis-ovos.desktop" \
   "$upgrade_home/.local/share/applications/jarvis-ovos.desktop"
 cmp "$repo_root/profiles/default.json" "$upgrade_home/.config/jarvis/profile.json"
+cmp "$test_root/old-startup.json" "$upgrade_home/.config/jarvis/startup.json"
 for helper in "${helpers[@]}"; do
   grep -q "legacy $helper" "$upgrade_home/.local/bin/$helper"
 done

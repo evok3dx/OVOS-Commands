@@ -24,12 +24,14 @@ system**. If it says `failed`, inspect the recent logs before changing files.
 | Wake phrase does not respond | Check that the microphone indicator is green and that the listener is active. | Open **Wake phrase…**, then use **Restart full voice system**. |
 | Manual-listen shortcut does nothing | Open **Keyboard shortcuts…** and confirm the bindings. | Run `jarvis-health-check`; the update preserves existing bindings. |
 | An app opens but an action targets the wrong window | Run `jarvis-app-window focus APP_NAME`. | Follow the [window-focus guide](window-focus-and-app-integration.md); do not change shortcuts until focus works. |
-| Reading or dictation fails | Open **Open Speech Note and setup guide…** and confirm Speech Note is installed and configured. | Keep its existing models, voice and rules; do not reinstall or replace them as a first step. |
+| Reading or dictation fails | Use **Open Speech Note** and **Setup guide…** in Voice and confirm Speech Note is installed and configured. | Keep its existing models, voice and rules; do not reinstall or replace them as a first step. |
+| `Read this` is heard as `Write this` | In V4, use **Speak selected text** or **Speak highlighted text**. Cancel an unintended writing prompt first. | Compare the listener's raw transcription with the selected intent. A wrong transcript needs acoustic testing; do not remap a legitimate writing command to reading. |
 | Speech Note reading fades or changes volume at paragraph or hard-line boundaries | In Speech Note, open **Settings → Text to Speech** and turn off **Normalise audio**. | **VERIFIED live with Kokoro/Bella:** per-segment audio normalisation caused the audible fade. This is independent of Jarvis's clipboard hand-off; leave sentence splitting and the document's paragraph structure unchanged unless testing a separate issue. |
-| YouTube Music will not resume after being idle | In Brave, open **Settings → System → Performance → Always keep these sites active** and add `music.youtube.com` and `youtube.com`. | Bring the music tab forward once and handle any YouTube confirmation. Jarvis uses Brave's MPRIS session but cannot revive a discarded tab or bypass a site inactivity check. |
+| YouTube Music will not resume after being idle | Bring the music tab forward or choose a new song. A discarded tab or expired session can remove Brave's MPRIS player. | Jarvis controls the session Brave exposes. It cannot guarantee that a performance setting preserves playback or bypass YouTube inactivity checks; no automatic tab clicking or forced workaround is provided. |
 | `Read this` repeatedly says reading is still starting | Wait for the current request setup to finish, then retry once. | On 3.8.0 or earlier, update to 3.8.1; an X11 clipboard owner or 2× monitor could retain the setup lock. Do not delete Speech Note settings or its speed file. |
 | Control Centre remains on `Installing update` | Select **Stop update**, confirm, and wait for the page controls to return. | Reopen the Control Centre and compare the installed/latest versions. A completed command-line update can leave only the older GUI process stuck; do not run a second installer until the first process has stopped. |
 | Tray icon is missing | The voice system can still run without the tray. Start `~/.local/bin/ovos-tray` from a terminal. | Check `~/.local/state/jarvis/ovos-tray.log`. |
+| Voice works manually but does not start after login | In the V4 candidate, turn on **Overview → Auto-start at login**. Use **Run Jarvis** for the current session. | Verify after a fresh login. Auto-start enables the existing OVOS target and starts only the quiet tray, without opening the Control Centre. The read-only handover reports inconsistent/missing login settings; active service status alone does not prove auto-start. |
 | A problem began directly after a Jarvis update | Run the health check and view recent logs. | Use `jarvis-update rollback` only if the release caused the regression. |
 
 ## Service controls
@@ -64,6 +66,24 @@ journalctl --user \
 ```
 
 Press `Ctrl+C` to stop following the logs.
+
+In the unpublished V4 isolation mode, user units are compatibility relays;
+their active state alone does not prove that a voice worker is running. The
+Control Centre and fixed restart/microphone helpers query the actual mapped
+workers. See [service isolation](core-isolation.md) for the version-3 read-only
+worker collector, native review and owned removal sequence. It never unmutes
+a deliberately muted listener for a test.
+
+If update, rollback or uninstall refuses an isolation receipt or remaining
+native policy, stop the actual workers and follow that candidate's reviewed
+deactivation/native removal instructions first. Do not delete only the receipt
+or disable the guard: rules must not continue referencing replaced code.
+
+If V4 staging reports **REBUILD REQUIRED**, the complete verified runtime bundle
+is unavailable. The workspace reset lost its bytes. An old checksum, incomplete
+wheelhouse or online source build is not an equivalent verified replacement.
+The original working deployment should remain in place until a complete artifact
+passes the [runtime acceptance gates](v4-acceptance.md).
 
 ## Application focus
 

@@ -12,6 +12,8 @@ from gi.repository import Gtk, GLib
 SOURCE = Path.home()/'.local/src/ovos-skill-jarvis-dispatcher'
 sys.path.insert(0,str(SOURCE/'scripts'))
 from control_runtime import status, microphone_action, speech_stop, update_available
+from control_runtime import save_with_lock
+from startup_settings import start_at_login
 
 
 def tray_image(icon_dir, state, update, paused):
@@ -40,6 +42,14 @@ class OvosTray:
         self.menu.append(Gtk.SeparatorMenuItem())
         self._item('Quit tray','application-exit-symbolic',self._quit)
         self.menu.show_all();self._poll()
+        if sys.argv[1:] == ['--login']:
+            self._job(lambda:save_with_lock(start_at_login),self._login_done)
+
+    def _login_done(self,value,error):
+        if error:
+            self.status_icon.set_tooltip_text('Jarvis login start needs attention. Open Overview.')
+        self._poll()
+        return False
 
     def _item(self,title,icon,callback):
         item=Gtk.ImageMenuItem(label=title)

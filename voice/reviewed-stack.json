@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "captured_on": "2026-09-24",
-  "source": "private validated reference snapshot, 2026-09-24",
+  "source": "Reviewed portable release package policy; private validation evidence retained separately",
   "policy": "Exact package inventory for a clean staged OVOS environment. Jarvis and bundled local plugins are installed separately.",
   "packages": {
     "ctranslate2": "4.8.1",
@@ -80,7 +80,7 @@
     "ovos-wikipedia-plugin": "1.1.2a1",
     "ovos-wolfram-alpha-plugin": "1.1.2a1",
     "ovos-workshop": "9.8.7a1",
-    "ovos-ww-plugin-openwakeword": "0.4.5a2",
+    "ovos-ww-plugin-openwakeword": "0.4.5a2+jarvis.1",
     "ovos-ww-plugin-precise-onnx": "0.1.1a8",
     "ovos-ww-plugin-vosk": "0.1.11a3",
     "ovos-yes-no-plugin": "0.4.0a1",
@@ -127,10 +127,5 @@
       "reason": "Conflicts with the standalone YouTube Music provider and is not used by Jarvis's Brave-tab media path."
     }
   },
-  "verified_runtime_exceptions": [
-    {
-      "packages": ["openwakeword", "ovos-ww-plugin-openwakeword", "numpy"],
-      "reason": "The reviewed ONNX wake-word path works with NumPy 2.4.6 although upstream metadata still declares NumPy 1.x. The installer must prove the ONNX model loads."
-    }
-  ]
+  "verified_runtime_exceptions": []
 }

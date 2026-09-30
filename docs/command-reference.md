@@ -94,8 +94,10 @@ Claude wording controls the ordinary graphical chat application:
 
 `Message Claude` opens a fresh Claude Desktop chat and checks focus. Jarvis says
 “Ready”; dictate one message and it sends it, then says “Message sent.”
-`Message Claude agent` and `Message Codex agent` use the same spoken flow but
-submit through the private allowlisted agent helper, when installed.
+`Message Claude agent` and `Message Codex agent` capture and read back the
+message, then require **Send it** before submitting through the private
+allowlisted helper. **Cancel**, timeout or an unrelated native command clears
+the pending message. A confirmation is single-use; repeating it sends nothing.
 
 - `New Claude chat`: open a fresh Claude Desktop conversation.
 - `Open Claude website` or `Open Claude online`: open `claude.ai` in the
@@ -187,6 +189,9 @@ Examples:
 - `Read the page`
 - `Read the full page`
 - `Read selected text`
+- `Speak selected text` (V4 candidate)
+- `Speak highlighted text` (V4 candidate)
+- `Speak selected text at 2x` (V4 candidate)
 - `Read this at double speed`
 - `Read this at 2x`
 - `Read this page at double speed`
@@ -194,6 +199,12 @@ Examples:
 - `Read window`
 - `Read it back`
 - `Read the latest response`
+
+If speech recognition hears `Write this` when you intend `Read this`, use
+`Speak selected text` in V4. It is a separate native reading phrase; the
+existing writing command keeps its behaviour. Correctly transcribed reading
+and writing stay distinct. Short-phrase acoustic accuracy still needs live
+testing; Jarvis cannot recover the intended word from a wrong transcript alone.
 - `Read the Codex response`
 - `Read the Claude response`
 
@@ -258,6 +269,9 @@ Examples:
 - `Minimise window`
 - `Maximise window`
 - `Restore window`
+- `Minimize this app` or `Minimise this application`
+- `Maximize this application` or `Maximise this app`
+- `Restore this app`, `Restore this application` or `Unmaximise this app`
 - `Show desktop`
 - `Go to desktop`
 - `Minimize all`

@@ -1,6 +1,6 @@
 # Installer, updates and rollback
 
-This page describes the current 3.9.0 deployment contract. Historical release
+This page describes the current deployment contract and unpublished V4 candidate. Historical release
 trials and their failures are retained under [`docs/history/`](history/README.md).
 
 ## Supported target
@@ -43,6 +43,18 @@ The reviewed package set is recorded in
 source commits and hashes are in [`compatibility.json`](../compatibility.json).
 Conflicting legacy YouTube providers are deliberately excluded; Jarvis Media
 uses a bounded YouTube lookup and an enabled browser instead.
+
+V4 keeps the complete captured inventory separate from the derived candidate.
+Its optional `--runtime-wheelhouse PATH` install path verifies the complete
+wheel lock, installs offline with enforced hashes only into the unpublished
+OVOS stage, and checks package parity before any switch. Bad/missing wheels
+fail without index fallback. The normal source path uses explicit hash-pinned
+build tools and no implicit build isolation. Automatic verified-wheel
+distribution and laptop acceptance are still pending release gates.
+
+Overview separates **Auto-start at login** from **Run Jarvis / Stop Jarvis**.
+The saved startup preference survives updates. Login opens the tray quietly;
+turning auto-start off leaves the current running session alone.
 
 ## What an update owns
 

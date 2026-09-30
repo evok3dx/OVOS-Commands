@@ -42,6 +42,8 @@ while (($#)); do
   shift
 done
 
+python3 "$repo_root/scripts/isolation_services.py" --guard-uninstall "$jarvis_home"
+
 if ! "$yes"; then
   if [[ ! -t 0 || ! -t 1 ]]; then
     echo "Refusing a non-interactive uninstall without --yes." >&2

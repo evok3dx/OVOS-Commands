@@ -39,6 +39,9 @@ class FakeControls(system_controls.SystemControlsMixin):
     def _focused_window_details(self):
         return "123", "editor"
 
+    def _terminal_input_blocked(self):
+        return False
+
     def _type_focused_text(self, text):
         self.typed.append(text)
 
@@ -486,7 +489,7 @@ assert 'self.speak("Opening.")' in desktop_source
 assert 'self.speak(f"Opening {display_name}.")' not in desktop_source
 
 control_source = (ROOT / "scripts/control_center.py").read_text()
-assert "'Open Speech Note and setup guide…'" in control_source
+assert "'Open Speech Note'" in control_source and "'Setup guide…'" in control_source
 assert 'speech_note_status' in control_source and 'speech_note_action' in control_source
 
 print("PASS: V3 pipeline order and GUI media/file phrase lists")

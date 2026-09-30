@@ -1,0 +1,227 @@
+#!/usr/bin/env python3
+"""Recover pinned upstream wheels and build a separately validated candidate.
+
+Never promote repository locks, install on a laptop, or execute as root.
+"""
+import argparse
+from concurrent.futures import ThreadPoolExecutor
+import hashlib
+import importlib.util
+import json
+import os
+from pathlib import Path
+import platform
+import re
+import shutil
+import subprocess
+import sys
+import urllib.parse
+import urllib.request
+import venv
+
+ROOT = Path(__file__).resolve().parents[1]
+HOSTS = {'pypi.org', 'files.pythonhosted.org', 'github.com', 'codeload.github.com',
+         'release-assets.githubusercontent.com', 'objects.githubusercontent.com',
+         'archive.ubuntu.com'}
+
+
+def checked_url(url):
+    parts = urllib.parse.urlsplit(url)
+    if (parts.scheme != 'https' or parts.hostname not in HOSTS
+            or parts.username or parts.password or parts.port not in (None, 443)
+            or parts.fragment):
+        raise ValueError('Unreviewed artifact transport')
+    return url
+
+
+class Redirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return super().redirect_request(req, fp, code, msg, headers, checked_url(newurl))
+
+
+def reply(url):
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), Redirect())
+    return opener.open(checked_url(url), timeout=90)
+
+
+def metadata(url):
+    with reply(url) as source:
+        data = source.read(8 * 1024**2 + 1)
+    if len(data) > 8 * 1024**2:
+        raise ValueError('Metadata bounds exceeded')
+    return json.loads(data)
+
+
+def digest(path):
+    result = hashlib.sha256()
+    with path.open('rb') as stream:
+        while data := stream.read(1024**2):
+            result.update(data)
+    return result.hexdigest()
+
+
+def fetch(url, expected, target):
+    if not re.fullmatch(r'[a-f0-9]{64}', expected):
+        raise ValueError('Missing reviewed source hash')
+    if target.exists() or target.is_symlink():
+        raise ValueError('Recovery never overwrites existing inputs')
+    temporary = target.with_name(target.name + '.partial')
+    count = 0
+    try:
+        with reply(url) as stream, temporary.open('xb') as output:
+            while data := stream.read(1024**2):
+                count += len(data)
+                if count > 1024**3:
+                    raise ValueError('Artifact bounds exceeded')
+                output.write(data)
+        if digest(temporary) != expected:
+            raise ValueError('Reviewed artifact bytes changed')
+        temporary.rename(target)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def module(name, file):
+    spec = importlib.util.spec_from_file_location(name, ROOT / file)
+    result = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(result)
+    return result
+
+
+def environment(work):
+    # Build backends receive no action tokens, user config or inherited proxies.
+    return {'PATH': os.environ['PATH'], 'LANG': 'C.UTF-8',
+            'TMPDIR': str(work / 'temporary'), 'SOURCE_DATE_EPOCH': '315532800',
+            'PYTHONNOUSERSITE': '1', 'PIP_CONFIG_FILE': os.devnull,
+            'PIP_NO_INDEX': '1', 'PIP_DISABLE_PIP_VERSION_CHECK': '1'}
+
+
+def rebuild(output):
+    if (os.getuid() == 0 or os.geteuid() != os.getuid()
+            or platform.python_version() != '3.11.16'
+            or platform.machine() != 'x86_64' or sys.platform != 'linux'):
+        raise RuntimeError('Use ordinary-user Linux x86_64 Python 3.11.16')
+    output = output.absolute()
+    if output.exists() or any(path.is_symlink() for path in (output, *output.parents)):
+        raise RuntimeError('Choose a new regular output beside user-owned staging')
+    output.parent.mkdir(parents=True, exist_ok=True)
+    if output.parent.stat().st_uid != os.getuid():
+        raise RuntimeError('Output parent must belong to the build user')
+    output.mkdir(mode=0o700)
+    for name in ('wheels', 'sources', 'tools', 'temporary', 'candidate', 'proof'):
+        (output / name).mkdir(mode=0o700)
+    canonical = json.loads((ROOT / 'voice/runtime-wheels-linux-x86_64-py311.artifacts.json').read_text())['packages']
+    inputs = json.loads((ROOT / 'voice/runtime-rebuild-inputs.json').read_text())
+    sources = inputs['sources']
+    compat = json.loads((ROOT / 'compatibility.json').read_text())
+    downstream = 'ovos-ww-plugin-openwakeword'
+    source_lock = (ROOT / 'voice/runtime-sources-linux-x86_64-py311.txt').read_text()
+    if len(canonical) != 296 or len(sources) != 9:
+        raise RuntimeError('Unexpected reviewed closure')
+    for record in sources.values():
+        if record['sha256'] not in source_lock or Path(record['filename']).name != record['filename']:
+            raise RuntimeError('Rebuild source differs from reviewed source lock')
+
+    def recover(item):
+        name, record = item
+        if name in sources or name == downstream:
+            return
+        if name == 'en-core-web-sm':
+            url = compat['ovos']['tts']['spacy_model_url']
+        else:
+            values = metadata(f"https://pypi.org/pypi/{name}/{record['version']}/json")['urls']
+            exact = [v for v in values if v['filename'] == record['file']
+                     and v['digests']['sha256'] == record['sha256']]
+            if len(exact) != 1:
+                raise RuntimeError('Exact reviewed upstream wheel unavailable: ' + name)
+            url = exact[0]['url']
+        fetch(url, record['sha256'], output / 'wheels' / record['file'])
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        list(pool.map(recover, canonical.items()))
+    print('286 exact upstream wheels recovered and hash checked.', flush=True)
+    for record in sources.values():
+        fetch(record['url'], record['sha256'], output / 'sources' / record['filename'])
+    tools_lock = ROOT / 'voice/runtime-build-tools.txt'
+    pins = re.split(r'\n(?=[a-z])', tools_lock.read_text())
+    for pin in pins:
+        match = re.search(r'(?m)^([a-z-]+)==([^\s]+)', pin)
+        if not match:
+            continue
+        name, version = match.groups()
+        allowed = set(re.findall(r'--hash=sha256:([a-f0-9]{64})', pin))
+        wheels = [v for v in metadata(f'https://pypi.org/pypi/{name}/{version}/json')['urls']
+                  if v['filename'].endswith('-py3-none-any.whl') and v['digests']['sha256'] in allowed]
+        if len(wheels) != 1:
+            raise RuntimeError('Hashed build tool unavailable')
+        record = wheels[0]
+        fetch(record['url'], record['digests']['sha256'], output / 'tools' / record['filename'])
+    env = environment(output)
+    build_env = output / 'build-venv'
+    venv.EnvBuilder(with_pip=True).create(build_env)
+    python = str(build_env / 'bin/python')
+    subprocess.run([python, '-I', '-m', 'pip', '--isolated', 'install', '--no-index',
+                    '--no-deps', '--require-hashes', '--find-links', str(output / 'tools'),
+                    '-r', str(tools_lock)], check=True, env=env)
+    headers = inputs['alsa_headers']
+    header_package = output / 'sources' / headers['filename']
+    fetch(headers['url'], headers['sha256'], header_package)
+    subprocess.run(['dpkg-deb', '-x', str(header_package), str(output / 'alsa')], check=True, env=env)
+    env['CPATH'] = str(output / 'alsa/usr/include')
+    env['LIBRARY_PATH'] = str(output / 'alsa/usr/lib/x86_64-linux-gnu')
+    wheel_command = [python, '-I', '-m', 'pip', '--isolated', 'wheel', '--no-index',
+                     '--no-deps', '--no-build-isolation', '--no-cache-dir',
+                     '--wheel-dir', str(output / 'wheels')]
+    for name, record in sources.items():
+        subprocess.run(wheel_command + [str(output / 'sources' / record['filename'])], check=True, env=env)
+        print('Built reviewed source:', name, flush=True)
+    patch_source = ROOT / 'extras/ovos-ww-plugin-openwakeword-onnx'
+    provenance = json.loads((patch_source / 'PROVENANCE.json').read_text())
+    for file, expected in provenance['source_files_sha256'].items():
+        if digest(patch_source / file) != expected:
+            raise RuntimeError('Downstream wake plugin source changed')
+    patch_copy = output / 'sources/onnx-wake'
+    shutil.copytree(patch_source, patch_copy)
+    subprocess.run(wheel_command + [str(patch_copy)], check=True, env=env)
+    dep = module('rebuild_dependencies', 'scripts/dependency-lock.py')
+    candidate_lock = output / 'candidate/runtime.txt'
+    inventory = ROOT / 'voice/runtime-linux-x86_64-py311.json'
+    dep.lock(output / 'wheels', inventory, candidate_lock)
+    records = dep.wheel_records(output / 'wheels')
+    if any(records[name]['requires'] != canonical[name]['requires'] for name in records):
+        raise RuntimeError('Rebuilt dependency metadata changed; stop for review')
+    changes = {name: {'previous': canonical[name]['sha256'], 'rebuilt': record['sha256']}
+               for name, record in records.items() if record['sha256'] != canonical[name]['sha256']}
+    if set(changes) - set(sources) - {downstream}:
+        raise RuntimeError('Indexed wheel identities changed')
+    dep.private_write(output / 'proof/hash-differences.json', json.dumps(changes, indent=2) + '\n')
+    probe = module('rebuild_probe', 'scripts/probe-offline-runtime.py')
+    probe.run_probe(output / 'wheels', inventory, candidate_lock, output / 'proof/offline-install.json')
+    home = output / 'synthetic-home'
+    target = home / '.local/state/jarvis/stage.rebuild/ovos-venv'
+    target.parent.mkdir(parents=True, mode=0o700)
+    venv.EnvBuilder(with_pip=True).create(target)
+    probe.run_probe(output / 'wheels', inventory, candidate_lock,
+                    output / 'proof/staged-install.json', target, home)
+    bundle = module('rebuild_bundle', 'scripts/runtime_bundle.py')
+    bundle.build(output / 'wheels', inventory, candidate_lock,
+                 candidate_lock.with_suffix('.artifacts.json'),
+                 output / 'candidate/jarvis-runtime-linux-x86_64-py311.zip',
+                 output / 'candidate/runtime-bundle.json')
+    dep.private_write(output / 'proof/rebuild.json', json.dumps({
+        'schema_version': 1, 'status': 'candidate byte verification and offline staging passed',
+        'package_count': len(records), 'metadata_exceptions': [],
+        'python_full_version': platform.python_version(),
+        'source_build_count': len(sources) + 1, 'hash_changes_require_review': sorted(changes),
+        'locks_promoted': False, 'live_environment_modified': False,
+        'live_isolation_verified': False,
+        'inventory_sha256': digest(inventory), 'build_tools_sha256': digest(tools_lock),
+    }, indent=2) + '\n')
+    print('Complete bundle verified; repository locks unchanged; live gates remain.', flush=True)
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--output', type=Path, required=True)
+    args = parser.parse_args()
+    rebuild(args.output)

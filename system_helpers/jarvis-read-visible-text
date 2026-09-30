@@ -445,10 +445,10 @@ fi
 recovered_was_running=0
 if [[ -f "$fast_marker" && ! -L "$fast_marker" && -O "$fast_marker" ]]; then
     marker_version=""
-    marker_token=""
+    _marker_token=""
     restore_speed=""
     marker_was_running=0
-    read -r marker_version marker_token restore_speed marker_was_running \
+    read -r marker_version _marker_token restore_speed marker_was_running \
       < "$fast_marker" || true
     if [[ "$marker_version" != v2 || \
           ! "$restore_speed" =~ ^([1-9]|1[0-9]|20)$ ]]; then
@@ -534,6 +534,27 @@ fi
 # bounded owner cannot inherit the reading transaction lock.
 xclip -selection clipboard -silent -i < "$captured_text" 9>&- &
 clipboard_owner_pid=$!
+
+# Ownership is asynchronous. Verify the newly owned value before the reader
+# can consume it; never substitute an earlier clipboard or retain a backup.
+clipboard_ready=0
+for ((attempt=0; attempt<5; attempt++)); do
+    if timeout 0.1 xclip -selection clipboard -o 9>&- > "$main_text" 2>/dev/null &&
+       cmp -s "$captured_text" "$main_text"; then
+        clipboard_ready=1
+        break
+    fi
+    sleep 0.05
+done
+if (( clipboard_ready == 0 )); then
+    clear_clipboard
+    if (( temporary_fast == 1 )); then
+        set_speech_note_speed "$restore_speed"
+        rm -f -- "$fast_marker"
+    fi
+    echo "Could not prepare selected text for Speech Note" >&2
+    exit 22
+fi
 
 flatpak run net.mkiol.SpeechNote \
   --action start-reading-clipboard \

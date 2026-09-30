@@ -79,11 +79,18 @@ class DispatcherHelpersMixin:
                 ],
                 capture_output=True,
                 text=True,
-                check=False,
+                check=True,
                 timeout=5
             )
             window_class = class_result.stdout.lower()
-            is_terminal = "terminal" in window_class
+            if self._is_terminal_window(window_class):
+                self.speak("Terminal input is blocked.")
+                return
+
+            focused, focused_class = self._focused_window_details()
+            if focused != str(window_id) or self._is_terminal_window(focused_class):
+                self.speak("The focused window changed, so I cancelled.")
+                return
 
             subprocess.run(
                 [
@@ -95,6 +102,11 @@ class DispatcherHelpersMixin:
                 check=True,
                 timeout=8
             )
+
+            focused, focused_class = self._focused_window_details()
+            if focused != str(window_id) or self._is_terminal_window(focused_class):
+                self.speak("The focused window changed, so I cancelled.")
+                return
 
             subprocess.run(
                 [
@@ -112,13 +124,11 @@ class DispatcherHelpersMixin:
 
             self._last_typed_text = text
 
-            if press_enter and is_terminal:
-                self.speak(
-                    "Written, but I will not press Enter in Terminal."
-                )
-                return
-
             if press_enter:
+                focused, focused_class = self._focused_window_details()
+                if focused != str(window_id) or self._is_terminal_window(focused_class):
+                    self.speak("The focused window changed, so I cancelled.")
+                    return
                 subprocess.run(
                     [
                         "/usr/bin/xdotool",

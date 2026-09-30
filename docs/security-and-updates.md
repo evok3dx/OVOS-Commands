@@ -68,6 +68,43 @@ sha256sum --check "ovos-commands-$version.tar.gz.sha256"
 tar -tzf "ovos-commands-$version.tar.gz"
 ```
 
+## V4 candidate safeguards
+
+**VERIFIED in isolated tests; unpublished:** generic writing and submission
+refuse terminal windows and recheck the focused target. Prompts to the
+tool-capable private agent require readback and an exact, single-use `send it`.
+Reading clears its temporary clipboard text after a bounded handoff and never
+restores a previous clipboard value. These controls reduce accidental execution
+and exposure while keeping everyday desktop commands available.
+
+Support reports redact common credentials and machine/location identifiers;
+archives are created privately and published only when complete. No report is
+uploaded automatically. Update redirects must remain HTTPS on reviewed GitHub
+hosts, alongside checksum and extraction checks. Source/history and candidate
+artifact scans are part of release validation, not a guarantee that reports
+contain no sensitive content.
+
+The complete V4 runtime has a version inventory plus source and wheel hash
+locks. Offline candidate installation enforces every wheel hash and rejects
+dependency conflicts. Production installation, live voice acceptance and core
+egress enforcement are still release gates. Local processing does not mean
+internet access is blocked; see [V4 acceptance](v4-acceptance.md) for the precise
+boundary. Signed updates are a prototype, not an enabled production feature.
+
+The restored V4 installer requires full wheel hashes and private installation
+provenance before a staged runtime can be reused. Its separate bundle builder
+and failure checks pass on real fixture wheels; the full artifact lost in the
+workspace reset remains a recovery/revalidation gate. Installation receipts
+record provenance; they do not rehash installed files on every run.
+
+The [service isolation candidate](core-isolation.md) prepares reviewed native
+service data while all workers remain the ordinary desktop user. Weather and
+Media stay separate, and the existing desktop launcher stays outside the
+restricted workers. Narrow control authorisation and transactional removal are
+tested in isolation. Live enforcement, Ollama and mediated/inherited sockets
+remain unverified; neither a receipt nor the earlier temporary probe enables
+an isolation claim. The same-user bus and desktop session remain trusted.
+
 ## Updating Jarvis and OVOS
 
 The default update source is `evok3dx/OVOS-Commands`. If it moves later, an

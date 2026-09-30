@@ -329,9 +329,10 @@ print(json.dumps({
                             f"{package} is {installed_version}; reviewed version is {expected_version}.")
             else:
                 report.fail(f"bella-{package}", f"Required package {package} is missing.")
-    if reviewed_upgrade and str(data["versions"].get("numpy") or "").split(".")[0] == "2":
+    if (reviewed_upgrade and str(data["versions"].get("numpy") or "").split(".")[0] == "2"
+            and data["versions"].get("ovos-ww-plugin-openwakeword") != "0.4.5a2+jarvis.1"):
         report.warn("openwakeword-numpy-metadata",
-                    "Installed OpenWakeWord declares numpy<2; reference system's ONNX engine was tested with NumPy 2, but this metadata conflict remains.")
+                    "The upstream wake plugin declares numpy<2. The V4 candidate retains NumPy 2 using a separately versioned ONNX-only plugin; use validated staged repair rather than changing the live environment by hand.")
 
 
 def check_wakeword_config(

@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "status": "candidate test artifacts; laptop file parity and upstream signature authenticity not verified",
+  "wake_artifacts": [
+    {
+      "name": "melspectrogram.onnx",
+      "url": "https://github.com/dscripka/openWakeWord/releases/download/v0.5.1/melspectrogram.onnx",
+      "bytes": 1087958,
+      "sha256": "ba2b0e0f8b7b875369a2c89cb13360ff53bac436f2895cced9f479fa65eb176f",
+      "upstream_authenticated": false
+    },
+    {
+      "name": "embedding_model.onnx",
+      "url": "https://github.com/dscripka/openWakeWord/releases/download/v0.5.1/embedding_model.onnx",
+      "bytes": 1326578,
+      "sha256": "70d164290c1d095d1d4ee149bc5e00543250a7316b59f31d056cff7bd3075c1f",
+      "upstream_authenticated": false
+    },
+    {
+      "name": "hey_jarvis_v0.1.onnx",
+      "url": "https://github.com/dscripka/openWakeWord/releases/download/v0.5.1/hey_jarvis_v0.1.onnx",
+      "bytes": 1271370,
+      "sha256": "94a13cfe60075b132f6a472e7e462e8123ee70861bc3fb58434a73712ee0d2cb",
+      "upstream_authenticated": false
+    },
+    {
+      "name": "melspectrogram.tflite",
+      "url": "https://github.com/dscripka/openWakeWord/releases/download/v0.5.1/melspectrogram.tflite",
+      "bytes": 1092516,
+      "sha256": "96fa0adccb6e8cf95cb14465409a1a2898ee4a96a85bb9ed3c7eb0e68bf163e8",
+      "upstream_authenticated": false
+    },
+    {
+      "name": "embedding_model.tflite",
+      "url": "https://github.com/dscripka/openWakeWord/releases/download/v0.5.1/embedding_model.tflite",
+      "bytes": 1330312,
+      "sha256": "c0aea21eb84a4ce90a08c870da41b7a7173b45269e6a3207c71d67c40f3a59d8",
+      "upstream_authenticated": false
+    },
+    {
+      "name": "hey_jarvis_v0.1.tflite",
+      "url": "https://github.com/dscripka/openWakeWord/releases/download/v0.5.1/hey_jarvis_v0.1.tflite",
+      "bytes": 1278912,
+      "sha256": "14bff778604985e1b5c19f0f7bbe477a69cf281d8db34b232b3b972411f710e2",
+      "upstream_authenticated": false
+    }
+  ],
+  "whisper_and_bella_files_verified": false,
+  "qwen_policy": {
+    "model": "qwen3:4b-instruct-2507-q4_K_M",
+    "identity": "tag pinned only; private laptop digest evidence retained separately",
+    "files_verified": false
+  }
+}

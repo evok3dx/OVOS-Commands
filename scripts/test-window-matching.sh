@@ -47,7 +47,7 @@ EOF
 
 chmod +x "$tmp/bin/wmctrl" "$tmp/bin/xdotool"
 
-PATH="$tmp/bin:$PATH" "$HELPER" focus standard_notes
+HOME="$tmp/home" PATH="$tmp/bin:$PATH" "$HELPER" focus standard_notes
 
 # ONLYOFFICE uses its real desktop entry through the reviewed GIO launcher.
 # The helper then waits for one of the fixed native/Flatpak window classes.
@@ -67,5 +67,13 @@ HOME="$office_home" PATH="$tmp/bin:$PATH" \
   JARVIS_LAUNCH_LOG="$office_log" \
   "$HELPER" open onlyoffice
 grep -Fxq 'office' "$office_log"
+
+# Application words in a browser title cannot identify a Zoom window.
+if HOME="$office_home" PATH="$tmp/bin:$PATH" \
+  JARVIS_WINDOW_LINE='0x05c00004 0 brave-browser.Brave-browser host Zoom.Zoom meeting' \
+  "$HELPER" minimize zoom 2>/dev/null; then
+  echo 'Window title was mistaken for WM_CLASS' >&2
+  exit 1
+fi
 
 echo "window matching regression test: PASS"

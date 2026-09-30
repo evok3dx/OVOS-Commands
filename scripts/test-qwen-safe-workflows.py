@@ -62,6 +62,9 @@ for phrase, expected in benchmark["cases"]():
     assert expected in allowed, (phrase, expected, sorted(allowed))
 
 cases = (
+    ("Speak selected text", "reading.selection"),
+    ("Speak highlighted text", "reading.selection"),
+    ("Speak selected text at 2x", "reading.selection_fast"),
     ("Could you start writing for me?", "text.write"),
     ("Begin continuous dictation", "dictation.start"),
     ("Would you read this sentence aloud?", "reading.selection"),
@@ -91,6 +94,12 @@ for spoken, expected in cases:
         assert routing_model.classify(
             spoken, catalogue, configured,
         )["actual"] == expected
+
+for spoken in ('Read this', 'Read this aloud', 'Speak selected text', 'Speak highlighted text'):
+    allowed = routing_model.candidates_for(spoken, catalogue, configured)
+    assert 'reading.selection' in allowed and 'text.write' not in allowed, (spoken, allowed)
+allowed = routing_model.candidates_for('Write this', catalogue, configured)
+assert 'text.write' in allowed and not any(action.startswith('reading.') for action in allowed)
 
 for spoken in ("Can I search through Brave?", "Can I dictate something to Hermes?"):
     payload, _allowed = routing_model.payload_for(spoken, catalogue, configured)

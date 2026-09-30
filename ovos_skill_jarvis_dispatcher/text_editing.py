@@ -1,3 +1,4 @@
+import re
 import subprocess
 
 
@@ -15,16 +16,32 @@ class TextEditingActionsMixin:
 
         window_class = subprocess.run(
             ["/usr/bin/xprop", "-id", window, "WM_CLASS"],
-            capture_output=True, text=True, check=False, timeout=5,
+            capture_output=True, text=True, check=True, timeout=5,
         ).stdout.lower()
+        if not re.search(r'"[^"\n]+"',window_class):
+            raise RuntimeError("Focused window class is unavailable")
         return window, window_class
 
     @staticmethod
     def _is_terminal_window(window_class):
-        return any(
-            name in window_class
-            for name in ("terminal", "konsole", "xterm", "kitty", "alacritty")
-        )
+        # Compare WM_CLASS identifiers, never window titles. Match the shared
+        # terminal family across write, editing and submission routes.
+        identities = re.findall(r'"([^"\n]+)"', str(window_class).lower())
+        if not identities:
+            identities = [str(window_class).lower().strip()]
+        names = {"konsole", "xterm", "uxterm", "kitty", "alacritty", "foot",
+                 "footclient", "wezterm", "org.wezfurlong.wezterm", "tilix",
+                 "com.gexperts.tilix", "ghostty", "com.mitchellh.ghostty",
+                 "terminator", "terminology", "sakura", "st", "urxvt",
+                 "rxvt", "guake", "yakuake", "tilda"}
+        return any(name in names or "terminal" in name for name in identities)
+
+    def _terminal_input_blocked(self):
+        _, window_class = self._focused_window_details()
+        if self._is_terminal_window(window_class):
+            self.speak("Terminal input is blocked.")
+            return True
+        return False
 
     @staticmethod
     def _send_focused_keys(keys):
@@ -132,8 +149,9 @@ class TextEditingActionsMixin:
             "cancel", "cancel it", "never mind", "nevermind", "stop", "wait",
         }
 
-    @staticmethod
-    def _type_focused_text(text):
+    def _type_focused_text(self, text):
+        if self._terminal_input_blocked():
+            return
         subprocess.run(
             [
                 "/usr/bin/xdotool", "type", "--clearmodifiers",

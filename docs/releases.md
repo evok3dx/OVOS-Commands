@@ -7,6 +7,247 @@ acceptance work. Durable design choices belong in
 under [`history/`](history/README.md). Other current documents link here rather
 than repeating release narratives.
 
+## 4.0.0rc1 (working candidate, unpublished)
+
+Status: **Implementation in progress. Owner authorised completion and publication;
+artifact and live acceptance gates remain open.** This entry supersedes the collection-only checklist; the full
+agreed scope is retained in the owner's V4 implementation plan.
+
+**Current recovery checkpoint, 30 September 2026:** the workspace reset restored
+an earlier checkout. Later commits, the original v2 collector source/archive,
+the full wheelhouse and the approximately 433 MiB runtime bundle are missing.
+Their earlier results below are **HISTORICAL evidence for those exact inputs**,
+not a fresh pass for this restored candidate. The supplied v2 report remains
+unchanged and still establishes temporary system-manager feasibility.
+
+**Restored in source; isolated regressions pass:** quiet login requests the
+stopped stack once and preserves deliberate mute/off choices. Three ordinary-user
+system-manager workers deny non-loopback IP; separate Weather/Media workers
+retain online operations. Fixed-account polkit grants only five static service
+names and three control verbs. Activation/removal tests cover injected reload
+failures, private owned files, unchanged settings and stale compatibility relays.
+Run/Stop, restart, microphone and log controls use actual worker identities.
+The distinct version-3 collector tests actual workers with private single-use
+tickets; absent, muted, wrong-source or inconclusive workers cannot pass.
+These are source/fixture tests, not live service enforcement.
+
+Runtime staging now requires the complete hash-checked closure and installation
+receipt. The restored separate-bundle builder verifies packaged bytes; real
+fixture-wheel tests cover deterministic output, staging and tampering. The
+current bundle policy deliberately says **REBUILD REQUIRED** and refuses
+installation before staging; an old checksum alone cannot recover its bytes.
+There is no resolver/source fallback. NumPy 2.4.6 and zero exemptions remain.
+Ollama has a separate data-only network policy candidate preserving its existing
+ordinary-user daemon, executable, models and CPU/GPU settings. Nothing has been
+applied to the laptop. See [the bounded service candidate](core-isolation.md).
+
+**Current release blockers:** rebuild and revalidate the full exact runtime
+artifact; scan the final rebuilt artifact; actual OVOS/Ollama, model,
+DNS/proxy/inherited-socket, voice, GUI, login, stage-switch and recovery
+acceptance; effective Hermes permissions and owner repository review. Fresh source and full-history Gitleaks scans pass after tool recovery; the
+production shell check also passes after correcting an unused loop variable.
+The source recovery branch is being published under the owner's authorisation.
+No V4 release/tag or live migration has been performed. The complete V4 scope remains.
+
+**VERIFIED restored-candidate checks:** required source validation/routing/Qwen/
+updater tests and the complete deployment suite pass. The rebuilt code archive's
+clean-extracted copy passes the same suite, including preservation, staged
+failure recovery, rollback and uninstall. Source and clean-copy policy runs
+each pass 350/350 without model calls or desktop actions. All four surviving
+plugin wheel checksums pass and their package bytes match current source.
+Python compilation, shell syntax and diff checks pass. These checks do not
+close the current artifact, scanner or live gates above.
+
+**Publication privacy correction:** an approval review blocked the raw laptop
+inventory upload. The original capture is retained privately and removed from
+Git/public packaging and its manifest. Public runtime files now contain only
+reviewed installer pins, wheel/source hashes and dependency metadata. Observed
+model digests and source-install indicators remain in private evidence. Packaging and the
+release scanner refuse an observed-runtime capture, including untracked backups. No runtime package version
+or dependency exemption changes in this correction. The recovered runtime builder
+uses an ordinary-user GitHub runner, verified upstream wheel hashes, nine
+hash-pinned upstream sources and the reviewed ONNX downstream source. New locks
+remain separate candidates until metadata, complete offline installation, staged
+installation and archive byte checks pass; rebuilt hash differences remain explicit.
+The workflow never publishes a release or changes a live laptop.
+
+**VERIFIED in isolated tests:**
+
+- Native and Qwen candidate coverage for current-app minimise, maximise and
+  restore wording, retaining named-target checks. The 350-case policy run
+  passes; it makes no model calls and executes no desktop actions.
+- Distinct native `Speak selected text`, `Speak highlighted text` and 2× reading
+  phrases reuse the existing reader and appear automatically in Commands.
+  Reading/writing candidate separation tests pass. The owner's supplied trace
+  first transcribes `Write this` and selects writing, then transcribes `Read
+  this` and selects reading; acoustic accuracy remains a live gate. Existing
+  writing behaviour is preserved, with no read-for-write substitution, command
+  hint bias, microphone/model change or added writing confirmation.
+- Shared terminal identity checks block generic writing, Enter, new line,
+  period and space before input. Focus changes cancel typing/submission.
+- Private agent prompts are captured, read back and require `send it` once.
+  Cancel, timeout and native-command escape clear pending prompts.
+- Reports redact quoted credentials, authorization schemes, credential URLs,
+  nested locations, hostnames and IPv4/IPv6. Archives are private from creation,
+  published atomically only when complete and never overwrite an existing path.
+  Diagnostic material is explicitly untrusted; reports are never auto-uploaded.
+- Window matching uses the WM_CLASS column. A browser title containing Zoom
+  cannot pass. A running tray-only Zoom process returns clear feedback without
+  relaunching or killing it; safe tray activation remains unverified.
+- Updater transport requires HTTPS and reviewed GitHub hosts on every redirect.
+  The public release API/checksum asset redirect chain passes. Manual archive
+  checks remain, with Python's data filter added where supported.
+- The reading helper verifies clipboard readiness before requesting playback,
+  clears temporary text after the bounded handoff, and never restores a prior
+  clipboard. Existing speed, lock, update cancellation, upgrade preservation,
+  rollback and uninstall tests pass.
+- **HISTORICAL pre-reset:** source and full history scans passed with Gitleaks 8.30.1. Two exact
+  historical findings were inspected and are public Ctrl+Shift+End chords;
+  `.gitleaksignore` contains only those reviewed fingerprints. ShellCheck
+  0.11.0 warning-level checks pass for the changed production shell files.
+
+**Implemented in source; live GUI acceptance pending:** separate Speech Note
+open/guide actions, a bounded one-line activity banner, a scrollable guide with
+Copy rule/one-second clearing, responsive two-column Voice and Maintenance
+cards, more Results space, category/application icons, and green `Up to date`
+only after a successful update check. Unchecked/failed checks remain distinct.
+
+**Dependency feasibility evidence:** both supplied laptop reports contain the
+same complete 296-package inventory, including `yt-dlp==2026.8.19`, matching the
+then-reviewed pins. Their original inventory is retained separately. The V4
+derived candidate retains NumPy `2.4.6` and changes only the wake plugin to the
+clearly versioned `0.4.5a2+jarvis.1` ONNX-only downstream build. Its 296 wheels installed
+with `--no-index --no-deps --require-hashes` in an isolated Linux x86_64
+Python 3.11.16 environment. Complete installed inventory parity and the three
+first-party plugin imports pass. Nine upstream source builds and the downstream
+plugin build used a separately hashed
+four-package build-tool lock with build isolation disabled. The source lock,
+wheel hashes, complete metadata and toolchain evidence are recorded in `voice/`.
+ALSA headers were extracted temporarily; no system packages were installed.
+The upstream `0.4.5a2` plugin's `numpy<2` conflict is resolved in the candidate
+by enforcing an actual ONNX-only boundary: TFLite is rejected before model
+creation, default paths are explicitly ONNX, and runtime model downloads are
+removed. The Apache-2.0 source, upstream archive hash and exact patch provenance
+are packaged. All active constraints pass with **zero exemptions**; staged
+dependency checks now reject every conflict. Actual plugin inference on 50
+silent frames passes with real Hey Jarvis ONNX models, network connections
+forbidden and no TFLite import. NumPy 1.26.4 was tested successfully as an
+alternative and superseded to retain the owner's NumPy 2 stack. ONNX Runtime,
+Faster Whisper imports and the Adapt
+intent API pass. This is **candidate installation evidence**, not laptop
+native ABI/model inference on the laptop, a reproducible OS/compiler toolchain
+or current production acceptance. The current restored installer enforces full
+hashes in its staged path; the missing full artifact must be revalidated before
+that restored implementation is accepted for release.
+
+The dependency tool captures complete laptop pins and validates wheel hashes,
+metadata, transitives and requested extras. It refuses incomplete/changed wheel
+sets. [The laptop handover](v4-acceptance.md) describes the remaining gates.
+
+**VERIFIED continuation:** the disposable offline probe copies and rechecks
+actual wheel bytes, rejects altered/injected locks before installation, disables
+indexes/dependency resolution/source builds, checks complete installed parity
+and removes its temporary environment. A real local fixture wheel installs on
+Python 3.11.16; the complete captured laptop wheelhouse also passes this probe.
+Capture now records Python patch version and safe non-index source identities;
+unknown/editable sources require review instead of being converted to PyPI pins.
+Dependency markers use the captured Python patch version. One read-only laptop
+report includes user services, system Ollama, safe configuration/Hermes
+indicators and a loopback-only Qwen digest. No model is loaded or downloaded,
+and no service rule, live environment or account setting is changed.
+
+**Startup follow-up:** the second supplied report shows all five OVOS user
+services active after the owner started them manually. It does not capture
+login enablement or establish the boot failure's cause. Overview now separates
+**Auto-start at login** from **Run Jarvis / Stop Jarvis**. Auto-start changes
+only future login enablement of the existing `ovos.service` target and quiet
+tray launcher; it neither starts nor stops current services. The private saved
+choice and unknown fields survive updates and rollback. Failed writes or
+partial enablement failures restore the prior state; unsafe/customised paths
+stop for review. The read-only handover now reports login preference and actual
+enablement. Regression tests pass; GTK interaction and the next real login
+remain live acceptance gates.
+
+**Conditional prototype:** Minisign 0.12 disposable keys pass authentic,
+wrong-key, tampering and rotation-boundary tests. Production signing,
+bootstrap-key distribution and updater integration are not enabled.
+
+**Earlier blockers, still open unless explicitly closed above:** full-artifact
+production hash-enforced staged wheel installation and
+live voice/model acceptance; managed model
+identities; actual core service egress enforcement with separated weather/web
+functions; GUI/desktop/350-case real-model tests. This environment has no live
+OVOS user services or GTK desktop. Hermes sandbox/tool permissions need a live
+review. No blanket firewall, new daemon or speculative sandbox change is applied.
+Full-hash and isolation failures require the owner's explicit scope decision
+before final V4 release. No silent deferral or `fully offline` claim is permitted.
+
+The items below are live acceptance gates. Pre-change descriptions explain
+the original reported issues:
+
+- [ ] Add an explicit, verifiable network-isolation mode instead of describing
+  local operation as enforced offline isolation. The current router contacts
+  Ollama only on `127.0.0.1`, but the installed OVOS user services have no
+  outbound-network denial and UFW's existing inbound policy does not provide
+  that guarantee. Define an **Offline enforced** mode that blocks non-loopback
+  traffic while separate, narrowly reviewed weather/online helpers, Brave music
+  and the updater retain their intended online functions. Keep **Local-first**
+  as the accurate current label until enforcement is proved. OVOS
+  loads core routing and some network-backed skills in the same process, so do
+  not apply a blanket service restriction until those boundaries and failure
+  paths are tested. Add negative egress tests and do not claim air-gapped
+  operation until live verification proves the block.
+- [x] Add a scoped performance comparison to the local-routing documentation.
+  Keep post-transcription native routing, the small warm Qwen diagnostic,
+  independent smart-speaker observations and research desktop-agent timings
+  explicitly separate. Do not market unlike workloads as one benchmark, and
+  retain the full 350-case laptop run as pending acceptance evidence.
+- [ ] Treat `minimize/minimise this app` and `this application` as focused-window
+  requests in both native vocabulary and the Qwen safety filter. Audit the
+  equivalent maximise/maximize and restore forms at the same time. Add positive
+  benchmark variations while retaining the rule that named-application actions
+  require an enabled, recognised target. Live evidence: `Minimize this app` was
+  transcribed exactly, missed native routing, lost `window.minimize` during
+  candidate filtering and correctly ended with `Please repeat.`
+- [ ] Redesign the Speech Note setup result in the Control Centre. The current
+  pre-V4 action placed the helper's complete multiline guide in the top activity
+  banner, expanding it and pushing the working page downward. Keep the banner
+  to one concise status such as `Speech Note opened`. Put the formatted setup
+  guide in a fixed-size, scrollable dialog or an in-card expander with clear
+  sections, a monospaced wake-filter pattern and a **Copy rule** action. Keep
+  **Open Speech Note** and **Setup guide** as separate, clean actions, preserve
+  existing settings, and add a GUI regression proving long guidance cannot
+  resize or displace the main Control Centre layout.
+- [ ] Replace the Updates tab's disabled `No update available` wording with a
+  calm green healthy state labelled **Up to date**. Keep update failures and
+  unchecked state visually distinct; green must mean a completed successful
+  check against the published release, not merely the absence of cached data.
+- [ ] Add meaningful icons throughout Apps & Commands defaults: symbolic icons
+  for default categories such as Browser, Mail, Notes and Office, plus each
+  application's real desktop icon where available and a consistent generic
+  fallback where it is not. Preserve text labels and accessible names so the
+  icons improve scanning without becoming the only identifier.
+- [ ] Rework Voice and Maintenance into balanced two-column card grids instead
+  of one long vertical stack. Pair related Voice cards and Maintenance cards in
+  one row of two at the normal Control Centre width, while retaining a readable
+  stacked fallback for narrow layouts. Restyle Advanced as a deliberate compact
+  section with clear action descriptions rather than a visually unfinished
+  expander, and give **Results and details** the reclaimed space as the large,
+  stable output area. Add visual/layout checks for equal card alignment,
+  wrapping and unchanged window height.
+- [ ] Restore Zoom correctly when its main window has been closed to the tray.
+  Live evidence confirms the exact `Open Zoom` transcription and native intent
+  succeed, while starting Zoom again hands off to the existing tray process and
+  produces no window for `jarvis-app-window` to focus. Detect these states
+  separately: focus an existing window; otherwise, if Zoom is already running,
+  activate its real Cinnamon tray/status item; only launch Zoom when no process
+  is running. Do not kill or restart a running Zoom process because it may own
+  an active meeting. If safe tray activation is unavailable, say that Zoom is
+  running in the tray instead of waiting ten seconds and reporting a false
+  launch failure. Verify the tray protocol and observed process/window identity
+  on both native and Flatpak installations, retain exact allowlists, and add
+  visible-window, tray-only and cold-start regressions.
+
 ## 3.9.0
 
 Status: **VERIFIED in focused source tests; full release and live laptop

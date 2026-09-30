@@ -149,7 +149,7 @@ for gui_module in ('control_center.py', 'control_runtime.py'):
 control_center = (ROOT / 'scripts/control_center.py').read_text(encoding='utf-8')
 assert "'Restart commands'" in control_center
 assert "'Restart full voice system'" in control_center
-assert "'Update Available ('" in control_center
+assert "'Update available ('" in control_center
 assert "self.service_labels" in control_center
 assert "'jarvis-danger'" in control_center
 assert "'jarvis-service-row'" in control_center
@@ -202,7 +202,7 @@ assert COMPATIBILITY["ovos"]["wakeword"] == {
     "phrase": "hey_jarvis",
     "module": "ovos-ww-plugin-openwakeword",
     "package": "ovos-ww-plugin-openwakeword",
-    "validated_version": "0.4.5a2",
+    "validated_version": "0.4.5a2+jarvis.1",
     "engine_package": "openwakeword",
     "engine_version": "0.6.0",
     "threshold": 0.4,
@@ -217,6 +217,7 @@ assert tuple(COMPATIBILITY["ovos"]["tts"][key] for key in (
 )) in {
     ("0.0.4a23", "1.29.0", "1.26.4"),
     ("0.0.4a31", "1.30.0", "2.4.6"),
+    ("0.0.4a31", "1.30.0", "1.26.4"),
 }, "TTS dependency versions do not match a reviewed baseline"
 assert COMPATIBILITY["ovos"]["tts"]["spacy_version"] == "3.8.15"
 assert COMPATIBILITY["ovos"]["validated_package_versions"]["ovos-adapt-parser"] == "1.6.7a2"
@@ -245,7 +246,7 @@ filter_dependency_report = staged_validator["unexpected_pip_check_lines"]
 entry_point_pairs = staged_validator["entry_point_pairs"]
 assert filter_dependency_report(
     "openwakeword 0.6.0 has requirement numpy<2, but you have numpy 2.4.6."
-) == []
+) == ["openwakeword 0.6.0 has requirement numpy<2, but you have numpy 2.4.6."]
 assert filter_dependency_report(
     "old-skill 1.0 requires ovos-workshop<8, but you have 9.8.7a1."
 ) == ["old-skill 1.0 requires ovos-workshop<8, but you have 9.8.7a1."]
@@ -578,7 +579,7 @@ def main():
     fake = FakeSkill()
     fake._jarvis_profile = reference_profile
     namespace["register_skill_vocabulary"](fake, include_custom=False)
-    assert len(fake.registrations) == 2024, len(fake.registrations)
+    assert len(fake.registrations) == 2044, len(fake.registrations)
     assert len(fake.registrations) == len(set(fake.registrations)), (
         "Duplicate vocabulary registrations are present"
     )
@@ -600,6 +601,10 @@ def main():
     phrase_entities = {}
     for phrase, entity in fake.registrations:
         phrase_entities.setdefault(phrase, set()).add(entity)
+    for phrase in ('read this','speak selected text','speak highlighted text'):
+        assert phrase_entities[phrase] == {'ReadSelectedTextCommand'}
+    assert phrase_entities['write this'] == {'WriteFocusedTextCommand'}
+    assert phrase_entities['speak selected text at 2x'] == {'ReadSelectedTextDoubleSpeedCommand'}
     collisions = {
         phrase: entities
         for phrase, entities in phrase_entities.items()

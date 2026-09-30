@@ -655,6 +655,10 @@ def register_skill_vocabulary(self, include_custom=True):
             "minimise this window",
             "minimize app",
             "minimise app",
+            "minimize this app",
+            "minimise this app",
+            "minimize this application",
+            "minimise this application",
             "hide this window",
             "put this window away"
         ],
@@ -664,11 +668,21 @@ def register_skill_vocabulary(self, include_custom=True):
             "maximize this window",
             "maximise this window",
             "maximize app",
-            "maximise app"
+            "maximise app",
+            "maximize this app",
+            "maximise this app",
+            "maximize this application",
+            "maximise this application"
         ],
         "RestoreFocusedWindowCommand": [
             "restore window",
             "restore this window",
+            "restore this app",
+            "restore this application",
+            "unmaximize this app",
+            "unmaximise this app",
+            "unmaximize this application",
+            "unmaximise this application",
             "unmaximize window",
             "unmaximise window",
             "unmaximized window",
@@ -742,6 +756,8 @@ def register_skill_vocabulary(self, include_custom=True):
     visible_text_commands = {
         "ReadSelectedTextDoubleSpeedCommand": [
             "read this at double speed",
+            "speak selected text at double speed",
+            "speak selected text at 2x",
             "read this double speed",
             "read this at two times speed",
             "read this two times speed",
@@ -769,6 +785,10 @@ def register_skill_vocabulary(self, include_custom=True):
         "ReadSelectedTextCommand": [
             "read this",
             "read this aloud",
+            "speak this aloud",
+            "speak selected text",
+            "speak highlighted text",
+            "read highlighted text",
             "read this text",
             "read this sentence",
             "read this at normal speed",

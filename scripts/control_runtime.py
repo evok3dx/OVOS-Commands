@@ -12,6 +12,8 @@ import subprocess
 import sys
 import tempfile
 import time
+sys.path.insert(0,str(Path(__file__).resolve().parent))
+from isolation_services import active as isolation_active, control_arguments, state_arguments, journal_arguments, refresh_session
 
 UNITS = ('ovos-audio.service', 'ovos-listener.service', 'ovos-core.service')
 CORE, LISTENER = UNITS[2], UNITS[1]
@@ -45,7 +47,7 @@ def save_with_lock(work):
 
 
 def run(args, timeout=15, check=True):
-    result = subprocess.run([str(a) for a in args], capture_output=True, text=True,
+    result = subprocess.run(control_arguments(args), capture_output=True, text=True,
                             timeout=timeout, check=False)
     if check and result.returncode:
         raise RuntimeError((result.stderr or result.stdout or 'Command failed').strip()[-3000:])
@@ -82,7 +84,7 @@ def speech_note_status():
 
 def speech_note_action(action):
     """Open or explicitly install Speech Note through the packaged helper."""
-    if action not in {'open', 'install'}:
+    if action not in {'open', 'install', 'guide'}:
         raise ValueError('Unknown Speech Note action')
     arguments = [SPEECH_NOTE_HELPER, '--' + action]
     if action == 'install':
@@ -108,8 +110,7 @@ def uninstall_jarvis(remove_model=False, remove_settings=False, remove_ovos=Fals
 def snapshot():
     states = {}
     for unit in UNITS:
-        output = run(['systemctl', '--user', 'show', unit,
-                      '--property=ActiveState,SubState,Requires,BindsTo,PartOf,InvocationID']).stdout
+        output = run(state_arguments(unit,'ActiveState','SubState','Requires','BindsTo','PartOf','InvocationID')).stdout
         states[unit] = dict(line.split('=', 1) for line in output.splitlines() if '=' in line)
     return states
 
@@ -142,9 +143,7 @@ def wait_ready(units, report=lambda text: None, timeout=60):
             if not invocation:
                 ready = False
                 continue
-            logs = run(['journalctl', '--user', '-u', unit,
-                        '_SYSTEMD_INVOCATION_ID=' + invocation,
-                        '--no-pager', '-o', 'cat'], timeout=10).stdout
+            logs = run(journal_arguments(unit,invocation), timeout=10).stdout
             ready = ready and any(marker in logs for marker in MARKERS[unit])
         if ready:
             return
@@ -156,11 +155,14 @@ def wait_ready(units, report=lambda text: None, timeout=60):
 def service_action(action, report=lambda text: None):
     if action not in {'start', 'stop', 'restart', 'commands'}:
         raise ValueError('Unknown service action')
+    if action!='stop':refresh_session()
     before = snapshot()  # Includes dependency relations before any mutation.
     active = [u for u in UNITS if before[u].get('ActiveState') == 'active']
     if action in {'restart', 'commands'} and CORE not in active:
         raise RuntimeError('Jarvis is stopped. Choose Start Jarvis first.')
     try:
+        if action=='start' and isolation_active():
+            run(['systemctl','--user','start','ovos.service'],timeout=45)
         if action == 'stop':
             report('Stopping Jarvis…')
             run(['systemctl', '--user', 'stop', *reversed(UNITS)], timeout=45)
@@ -199,9 +201,11 @@ def service_action(action, report=lambda text: None):
 
 @exclusive
 def microphone_action():
+    refresh_session()
     before = snapshot()
     active = before[LISTENER].get('ActiveState') == 'active'
     try:
+        if not active and isolation_active():run(['systemctl','--user','start','ovos.service'],timeout=45)
         run(['systemctl', '--user', 'stop' if active else 'start', LISTENER], timeout=40)
         # Restore other components affected by listener dependency relationships.
         for unit in UNITS:
@@ -237,8 +241,7 @@ def status():
             invocation = states[unit].get('InvocationID')
             if not invocation:
                 state = 'starting'; break
-            logs = run(['journalctl', '--user', '-u', unit, '_SYSTEMD_INVOCATION_ID='+invocation,
-                        '--no-pager', '-o', 'cat'], timeout=10).stdout
+            logs = run(journal_arguments(unit,invocation), timeout=10).stdout
             if not any(marker in logs for marker in MARKERS[unit]):
                 state = 'starting'; break
     else:
@@ -291,9 +294,11 @@ def update_status(home=None):
     newest=str(latest.get('latest','Not checked'))
     old,new=version(current.get('version')),version(latest.get('latest'))
     available=bool(latest.get('update_available') is True and old and new and new>old)
+    checked=bool(latest.get('check_succeeded') is True and old and new)
+    failed=latest.get('check_succeeded') is False
     return {'installed':installed, 'latest':newest,
             'release_date':str(latest.get('release_date','')),
-            'available':available}
+            'available':available and not failed, 'checked':checked, 'failed':failed}
 
 
 def update_available(home=None):
@@ -395,6 +400,8 @@ def maintenance(action, cancel_event=None):
         return 'Jarvis '+str(current.get('version','local build'))+'\n\n'+result.stdout
     if action not in commands:raise ValueError('Unknown maintenance action')
     argv,timeout=commands[action]
+    if action=='logs' and isolation_active():
+        argv=['journalctl',*[x for u in UNITS for x in ('-u',state_arguments(u)[3])],'-n','120','--no-pager']
     if action=='install':
         with operation_lock():
             result=(_run_cancellable_update(argv,cancel_event,timeout)

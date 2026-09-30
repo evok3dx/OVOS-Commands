@@ -212,6 +212,8 @@ def choose_with_gui(detected, existing=None, on_save=None, *, output=None,
 
             display = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
             display.set_hexpand(True)
+            self._display_icon = Gtk.Image.new_from_icon_name('application-x-executable', Gtk.IconSize.BUTTON)
+            display.pack_start(self._display_icon, False, False, 0)
             self._display_label = Gtk.Label(
                 label='No compatible app enabled', xalign=0)
             self._display_label.set_hexpand(True)
@@ -252,9 +254,15 @@ def choose_with_gui(detected, existing=None, on_save=None, *, output=None,
             self._choices.clear()
             self._group = None
             self._display_label.set_text('No compatible app enabled')
+            self._display_icon.set_from_icon_name('application-x-executable',Gtk.IconSize.BUTTON)
 
         def append(self, identifier, text):
-            choice = Gtk.RadioButton.new_with_label_from_widget(self._group, text)
+            choice = Gtk.RadioButton.new_from_widget(self._group)
+            row = Gtk.Box(spacing=10)
+            row.pack_start(Gtk.Image.new_from_gicon(app_icon(identifier), Gtk.IconSize.BUTTON),False,False,0)
+            row.pack_start(Gtk.Label(label=text,xalign=0),True,True,0)
+            choice.add(row)
+            choice.get_accessible().set_name(text)
             if self._group is None:
                 self._group = choice
             choice.set_size_request(330, 40)
@@ -270,6 +278,8 @@ def choose_with_gui(detected, existing=None, on_save=None, *, output=None,
                 return
             self._active_id = identifier
             self._display_label.set_text(text)
+            self.get_accessible().set_name(text)
+            self._display_icon.set_from_gicon(app_icon(identifier), Gtk.IconSize.BUTTON)
             if not self._updating and self._changed:
                 callback, args = self._changed
                 callback(self, *args)
@@ -483,6 +493,9 @@ def choose_with_gui(detected, existing=None, on_save=None, *, output=None,
         'calendar': 'Calendar', 'office': 'Office',
     }
     role_combos = {}
+    role_icons = {'browser':'web-browser-symbolic','notes':'accessories-text-editor-symbolic',
+                  'mail':'mail-unread-symbolic','calendar':'x-office-calendar-symbolic',
+                  'office':'x-office-document-symbolic'}
     role_models = {}
     defaults_grid = Gtk.Grid(column_spacing=24, row_spacing=14)
     defaults_grid.set_column_homogeneous(False)
@@ -494,7 +507,10 @@ def choose_with_gui(detected, existing=None, on_save=None, *, output=None,
         role_label.get_style_context().add_class('jarvis-default-label')
         combo = DefaultAppPicker()
         combo.set_tooltip_text(f'Choose the enabled application used for “open {role}”.')
-        defaults_grid.attach(role_label, 0, index, 1, 1)
+        category = Gtk.Box(spacing=8)
+        category.pack_start(Gtk.Image.new_from_icon_name(role_icons[role],Gtk.IconSize.BUTTON),False,False,0)
+        category.pack_start(role_label,True,True,0)
+        defaults_grid.attach(category, 0, index, 1, 1)
         defaults_grid.attach(combo, 1, index, 1, 1)
         role_combos[role] = combo
     defaults_box.pack_start(Gtk.Label(

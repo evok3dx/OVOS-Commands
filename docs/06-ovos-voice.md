@@ -1,6 +1,6 @@
 # OVOS voice stack
 
-This page records the stable voice-stack boundary for Jarvis 3.9.0. It contains
+This page records the voice-stack boundary and unpublished V4 candidate. It contains
 portable behaviour and reviewed versions, not workstation logs or private
 machine configuration.
 
@@ -14,6 +14,7 @@ machine configuration.
 | VAD | Silero `0.1.3a2` |
 | Speech output | phoonnx `1.93.0a1`, reviewed Bella voice |
 | Wake word | OpenWakeWord ONNX, explicit Hey Jarvis model |
+| NumPy (V4 candidate) | `2.4.6`; ONNX-only downstream wake plugin, zero dependency exemptions |
 | Natural-language fallback | local Qwen 4B instruct through Ollama |
 
 The complete package set and exact hashes live in `compatibility.json` and
@@ -33,9 +34,15 @@ Sources: [openWakeWord releases](https://github.com/dscripka/openWakeWord/releas
 [openWakeWord on PyPI](https://pypi.org/project/openwakeword/), and
 [OVOS OpenWakeWord plugin](https://github.com/OpenVoiceOS/ovos-ww-plugin-openwakeword).
 
-The plugin's NumPy metadata warning remains visible. Jarvis does not call the
-environment dependency-clean merely because the tested ONNX runtime works;
-the installer proves the actual ONNX model can load before switching.
+The captured pre-V4 runtime used NumPy `2.4.6`, conflicting with the plugin's
+`numpy<2` declaration. V4 retains NumPy 2 with the separately versioned
+`0.4.5a2+jarvis.1` ONNX-only plugin. It rejects TFLite, selects ONNX model paths
+and loads preinstalled models without runtime downloads. The upstream license,
+source hash and patch provenance are retained. Full dependency checks and real
+plugin inference on silent frames pass with network connections forbidden and
+no TFLite import. The historical exception is removed from validation. Live
+microphone, recognition and Bella/Whisper acceptance remain required; see the
+[release record](releases.md).
 
 The reviewed OpenWakeWord model recognises one trained phrase: **Hey Jarvis**.
 The GUI retains the existing option to replace that one active phrase with a

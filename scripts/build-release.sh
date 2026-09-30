@@ -49,7 +49,7 @@ roots = (
     "plugins", "profiles", "scripts", "system_helpers", "systemd", "tray", "voice",
 )
 files = (
-    ".gitignore", "AGENTS.md", "CLAUDE.md", "GEMINI.md", "COMMAND-EDITOR.md", "README.md", "compatibility.json",
+    ".gitignore", ".gitleaksignore", "AGENTS.md", "CLAUDE.md", "GEMINI.md", "COMMAND-EDITOR.md", "README.md", "compatibility.json",
     "deployment-manifest.json", "pyproject.toml", "LAUNCHER.md", "LICENSE", "NOTICE.md",
 )
 excluded = {".git", "__pycache__", "build", "dist"}
@@ -64,6 +64,8 @@ for relative in roots:
             os.write(1, str(candidate).encode() + b"\0")
 PY
 fi
+
+python3 "$repo_root/scripts/release_privacy.py" < "$file_list"
 
 tar --create --gzip --file "$temporary" \
   --directory "$repo_root" \
