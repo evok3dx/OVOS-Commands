@@ -18,6 +18,14 @@ exclusion, complete-inventory check and wheel hash. No package, dependency
 metadata or zero-exemption policy changes. CI now tests the actual packaging
 24.2 source and complete 296-package closure in addition to current hosts.
 The laptop failed before its runtime or app configuration was replaced.
+**VERIFIED:** source commit `8df0002e2aa3e57b0e178681827bb648933376c6`,
+verifier SHA-256 `8b032f679e1c3ac87305e7f4fbbfc8e902b54797dd523c738b997a6848d433c5`,
+passes run `36787735811`: all four Python versions, security scans, clean-copy
+deployment/recovery tests and 350/350 policy cases. The actual packaging 24.2
+compatibility step reproduces the old implicit rejection and passes the full
+296-package closure and out-of-range/excluded-alpha failure cases. The runtime
+archive and package identities remain unchanged; the original release archive
+uses the two immutable hash-verified source fixes in the testing instructions.
 
 **Current password-free hotfix:** owner requires routine updates to remain
 password-free. The revised guard invokes only read-only system-manager show

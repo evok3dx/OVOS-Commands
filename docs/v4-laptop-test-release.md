@@ -45,6 +45,12 @@ policy still block deployment. A hidden rule is not assumed missing: every
 fixed worker must be not-found/inactive with no fragment or drop-ins. Native
 isolation setup/removal remains a separate administrator operation.
 
+A second small hotfix makes exact reviewed prerelease verification independent
+of the existing host's packaging version. It changes no runtime pins, hashes,
+constraints or dependency exemptions. Both fixes below are needed with the
+original frozen release archive. At `Review application selection now? [y/N]`,
+press Enter to keep existing app choices; selecting `y` intentionally opens setup.
+
 ```bash
 test "$(id -u)" -ne 0 || exit 1
 mkdir -p "$HOME/Downloads"
@@ -65,6 +71,13 @@ printf '%s  %s\n' cd217b562dee0c635dfb16a46233a2d913045f606f387ce3fcd782787a6462
   scripts/isolation_services.py.hotfix | sha256sum --check - || exit 1
 chmod 0755 scripts/isolation_services.py.hotfix
 mv -- scripts/isolation_services.py.hotfix scripts/isolation_services.py
+jarvis_dependency_fix='https://raw.githubusercontent.com/evok3dx/OVOS-Commands/8df0002e2aa3e57b0e178681827bb648933376c6/scripts/dependency-lock.py'
+curl --fail --location --proto '=https' --proto-redir '=https' \
+  "$jarvis_dependency_fix" -o scripts/dependency-lock.py.hotfix || exit 1
+printf '%s  %s\n' 8b032f679e1c3ac87305e7f4fbbfc8e902b54797dd523c738b997a6848d433c5 \
+  scripts/dependency-lock.py.hotfix | sha256sum --check - || exit 1
+chmod 0755 scripts/dependency-lock.py.hotfix
+mv -- scripts/dependency-lock.py.hotfix scripts/dependency-lock.py
 bash scripts/install.sh --no-speechnote
 ```
 

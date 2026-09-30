@@ -100,7 +100,7 @@ checkouts may still report **REBUILD REQUIRED**. Updating the checksum alone or
 using an incomplete wheelhouse cannot resolve that state. Keep the working
 laptop deployment until the [live acceptance gates](v4-acceptance.md) pass.
 
-## Application focus
+## Runtime staging and saved app choices
 
 If the first V4 test installer rejects `phoonnx -> ovos-number-parser>=0.4.0`
 during runtime staging, use the verified dependency-lock hotfix in the current
@@ -113,6 +113,13 @@ At `Review application selection now? [y/N]`, Enter keeps the saved selection.
 Choosing `y` intentionally opens setup; choosing Recommended there recalculates
 the selected apps. Failed runtime staging leaves those staged app choices
 unapplied, so the retry can keep the original configuration.
+
+The upstream [packaging documentation](https://packaging.pypa.io/en/stable/specifiers.html)
+records the version-26 change to default prerelease membership. The candidate
+verifier explicitly allows only prereleases already selected in the exact
+reviewed inventory, with every version constraint still checked.
+
+## Application focus
 
 When one application-specific action fails, verify the application mapping and
 focus helper before changing Jarvis or the app shortcut:
