@@ -9,6 +9,23 @@ than repeating release narratives.
 
 ## 4.0.0rc1 (published laptop test; stable release pending)
 
+**Post-install GUI finding:** owner reports working V4 commands, but opening
+the Control Centre fails when restoring a default app. Icon rows use a custom
+GTK child, so the radio button's `get_label()` returns `None`. The source fix
+retains each option's display text and refreshes the selected label, icon and
+accessible name even if the radio was already active. It changes no app choice,
+voice setting or runtime dependency. A real GTK 3/Xvfb regression checks initial
+and repeated restoration, user selection, reset and rebuilt choices. Automated
+validation and owner GUI retry are pending; microphone-wide acceptance is not
+inferred from the reported successful normal commands.
+
+**PLANNED release requirement:** the owner clarified that initial feedback is
+missing in the CLI installer, not the GUI. Show current steps and visible
+activity throughout slow download/verification/staging phases, with a green
+progress bar for measurable progress and an activity indicator otherwise.
+Do not invent percentages or leave a silent initial phase. The GUI already
+has its progress bar; this requirement remains open for final V4.
+
 **Post-publication dependency verifier finding:** the laptop's bundle staging
 rejected `phoonnx -> ovos-number-parser>=0.4.0` although the exact selected
 version is `0.22.17a1`. Packaging before 26 rejects prereleases by default in

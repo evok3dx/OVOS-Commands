@@ -202,6 +202,7 @@ def choose_with_gui(detected, existing=None, on_save=None, *, output=None,
             super().__init__()
             self._active_id = None
             self._choices = {}
+            self._choice_text = {}
             self._group = None
             self._updating = False
             self._changed = None
@@ -252,6 +253,7 @@ def choose_with_gui(detected, existing=None, on_save=None, *, output=None,
                 child.destroy()
             self._active_id = None
             self._choices.clear()
+            self._choice_text.clear()
             self._group = None
             self._display_label.set_text('No compatible app enabled')
             self._display_icon.set_from_icon_name('application-x-executable',Gtk.IconSize.BUTTON)
@@ -271,6 +273,7 @@ def choose_with_gui(detected, existing=None, on_save=None, *, output=None,
             choice.connect('toggled', self._choice_toggled, identifier, text)
             self._choices_box.pack_start(choice, False, False, 0)
             self._choices[identifier] = choice
+            self._choice_text[identifier] = text
             choice.show_all()
 
         def _choice_toggled(self, choice, identifier, text):
@@ -296,8 +299,9 @@ def choose_with_gui(detected, existing=None, on_save=None, *, output=None,
             self._updating = True
             try:
                 choice.set_active(True)
-                self._active_id = identifier
-                self._display_label.set_text(choice.get_label())
+                # Icon rows are custom children: Gtk.Button.get_label() is None.
+                # Refresh even when this radio was already active and emits no signal.
+                self._choice_toggled(choice, identifier, self._choice_text[identifier])
             finally:
                 self._updating = False
 
