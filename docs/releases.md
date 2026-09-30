@@ -7,18 +7,19 @@ acceptance work. Durable design choices belong in
 under [`history/`](history/README.md). Other current documents link here rather
 than repeating release narratives.
 
-## 4.0.0rc1 (working candidate, unpublished)
+## 4.0.0rc1 (published source candidate; stable release pending)
 
 Status: **Implementation in progress. Owner authorised completion and publication;
 artifact and live acceptance gates remain open.** This entry supersedes the collection-only checklist; the full
 agreed scope is retained in the owner's V4 implementation plan.
 
-**Current recovery checkpoint, 30 September 2026:** the workspace reset restored
-an earlier checkout. Later commits, the original v2 collector source/archive,
-the full wheelhouse and the approximately 433 MiB runtime bundle are missing.
-Their earlier results below are **HISTORICAL evidence for those exact inputs**,
-not a fresh pass for this restored candidate. The supplied v2 report remains
-unchanged and still establishes temporary system-manager feasibility.
+**Recovery history, 30 September 2026:** a workspace reset restored an earlier
+checkout and lost later local commits and original runtime bytes. Source recovery
+and a fresh complete runtime rebuild have since passed ordinary-user GitHub CI.
+The exact rebuilt policies are now adopted in this source candidate. Earlier
+results remain **HISTORICAL evidence for their exact inputs**. The original v2
+collector source/archive remain unavailable; the supplied unchanged report still
+establishes temporary system-manager feasibility.
 
 **Restored in source; isolated regressions pass:** quiet login requests the
 stopped stack once and preserves deliberate mute/off choices. Three ordinary-user
@@ -34,19 +35,19 @@ These are source/fixture tests, not live service enforcement.
 Runtime staging now requires the complete hash-checked closure and installation
 receipt. The restored separate-bundle builder verifies packaged bytes; real
 fixture-wheel tests cover deterministic output, staging and tampering. The
-current bundle policy deliberately says **REBUILD REQUIRED** and refuses
-installation before staging; an old checksum alone cannot recover its bytes.
+current bundle policy identifies the exact verified new archive; all 296 wheel
+hashes, packaged bounds and the reviewed closure are checked before staging.
 There is no resolver/source fallback. NumPy 2.4.6 and zero exemptions remain.
 Ollama has a separate data-only network policy candidate preserving its existing
 ordinary-user daemon, executable, models and CPU/GPU settings. Nothing has been
 applied to the laptop. See [the bounded service candidate](core-isolation.md).
 
-**Current release blockers:** retain and adopt the exact verified rebuilt runtime
-artifact/policy; close bundled licence/corresponding-source handling; final asset scans; actual OVOS/Ollama, model,
+**Current release blockers:** retain the exact verified runtime as final release
+assets; close bundled licence/corresponding-source handling; final asset scans; actual OVOS/Ollama, model,
 DNS/proxy/inherited-socket, voice, GUI, login, stage-switch and recovery
 acceptance; effective Hermes permissions and owner repository review. Fresh source and full-history Gitleaks scans pass after tool recovery; the
 production shell check also passes after correcting an unused loop variable.
-The source recovery branch is being published under the owner's authorisation.
+The complete source recovery branch is published under the owner's authorisation.
 No V4 release/tag or live migration has been performed. The complete V4 scope remains.
 
 **VERIFIED current ordinary-user GitHub evidence:** source run `36765769296`
@@ -67,9 +68,13 @@ is inferred from these runs.
 The latest inner runtime ZIP is 453638809 bytes, SHA-256
 `03cbba7effa9046d9ce7a63b26d9a0b886eebf4f58f445dda2ae37af07e8c288`.
 GitHub artifact `11120453380` retains it with independently verified small proof
-artifact `11120708039`. CI artifacts expire after seven days. The older canonical
-wheel/bundle policy remains unchanged until the exact candidate is retained and
-final acceptance is closed; there is no silent lock promotion. Details are in
+artifact `11120708039`. CI artifacts expire after seven days. The exact candidate
+wheel lock, artifact manifest and bundle policy are now adopted after independent
+proof-digest, complete version/metadata parity and nine explicit hash-difference
+checks. No package versions or dependency exemptions change. A separate workflow
+retains these same bytes for 90 days without rebuilding; its result is pending.
+Candidate adoption does not close live acceptance or publish a stable release.
+Details are in
 `voice/runtime-rebuild-evidence.json`.
 
 **Remaining redistribution check:** the exact `espeakng-loader==0.2.4` wheel
@@ -168,8 +173,8 @@ Faster Whisper imports and the Adapt
 intent API pass. This is **candidate installation evidence**, not laptop
 native ABI/model inference on the laptop, a reproducible OS/compiler toolchain
 or current production acceptance. The current restored installer enforces full
-hashes in its staged path; the missing full artifact must be revalidated before
-that restored implementation is accepted for release.
+hashes in its staged path; the full rebuilt artifact passes current ordinary-user CI, while
+actual laptop acceptance remains required before stable release.
 
 The dependency tool captures complete laptop pins and validates wheel hashes,
 metadata, transitives and requested extras. It refuses incomplete/changed wheel

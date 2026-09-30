@@ -278,7 +278,7 @@
     "combo-lock": {
       "version": "0.3.1",
       "file": "combo_lock-0.3.1-py3-none-any.whl",
-      "sha256": "0c497d5d7c4d091fdef960407948c5b0b1cda357fd7cd284dba7143433bac1ea",
+      "sha256": "3c67b19b74c264616a46f0de4d3de110e7ea16530c29b24983ff73a2d7429c2c",
       "requires": [
         "filelock~=3.0",
         "memory-tempfile"
@@ -388,7 +388,7 @@
     "docopt": {
       "version": "0.6.2",
       "file": "docopt-0.6.2-py2.py3-none-any.whl",
-      "sha256": "8d617220c13216b4ed4262f49641a0eb53505374cbf2a0e09a0e8b72e82d3485",
+      "sha256": "59b719d45514d9f1208258f924b0835efb94a3f7d69c7c46233d90e4827d134f",
       "requires": []
     },
     "en-core-web-sm": {
@@ -2972,7 +2972,7 @@
     "phoonnx": {
       "version": "1.93.0a1",
       "file": "phoonnx-1.93.0a1-py3-none-any.whl",
-      "sha256": "1aa26d2e75c0702c39ab591fa2ceaa0208d2e3d105ac4a3631f91ec43aa15e8a",
+      "sha256": "ccd15b07a7950ae63270ec0e490f3119f3f193936c9d5c31f02f6105d62c36fe",
       "requires": [
         "numpy",
         "onnxruntime",
@@ -3416,7 +3416,7 @@
     "pyalsaaudio": {
       "version": "0.11.0",
       "file": "pyalsaaudio-0.11.0-cp311-cp311-linux_x86_64.whl",
-      "sha256": "cad391bb300d3cb0367a06732f725dfa5640cb243f82aab132b7a41fa5e206c1",
+      "sha256": "968292fc2f9a1ae7df77c59b03bf891ef1d92faa13b0cf6429e57a448b5da264",
       "requires": []
     },
     "pycparser": {
@@ -3552,7 +3552,7 @@
     "pywikihow": {
       "version": "0.5.7",
       "file": "pywikihow-0.5.7-py3-none-any.whl",
-      "sha256": "7f872873fbcb2f7b342284fa3db1f480f25583a178599344a6115cdfcf5f82a7",
+      "sha256": "b8a7e04575a4d43c79ffb48d18754fa10dcd119e55f4fd062425ef7cc543d58f",
       "requires": [
         "requests",
         "bs4",
@@ -4097,7 +4097,7 @@
     "sonopy": {
       "version": "0.1.2",
       "file": "sonopy-0.1.2-py3-none-any.whl",
-      "sha256": "15ead602080ef8c86fe1b49e6b4ff34381bd1ba271176eae6fd2e44a0162a7e0",
+      "sha256": "5e5c9699c34bfc1ba7628da77c93322b7c30c60c45950110e84ce5c6c153e255",
       "requires": [
         "scipy",
         "numpy",
@@ -4242,7 +4242,7 @@
     "srt": {
       "version": "3.5.3",
       "file": "srt-3.5.3-py3-none-any.whl",
-      "sha256": "bd88f74118c60ec0215ff8d9c70b33e08c2f88f43d145f0a5d02d3964fa5dfa4",
+      "sha256": "6bbab0290ff37483eea61be7fbe9294ccb34814f8fc994119f9e6ecca79a9a88",
       "requires": []
     },
     "tabulate": {
@@ -4534,7 +4534,7 @@
     "wallpaper-finder": {
       "version": "0.1.2",
       "file": "wallpaper_finder-0.1.2-py3-none-any.whl",
-      "sha256": "99b84104efc491a67a8701da66f724625520d4671ccc714678dc0141920ee3f2",
+      "sha256": "f7824e5631df4dfbd5d1734b612d62023cacbd0315fe73942506126baa1c202f",
       "requires": [
         "requests",
         "bs4",
@@ -4584,7 +4584,7 @@
     "webrtcvad": {
       "version": "2.0.10",
       "file": "webrtcvad-2.0.10-cp311-cp311-linux_x86_64.whl",
-      "sha256": "7cf1da6510e35a50681d5705ca737d3c190df14b965ec93b385a80379f135d5f",
+      "sha256": "f7b161cc8d553643a5a4c46a921fbf2a3d21220ebf4a205dd845a336d2c8ca23",
       "requires": [
         "nose; extra == \"dev\"",
         "check-manifest; extra == \"dev\"",

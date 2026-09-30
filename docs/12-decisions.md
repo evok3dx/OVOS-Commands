@@ -92,6 +92,12 @@ Contradictions stay visible in the [historical audit](history/v2.4-audit.md).
   full runtime bundle with no resolver/source fallback. Explicit source-build
   experiments do not satisfy the full-hash gate. Retain NumPy 2.4.6, the documented
   ONNX-only downstream wake plugin and zero dependency exemptions.
+- **VERIFIED candidate policy adoption:** adopt only the exact runtime lock,
+  artifact manifest and bundle policy whose archive bytes and complete offline
+  installation pass. The latest rebuild keeps all 296 versions and dependency
+  metadata unchanged; nine source-built wheel hash changes remain explicit.
+  Retain this tested archive without rebuilding. Candidate adoption is separate
+  from stable release, bundled-source obligations and live laptop acceptance.
 - **VERIFIED recovery limitation:** missing artifacts and source fingerprints
   cannot be reconstructed from a previous checksum. Preserve historical reports,
   identify new collectors separately and revalidate reconstructed source/artifacts.

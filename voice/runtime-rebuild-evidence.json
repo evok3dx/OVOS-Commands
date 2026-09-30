@@ -101,6 +101,7 @@
     "upstream_license": "https://github.com/espeak-ng/espeak-ng/blob/master/COPYING",
     "status": "OPEN; no legal-compliance or source-completeness claim"
   },
-  "canonical_policy_promoted": false,
-  "stable_release_published": false
+  "canonical_policy_promoted": true,
+  "stable_release_published": false,
+  "policy_promotion": "Exact byte-verified policies from run 36765769244 adopted after independent proof SHA, complete 296-package identity/metadata parity and all nine recorded hash differences were checked. This is candidate policy adoption, not a stable release or laptop acceptance."
 }

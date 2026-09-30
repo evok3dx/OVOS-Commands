@@ -79,11 +79,12 @@ native policy, stop the actual workers and follow that candidate's reviewed
 deactivation/native removal instructions first. Do not delete only the receipt
 or disable the guard: rules must not continue referencing replaced code.
 
-If V4 staging reports **REBUILD REQUIRED**, the complete verified runtime bundle
-is unavailable. The workspace reset lost its bytes. An old checksum, incomplete
-wheelhouse or online source build is not an equivalent verified replacement.
-The original working deployment should remain in place until a complete artifact
-passes the [runtime acceptance gates](v4-acceptance.md).
+The V4 source candidate now has a complete rebuilt, hash-verified runtime bundle.
+Use the exact archive named in `voice/runtime-bundle.json`; the installer checks
+its size, digest and all 296 wheel identities before staging. Older recovery
+checkouts may still report **REBUILD REQUIRED**. Updating the checksum alone or
+using an incomplete wheelhouse cannot resolve that state. Keep the working
+laptop deployment until the [live acceptance gates](v4-acceptance.md) pass.
 
 ## Application focus
 

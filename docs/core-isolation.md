@@ -48,8 +48,9 @@ a sandbox against malicious same-user plugin code.
 First install the verified full runtime and candidate code through the reviewed
 staged path. Isolation preparation requires complete version parity and the
 private installation receipt, including the ONNX-only wake plugin and NumPy 2.
-The separate runtime artifact is currently a rebuild/recovery gate. Do not
-install a guessed wheelhouse or use the source-build experiment as release proof.
+The complete rebuilt runtime and adopted policies pass ordinary-user CI; actual
+laptop installation and activation remain unverified. Do not install a guessed
+wheelhouse or use the source-build experiment as release proof.
 
 After stopping Jarvis, prepare private candidate data as the ordinary user:
 

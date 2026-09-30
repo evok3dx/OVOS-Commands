@@ -1,0 +1,85 @@
+name: Retain exact verified V4 runtime
+
+on:
+  push:
+    branches: [work/v4]
+    paths:
+      - .github/workflows/retain-v4-runtime.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  retain:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.11.16'
+      - name: Check ordinary-user boundary
+        run: test "$(id -u)" -ne 0
+      - name: Download the exact successful build without rebuilding
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          artifact-ids: '11120453380'
+          run-id: '36765769244'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: ${{ runner.temp }}/jarvis-runtime-retained
+      - name: Verify exact candidate policies before staging
+        env:
+          RETAINED_RUNTIME: ${{ runner.temp }}/jarvis-runtime-retained
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          root = Path(os.environ['RETAINED_RUNTIME'])
+          expected = {
+              'runtime-bundle.json': 'voice/runtime-bundle.json',
+              'runtime.txt': 'voice/runtime-wheels-linux-x86_64-py311.txt',
+              'runtime.artifacts.json': 'voice/runtime-wheels-linux-x86_64-py311.artifacts.json',
+          }
+          for name, policy in expected.items():
+              if (root / 'candidate' / name).read_bytes() != Path(policy).read_bytes():
+                  raise SystemExit('Retained candidate differs from reviewed policy: ' + name)
+          policy = json.loads(Path('voice/runtime-bundle.json').read_text())
+          if policy['archive_sha256'] != '03cbba7effa9046d9ce7a63b26d9a0b886eebf4f58f445dda2ae37af07e8c288':
+              raise SystemExit('This workflow retains only the reviewed successful rebuild')
+          archive = root / 'candidate' / policy['archive_name']
+          if archive.stat().st_size != policy['archive_bytes']:
+              raise SystemExit('Retained archive size differs')
+          with archive.open('rb') as source:
+              actual = hashlib.file_digest(source, 'sha256').hexdigest()
+          if actual != policy['archive_sha256']:
+              raise SystemExit('Retained archive digest differs')
+          print('Exact successful runtime archive and all three reviewed policies match.')
+          PY
+      - name: Recheck every packaged wheel and complete closure
+        run: |
+          python3 scripts/runtime_bundle.py stage \
+            --bundle "$RUNNER_TEMP/jarvis-runtime-retained/candidate/jarvis-runtime-linux-x86_64-py311.zip" \
+            --policy voice/runtime-bundle.json \
+            --output "$RUNNER_TEMP/jarvis-retained-wheel-verification"
+      - name: Retain exact candidate and original proof for 90 days
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: jarvis-v4-runtime-retained
+          path: ${{ runner.temp }}/jarvis-runtime-retained/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 90
+      - name: Retain small policies and proof for independent review
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: jarvis-v4-runtime-retained-proof
+          path: |
+            ${{ runner.temp }}/jarvis-runtime-retained/candidate/*.json
+            ${{ runner.temp }}/jarvis-runtime-retained/candidate/*.txt
+            ${{ runner.temp }}/jarvis-runtime-retained/proof/
+          if-no-files-found: error
+          retention-days: 90

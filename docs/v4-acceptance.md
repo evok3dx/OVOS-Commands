@@ -1,7 +1,7 @@
 # V4 laptop acceptance and dependency handover
 
 Status: **PLANNED live acceptance.** Implementation and isolated evidence are
-recorded once in [releases](releases.md). V4 is not ready for publication.
+recorded once in [releases](releases.md). The source candidate is published; the stable V4 release remains gated.
 
 ## First checkpoint: read-only laptop evidence
 
@@ -54,11 +54,15 @@ preflight result for the next implementation pass, after reviewing them.
 
 ## Complete hashed wheel candidate
 
-**Current recovery gate:** the full approximately 433 MiB runtime bundle and
-296-wheel wheelhouse were lost in the workspace reset. Source/lock/provenance
-inventories survive, but hashes cannot recreate bytes. Earlier full-runtime
-installation results remain historical for their exact artifact. The restored
-bundle policy is **REBUILD REQUIRED** and refuses use before staging.
+**VERIFIED rebuilt candidate:** run `36765769244` passes complete 296-package
+hash-enforced offline and staged installation, three first-party plugin imports,
+real ONNX silent-frame inference and final archive-byte verification. The exact
+new wheel lock, artifact manifest and bundle policy are adopted in the source
+candidate after independent proof-digest and unchanged metadata/version checks.
+The nine source-built wheel hash differences remain explicit in
+`voice/runtime-rebuild-evidence.json`. NumPy 2.4.6 and zero exemptions remain.
+This closes runtime recovery and candidate hash installation; actual laptop
+voice, models, service isolation and staged switch/recovery remain open.
 
 The candidate installer accepts `--runtime-wheelhouse PATH` to install this
 verified closure into its unpublished stage. It rechecks staged bytes and the
@@ -69,8 +73,9 @@ requires explicit `--runtime-source-build` for investigation; it is not the
 full-hash release mode. Default installation requires a separate code-pinned
 bundle; `--runtime-bundle PATH` supplies a reviewed local copy. The restored
 builder verifies packaged bytes and private staging on real fixture wheels.
-Recover or rebuild the full exact wheel set, validate it against the canonical
-locks and regenerate the verified policy before live stage-switch/model tests.
+Use the exact reviewed rebuilt archive and its matching canonical policies for
+live stage-switch/model tests. Do not rerun resolution or rebuild merely to
+repeat already successful candidate checks.
 Keep the code updater's 100 MB extraction limit unchanged.
 
 Use a private workspace and the complete capture. Do not substitute the
