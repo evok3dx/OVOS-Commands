@@ -86,36 +86,49 @@ def refresh_session(home=None):
     finally:Path(name).unlink(missing_ok=True)
 
 
-def protected_rule_present(path):
-    """Inspect only this account's public rule with cached native authorisation.
+def native_workers_absent():
+    """Read system-manager state without authentication or any service control.
 
-    No password prompt, file contents, shell, policy changes or root Python.
-    Unknown failures remain blocked rather than being treated as absence.
+    A hidden rule is not assumed absent. With no installed or loaded target
+    workers it cannot authorise execution of the code being updated. Inspect
+    stale rules separately when preparing native isolation, never via sudo here.
     """
     uid=os.getuid()
-    if uid<=0 or path!=Path(f'/etc/polkit-1/rules.d/90-jarvis-v4-{uid}.rules'):
-        raise RuntimeError('Unexpected protected policy path or account')
-    for name in ('sudo','stat'):
-        tool=Path('/usr/bin')/name
-        resolved=tool.resolve(strict=True)
-        for part in (resolved,*resolved.parents,tool.parent):
-            info=part.stat()
-            if info.st_uid!=0 or info.st_mode & 0o022:
-                raise RuntimeError('Native policy checker ownership needs review')
+    if uid<=0:raise RuntimeError('Deployment requires the normal desktop user')
+    names={f'jarvis-v4-{uid}-{part}.service' for part in COMPONENTS}
+    tool=Path('/usr/bin/systemctl')
+    resolved=tool.resolve(strict=True)
+    for part in (resolved,*resolved.parents,tool.parent):
+        info=part.stat()
+        if info.st_uid!=0 or info.st_mode & 0o022:
+            raise RuntimeError('Native state reader ownership needs review')
     try:
-        result=subprocess.run(['/usr/bin/sudo','-n','--','/usr/bin/stat','--format=%f','--',str(path)],
+        result=subprocess.run([str(tool),'--system','--no-pager','--no-ask-password','show','--all',
+                              '--property=Id,LoadState,ActiveState,FragmentPath,DropInPaths','--',*sorted(names)],
                               capture_output=True,text=True,timeout=5,
                               env={**os.environ,'LC_ALL':'C','LANG':'C'})
     except (OSError,subprocess.TimeoutExpired):
-        raise RuntimeError('Native policy metadata check unavailable; deployment remains blocked.') from None
-    if result.returncode==0 and not result.stderr and re.fullmatch(r'[a-f0-9]+\n?',result.stdout):
-        return True
-    missing={f"/usr/bin/stat: cannot {verb} '{path}': No such file or directory\n"
-             for verb in ('stat','statx')}
-    if result.returncode==1 and not result.stdout and result.stderr in missing:
-        return False
-    raise RuntimeError('Protected policy check needs owner review or cached authorisation. '
-                       'Run sudo -v in your own terminal and retry; never sudo the installer.')
+        raise RuntimeError('Native worker state unavailable; deployment remains blocked.') from None
+    if result.returncode or result.stderr or len(result.stdout)>32768:
+        raise RuntimeError('Cannot verify native worker state; deployment remains blocked.')
+    observed=set()
+    for block in result.stdout.strip().split('\n\n'):
+        pairs=[line.partition('=') for line in block.splitlines()]
+        keys=[key for key,separator,value in pairs]
+        if (len(keys)!=5 or len(set(keys))!=5 or any(not separator for key,separator,value in pairs)
+                or set(keys)!={'Id','LoadState','ActiveState','FragmentPath','DropInPaths'}):
+            raise RuntimeError('Incomplete native worker state; deployment remains blocked.')
+        properties={key:value for key,separator,value in pairs}
+        name=properties['Id']
+        if name not in names or name in observed:
+            raise RuntimeError('Unexpected native worker identity; deployment remains blocked.')
+        observed.add(name)
+        if (properties['LoadState']!='not-found' or properties['ActiveState']!='inactive'
+                or properties['FragmentPath'] or properties['DropInPaths']):
+            raise RuntimeError('Remove the reviewed native isolation workers before deployment.')
+    if observed!=names:
+        raise RuntimeError('Missing native worker state; deployment remains blocked.')
+    return True
 
 
 def native_policy_present(path,protected_rule=None):
@@ -126,7 +139,8 @@ def native_policy_present(path,protected_rule=None):
         return False
     except PermissionError:
         if path==protected_rule:
-            return protected_rule_present(path)
+            native_workers_absent()
+            return False  # Hidden rule uninspected; its fixed target workers are verified absent.
         raise RuntimeError('Cannot inspect native isolation policy. Review its removal in the owner terminal before deployment.') from None
 
 
