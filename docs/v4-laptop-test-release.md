@@ -37,6 +37,12 @@ Close the Control Centre before updating. Do not run the installer with sudo.
 Download and verify the explicit prerelease; the ordinary GUI update channel
 continues to offer stable releases only.
 
+The initial archive has a guard bug on protected polkit directories. Apply the
+immutable, hash-verified guard hotfix below before installation. `sudo -v`
+authorises only the subsequent fixed native metadata check; Python and the
+installer remain the normal desktop user. Existing native isolation policy
+still blocks deployment and must be reviewed separately.
+
 ```bash
 test "$(id -u)" -ne 0 || exit 1
 mkdir -p "$HOME/Downloads"
@@ -50,6 +56,14 @@ curl --fail --location --proto '=https' --proto-redir '=https' \
 sha256sum --check ovos-commands-4.0.0rc1.tar.gz.sha256 || exit 1
 tar -xzf ovos-commands-4.0.0rc1.tar.gz || exit 1
 cd ovos-commands-4.0.0rc1 || exit 1
+jarvis_hotfix_url='https://raw.githubusercontent.com/evok3dx/OVOS-Commands/5280ae9339584da040e5d1e4caff21abc1043c4e/scripts/isolation_services.py'
+curl --fail --location --proto '=https' --proto-redir '=https' \
+  "$jarvis_hotfix_url" -o scripts/isolation_services.py.hotfix || exit 1
+printf '%s  %s\n' 563ceb016f71a3207f0e940d3168796a2447758ee2913a2dfe81235dcf2dc456 \
+  scripts/isolation_services.py.hotfix | sha256sum --check - || exit 1
+chmod 0755 scripts/isolation_services.py.hotfix
+mv -- scripts/isolation_services.py.hotfix scripts/isolation_services.py
+sudo -v || exit 1
 bash scripts/install.sh --no-speechnote
 ```
 

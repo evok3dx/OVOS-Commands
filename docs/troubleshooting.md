@@ -86,7 +86,7 @@ This is not evidence that a Jarvis rule exists. The source hotfix uses cached
 owner authorisation for read-only native stat of only the current account's
 exact public Jarvis rule. Authorise with `sudo -v` in your own terminal, then
 run the hash-verified hotfixed installer as the normal user. It never prompts
-for a password, reads a root file or assumes an unreadable rule is absent.
+for a password, reads root file contents or assumes an unreadable rule is absent.
 Existing rules, dangling links, denied checks and unknown failures still block
 deployment. Do not chmod the directory or run the installer with sudo.
 

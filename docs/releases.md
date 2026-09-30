@@ -17,7 +17,14 @@ file result and continues rejecting existing policy or unknown/denied checks.
 Fixture checks cover exact arguments, protected directories, absence, existing
 rules/symlinks, missing authorisation and timeouts. The published archive/tag
 remain unchanged; the immutable, hash-verified source hotfix is applied to the
-downloaded copy for this laptop test. See [troubleshooting](troubleshooting.md).
+downloaded copy for this laptop test. **VERIFIED:** hotfix commit
+`5280ae9339584da040e5d1e4caff21abc1043c4e`, guard SHA-256
+`563ceb016f71a3207f0e940d3168796a2447758ee2913a2dfe81235dcf2dc456`,
+passes run `36785366867`: all four Python versions, source/history/archive
+scans and the final clean-copy deployment suite with 350/350 policy cases.
+Updated [installation instructions](v4-laptop-test-release.md) apply this exact
+hotfix before invoking the normal-user installer. See
+[troubleshooting](troubleshooting.md).
 
 Status: **Implementation in progress. Owner authorised completion and publication;
 artifact and live acceptance gates remain open.** This entry supersedes the collection-only checklist; the full
