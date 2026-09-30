@@ -99,9 +99,37 @@
     "version": "0.2.4",
     "finding": "The verified wheel embeds libespeak-ng.so and contains no separately identified license/COPYING/NOTICE entry. The upstream eSpeak NG COPYING is GPLv3. Exact corresponding-source and notice handling must be completed before broad runtime-bundle redistribution.",
     "upstream_license": "https://github.com/espeak-ng/espeak-ng/blob/master/COPYING",
-    "status": "OPEN; no legal-compliance or source-completeness claim"
+    "status": "OPEN; no legal-compliance or source-completeness claim",
+    "identified_native_version": "1.52.0, confirmed in exact wheel member filenames",
+    "possible_upstream_source": {
+      "loader_commit": "e5e9200dc3fd894b7415942c2602fc31526d60fc",
+      "espeak_submodule_commit": "685480238072018edfc0e4f3d85e131c278c2ccf",
+      "status": "Upstream v1.52 recipe identified; exact mapping to PyPI loader 0.2.4 remains unverified"
+    }
   },
   "canonical_policy_promoted": true,
   "stable_release_published": false,
-  "policy_promotion": "Exact byte-verified policies from run 36765769244 adopted after independent proof SHA, complete 296-package identity/metadata parity and all nine recorded hash differences were checked. This is candidate policy adoption, not a stable release or laptop acceptance."
+  "policy_promotion": "Exact byte-verified policies from run 36765769244 adopted after independent proof SHA, complete 296-package identity/metadata parity and all nine recorded hash differences were checked. This is candidate policy adoption, not a stable release or laptop acceptance.",
+  "retention": {
+    "status": "VERIFIED: exact inner runtime and canonical policy bytes match; every wheel and complete closure rechecked",
+    "source_commit": "85ce92eb58f257d7829161e98a89b0c05544a360",
+    "workflow_run": 36772541316,
+    "artifact_id": 11123863124,
+    "artifact_outer_sha256": "6df55f9529d7459c8c88ba1f944d0fee6536b5954d51614295da1a8221b738a0",
+    "proof_artifact_id": 11124427704,
+    "proof_artifact_outer_sha256": "0a8a738cb3f23bcc0de06bf7afc18d6102b57746c8253f1d62ab06c693b4427e",
+    "expires_at": "2026-12-29T20:25:37Z",
+    "no_rebuild_performed": true,
+    "stable_release_published": false
+  },
+  "policy_adoption_source_ci_run": 36772321779,
+  "additional_native_redistribution_review": {
+    "package": "av",
+    "version": "18.1.0",
+    "finding": "The exact wheel embeds FFmpeg and native codec libraries. Python package BSD metadata alone is not a complete inventory of native licence/source requirements.",
+    "upstream_vendor_tag": "8.1.2-1",
+    "upstream_vendor_commit": "a71bf9279f7a4659154b68ba6783e89be460bcd5",
+    "source_recipe": "https://github.com/PyAV-Org/pyav-ffmpeg/blob/a71bf9279f7a4659154b68ba6783e89be460bcd5/scripts/pkg.py",
+    "status": "Source inputs/hash-pinned upstream recipe identified; complete notice/source companion remains OPEN"
+  }
 }

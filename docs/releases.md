@@ -72,7 +72,10 @@ artifact `11120708039`. CI artifacts expire after seven days. The exact candidat
 wheel lock, artifact manifest and bundle policy are now adopted after independent
 proof-digest, complete version/metadata parity and nine explicit hash-difference
 checks. No package versions or dependency exemptions change. A separate workflow
-retains these same bytes for 90 days without rebuilding; its result is pending.
+retains these same bytes for 90 days without rebuilding; run `36772541316`
+passes exact policy/archive and complete wheel/closure checks. Retained artifact
+`11123863124` and proof `11124427704` expire on 29 December 2026. Source run
+`36772321779` passes after candidate policy adoption.
 Candidate adoption does not close live acceptance or publish a stable release.
 Details are in
 `voice/runtime-rebuild-evidence.json`.
