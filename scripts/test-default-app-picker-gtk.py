@@ -36,7 +36,7 @@ for identifier, text in options.items():
         assert picker.get_active_id() == identifier
         assert picker._display_label.get_text() == text
         assert picker.get_accessible().get_name() == text
-        assert picker._display_icon.get_gicon().equal(Gio.ThemedIcon.new(identifier))
+        assert picker._display_icon.get_property('gicon').equal(Gio.ThemedIcon.new(identifier))
 assert notifications == [], 'Loading saved defaults must not mark settings changed'
 
 picker._choices['web-browser'].set_active(True)
