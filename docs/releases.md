@@ -9,7 +9,24 @@ than repeating release narratives.
 
 ## 4.0.0rc1 (published laptop test; stable release pending)
 
-**Post-publication laptop finding:** the initial installer guard stops before
+**Current password-free hotfix:** owner requires routine updates to remain
+password-free. The revised guard invokes only read-only system-manager show
+for the exact five worker identities, with authentication explicitly disabled.
+Protected polkit-directory access alone is not a deployment blocker when all
+workers are definitively not-found/inactive with no fragments/drop-ins and
+other native paths/receipts are absent. It does not inspect or declare a hidden
+rule missing. Existing/loaded workers, visible native policy, Ollama policy,
+incomplete/error/denied state and timeouts still block. Source commit
+`ee07b82d1d50a9edaa25c43d7a8dff351f1ad2c7`, guard SHA-256
+`cd217b562dee0c635dfb16a46233a2d913045f606f387ce3fcd782787a646231`,
+supersedes the first sudo-stat approach. Native isolation setup/removal remains
+separate administrator work; ordinary updates add no sudo privilege.
+**VERIFIED:** run `36786203107` passes security scans, all four Python versions,
+loaded/stale/incomplete-state regressions and the complete clean-extracted
+deployment/recovery suite with 350/350 policy cases. The hash-verified testing
+instructions now use this password-free guard.
+
+**HISTORICAL first hotfix, superseded:** the initial installer guard stops before
 any Jarvis changes when the native polkit directory cannot be traversed by the
 desktop user. A bounded source hotfix checks only the current account's public
 rule with cached owner-authorised native stat; it requires a definite missing
@@ -22,8 +39,9 @@ downloaded copy for this laptop test. **VERIFIED:** hotfix commit
 `563ceb016f71a3207f0e940d3168796a2447758ee2913a2dfe81235dcf2dc456`,
 passes run `36785366867`: all four Python versions, source/history/archive
 scans and the final clean-copy deployment suite with 350/350 policy cases.
-Updated [installation instructions](v4-laptop-test-release.md) apply this exact
-hotfix before invoking the normal-user installer. See
+That first proposal was superseded by the owner's password-free requirement.
+Current [installation instructions](v4-laptop-test-release.md) use the revised
+guard above. See
 [troubleshooting](troubleshooting.md).
 
 Status: **Implementation in progress. Owner authorised completion and publication;

@@ -105,6 +105,15 @@ Contradictions stay visible in the [historical audit](history/v2.4-audit.md).
 
 ## Owner-authorised V4 laptop test, 30 September 2026
 
+- **VERIFIED owner requirement:** routine updates remain password-free. An
+  unreadable polkit directory alone must not introduce sudo; require complete
+  ordinary-user system-manager evidence that all five fixed native workers are
+  absent/inactive, with other native deployment paths/receipts absent. Do not
+  assert a hidden rule was inspected or removed. Existing/loaded workers,
+  visible policy and uncertain checks remain blocked. Administrator access is
+  reserved for explicitly reviewed native isolation setup/removal or missing
+  operating-system prerequisites.
+
 - **VERIFIED owner decision:** publish 4.0.0rc1 as a laptop-testing prerelease
   with the exact retained full-hash runtime and independently versioned plugins.
   Keep the stable channel on 3.9.0 and record unverified live acceptance openly.

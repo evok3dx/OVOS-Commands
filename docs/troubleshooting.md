@@ -82,13 +82,17 @@ or disable the guard: rules must not continue referencing replaced code.
 The V4 source candidate now has a complete rebuilt, hash-verified runtime bundle.
 The initial 4.0.0rc1 archive can stop before installation with `Cannot inspect
 native isolation policy` on systems whose polkit rules directory is protected.
-This is not evidence that a Jarvis rule exists. The source hotfix uses cached
-owner authorisation for read-only native stat of only the current account's
-exact public Jarvis rule. Authorise with `sudo -v` in your own terminal, then
-run the hash-verified hotfixed installer as the normal user. It never prompts
-for a password, reads root file contents or assumes an unreadable rule is absent.
-Existing rules, dangling links, denied checks and unknown failures still block
-deployment. Do not chmod the directory or run the installer with sudo.
+This is not evidence that a Jarvis rule exists. The current source hotfix keeps
+routine deployment password-free. When the rules directory is protected, it
+reads only system-manager state for the five fixed account-specific workers,
+using no sudo or authentication prompt. Every worker must be not-found/inactive
+with no fragment or drop-ins, and other native deployment paths/receipts must
+be absent. The hidden rule itself is uninspected, not asserted missing.
+Installed/loaded workers, visible rules/dangling links, Ollama policy, denied or
+incomplete checks and timeouts remain blocked. Apply the immutable hash-verified
+hotfix in [the testing instructions](v4-laptop-test-release.md). Do not use the
+superseded sudo-stat proposal, chmod the directory or sudo the installer.
+Native isolation setup/removal retains its separate administrator review.
 
 Use the exact archive named in `voice/runtime-bundle.json`; the installer checks
 its size, digest and all 296 wheel identities before staging. Older recovery
