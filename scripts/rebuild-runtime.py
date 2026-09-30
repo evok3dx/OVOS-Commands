@@ -167,6 +167,19 @@ def rebuild(output):
     header_package = output / 'sources' / headers['filename']
     fetch(headers['url'], headers['sha256'], header_package)
     subprocess.run(['dpkg-deb', '-x', str(header_package), str(output / 'alsa')], check=True, env=env)
+    # The headers package's relative development link points at a library that
+    # remains an OS package. Replace only that private link with the fixed ABI
+    # library, rather than installing development files as administrator.
+    native = next((path for path in (Path('/usr/lib/x86_64-linux-gnu/libasound.so.2'),
+                                    Path('/lib/x86_64-linux-gnu/libasound.so.2'))
+                   if path.is_file()), None)
+    if native is None:
+        raise RuntimeError('Install the native ALSA runtime OS package first')
+    link = output / 'alsa/usr/lib/x86_64-linux-gnu/libasound.so'
+    if not link.is_symlink():
+        raise RuntimeError('Unexpected reviewed ALSA development link')
+    link.unlink()
+    link.symlink_to(native.resolve())
     env['CPATH'] = str(output / 'alsa/usr/include')
     env['LIBRARY_PATH'] = str(output / 'alsa/usr/lib/x86_64-linux-gnu')
     wheel_command = [python, '-I', '-m', 'pip', '--isolated', 'wheel', '--no-index',
