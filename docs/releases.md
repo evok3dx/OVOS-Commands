@@ -15,9 +15,14 @@ GTK child, so the radio button's `get_label()` returns `None`. The source fix
 retains each option's display text and refreshes the selected label, icon and
 accessible name even if the radio was already active. It changes no app choice,
 voice setting or runtime dependency. A real GTK 3/Xvfb regression checks initial
-and repeated restoration, user selection, reset and rebuilt choices. Automated
-validation and owner GUI retry are pending; microphone-wide acceptance is not
-inferred from the reported successful normal commands.
+and repeated restoration, user selection, reset and rebuilt choices.
+**VERIFIED:** commit `0c705c77f357bf5c1a803094cc9c9aa4c8caa7c6`, setup SHA-256
+`059510eeed465406325615344e72feac323a809a29b68d04bb82a5cfe03323f7`, passes run
+`36791112074`: real GTK 3, all four Python versions, security scans and the
+complete clean-copy deployment/recovery suite with 350/350 policy cases.
+Owner GUI retry remains open; microphone-wide acceptance is not inferred from
+the reported successful normal commands. The original frozen release needs
+this additional GUI source fix, now included in the testing instructions.
 
 **PLANNED release requirement:** the owner clarified that initial feedback is
 missing in the CLI installer, not the GUI. Show current steps and visible
@@ -42,7 +47,7 @@ deployment/recovery tests and 350/350 policy cases. The actual packaging 24.2
 compatibility step reproduces the old implicit rejection and passes the full
 296-package closure and out-of-range/excluded-alpha failure cases. The runtime
 archive and package identities remain unchanged; the original release archive
-uses the two immutable hash-verified source fixes in the testing instructions.
+uses the immutable hash-verified source fixes in the testing instructions.
 
 **Current password-free hotfix:** owner requires routine updates to remain
 password-free. The revised guard invokes only read-only system-manager show

@@ -47,8 +47,10 @@ isolation setup/removal remains a separate administrator operation.
 
 A second small hotfix makes exact reviewed prerelease verification independent
 of the existing host's packaging version. It changes no runtime pins, hashes,
-constraints or dependency exemptions. Both fixes below are needed with the
-original frozen release archive. At `Review application selection now? [y/N]`,
+constraints or dependency exemptions. A third fixes GUI restoration of saved
+default-app labels after icon rows were added; it changes no saved choice.
+All three fixes below are needed with the original frozen release archive.
+At `Review application selection now? [y/N]`,
 press Enter to keep existing app choices; selecting `y` intentionally opens setup.
 
 ```bash
@@ -78,6 +80,13 @@ printf '%s  %s\n' 8b032f679e1c3ac87305e7f4fbbfc8e902b54797dd523c738b997a6848d433
   scripts/dependency-lock.py.hotfix | sha256sum --check - || exit 1
 chmod 0755 scripts/dependency-lock.py.hotfix
 mv -- scripts/dependency-lock.py.hotfix scripts/dependency-lock.py
+jarvis_gui_fix='https://raw.githubusercontent.com/evok3dx/OVOS-Commands/0c705c77f357bf5c1a803094cc9c9aa4c8caa7c6/scripts/setup.py'
+curl --fail --location --proto '=https' --proto-redir '=https' \
+  "$jarvis_gui_fix" -o scripts/setup.py.hotfix || exit 1
+printf '%s  %s\n' 059510eeed465406325615344e72feac323a809a29b68d04bb82a5cfe03323f7 \
+  scripts/setup.py.hotfix | sha256sum --check - || exit 1
+chmod 0755 scripts/setup.py.hotfix
+mv -- scripts/setup.py.hotfix scripts/setup.py
 bash scripts/install.sh --no-speechnote
 ```
 
