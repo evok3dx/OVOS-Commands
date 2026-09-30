@@ -91,10 +91,23 @@ def guard_deployment(operation,home):
     if active(home):
         raise RuntimeError('Stop Jarvis and deactivate isolation before install, rollback or uninstall.')
     if operation in {'install','rollback','uninstall'}:
-        paths=[Path('/etc/systemd/system')/f'jarvis-v4-{os.getuid()}-{part}.service' for part in COMPONENTS]
-        paths.append(Path('/etc/polkit-1/rules.d')/f'90-jarvis-v4-{os.getuid()}.rules')
-        paths.append(Path('/etc/systemd/system/ollama.service.d/90-jarvis-isolation.conf'))
-        if any(path.exists() or path.is_symlink() for path in paths):
+        native=Path('/etc')
+        if os.environ.get('JARVIS_TEST_MODE')=='1':
+            home=Path(home)
+            if (home.resolve()==Path.home().resolve() or home.stat().st_uid!=os.getuid()
+                    or any(path.is_symlink() for path in (home,*home.parents))):
+                raise RuntimeError('Deployment fixtures require a separate regular user-owned home')
+            # Test-mode installs do not touch real services. Inspect their own
+            # native-policy fixtures rather than the runner's protected /etc.
+            native=home/'.local/state/jarvis/test-native'
+        paths=[native/'systemd/system'/f'jarvis-v4-{os.getuid()}-{part}.service' for part in COMPONENTS]
+        paths.append(native/'polkit-1/rules.d'/f'90-jarvis-v4-{os.getuid()}.rules')
+        paths.append(native/'systemd/system/ollama.service.d/90-jarvis-isolation.conf')
+        try:
+            remaining=any(path.exists() or path.is_symlink() for path in paths)
+        except PermissionError:
+            raise RuntimeError('Cannot inspect native isolation policy. Review its removal in the owner terminal before deployment.') from None
+        if remaining:
             raise RuntimeError('Remove the reviewed native isolation files before install, rollback or uninstall.')
 
 

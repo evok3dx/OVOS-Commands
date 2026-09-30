@@ -86,6 +86,22 @@ with patch.object(services,'active',return_value=True),patch.object(services.os,
 with patch.dict(os.environ,{'DISPLAY':':0','XAUTHORITY':'/home/fixture/.Xauthority'},clear=True):assert 'DISPLAY=":0"' in services.session_text()
 with patch.dict(os.environ,{'DISPLAY':'remote.invalid:0'},clear=True):rejected(services.session_text)
 
+# Ordinary-user CI must inspect its private fixtures, never assume unreadable
+# native policy is absent and never access a real desktop home in test mode.
+with tempfile.TemporaryDirectory(prefix='jarvis-native-guard-') as directory:
+    home=Path(directory)
+    with patch.dict(os.environ,{'JARVIS_TEST_MODE':'1'}):
+        services.guard_deployment('install',home)
+        native=home/'.local/state/jarvis/test-native/polkit-1/rules.d'
+        native.mkdir(parents=True)
+        (native/f'90-jarvis-v4-{os.getuid()}.rules').write_text('fixture')
+        for operation in ('install','rollback','uninstall'):
+            rejected(services.guard_deployment,operation,home)
+        rejected(services.guard_deployment,'install',Path.home())
+    with patch.dict(os.environ,{'JARVIS_TEST_MODE':'0'}),patch.object(services,'active',return_value=False),\
+         patch.object(Path,'exists',side_effect=PermissionError):
+        rejected(services.guard_deployment,'install',home)
+
 # Real files, private permissions and rollback after partial daemon-reload failure.
 with tempfile.TemporaryDirectory(prefix='jarvis-isolation-transaction-') as directory:
     home=Path(directory)
