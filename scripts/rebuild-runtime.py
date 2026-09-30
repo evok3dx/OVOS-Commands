@@ -216,6 +216,47 @@ def rebuild(output):
     venv.EnvBuilder(with_pip=True).create(target)
     probe.run_probe(output / 'wheels', inventory, candidate_lock,
                     output / 'proof/staged-install.json', target, home)
+    plugins = output / 'candidate/plugins'
+    plugins.mkdir(mode=0o700)
+    for source in (ROOT, ROOT / 'plugins/ovos-skill-jarvis-media', ROOT / 'plugins/jarvis-file-search'):
+        # Copy only reviewed build inputs; no Git credentials, diagnostic
+        # snapshots, dependency wheelhouse or runner environment enter a wheel.
+        copied = output / 'sources' / ('first-party-' + source.name)
+        copied.mkdir(mode=0o700)
+        for name in ('pyproject.toml', 'README.md', 'LICENSE'):
+            path = source / name
+            if path.is_file():
+                shutil.copyfile(path, copied / name)
+        for name in ('ovos_skill_jarvis_dispatcher', 'ovos_skill_jarvis_media', 'jarvis_file_search'):
+            path = source / name
+            if path.is_dir():
+                shutil.copytree(path, copied / name, ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
+        command = wheel_command.copy()
+        command[command.index('--wheel-dir') + 1] = str(plugins)
+        subprocess.run(command + [str(copied)], check=True, env=env)
+    plugin_records = dep.wheel_records(plugins)
+    if set(plugin_records) != dep.LOCAL:
+        raise RuntimeError('First-party plugin inventory changed')
+    plugin_lock = output / 'candidate/plugins.txt'
+    dep.private_write(plugin_lock, dep.lock_text(plugin_records, []))
+    subprocess.run([str(target / 'bin/python'), '-I', '-m', 'pip', '--isolated',
+                    'install', '--no-index', '--no-deps', '--require-hashes',
+                    '--find-links', str(plugins), '-r', str(plugin_lock)], check=True, env=env)
+    subprocess.run([str(target / 'bin/python'), '-I', '-c',
+                    'import ovos_skill_jarvis_dispatcher,ovos_skill_jarvis_media,jarvis_file_search; '
+                    'import numpy,onnxruntime,faster_whisper; '
+                    'from ovos_config import Configuration; '
+                    'from ovos_workshop.skill_launcher import SkillContainer; '
+                    'assert callable(Configuration.filter_and_merge); '
+                    'assert callable(Configuration.load_all_configs); '
+                    'assert callable(SkillContainer.run); '
+                    'assert numpy.__version__=="2.4.6"; '
+                    'print("Three first-party plugins, NumPy 2, inference imports and overlay APIs verified.")'],
+                   check=True, env=env)
+    dep.private_write(output / 'proof/plugins.json', json.dumps({
+        'status': 'three plugin builds, hash-enforced staged installs and imports passed',
+        'packages': plugin_records, 'live_desktop_tested': False,
+    }, indent=2) + '\n')
     bundle = module('rebuild_bundle', 'scripts/runtime_bundle.py')
     bundle.build(output / 'wheels', inventory, candidate_lock,
                  candidate_lock.with_suffix('.artifacts.json'),

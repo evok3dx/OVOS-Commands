@@ -4,6 +4,7 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 test_root="$(mktemp -d)"
 trap 'rm -rf -- "$test_root"' EXIT
+trap 'printf "Speech Note fixture failed at line %s\n" "$LINENO" >&2' ERR
 mkdir -p "$test_root/home/.var/app/net.mkiol.SpeechNote/config/net.mkiol/dsnote" \
   "$test_root/mock-bin"
 settings="$test_root/home/.var/app/net.mkiol.SpeechNote/config/net.mkiol/dsnote/settings.conf"
@@ -52,6 +53,12 @@ if [[ "${MOCK_MONITOR_HOLD:-0}" == 1 ]]; then
   exit 0
 fi
 if [[ "${MOCK_GDBUS_ZERO:-0}" == 1 ]]; then echo '(<0>,)'; exit 0; fi
+# Playback cannot begin before the mocked reader received this request. The
+# old unconditional playing state raced the asynchronous launch on CI.
+if ! grep -Fxq 'reader-request' "$MOCK_SEQUENCE" 2>/dev/null; then
+  echo '(<0>,)'
+  exit 0
+fi
 count="$(cat "$MOCK_STATE" 2>/dev/null || printf '0')"
 count=$((count + 1))
 printf '%s\n' "$count" > "$MOCK_STATE"

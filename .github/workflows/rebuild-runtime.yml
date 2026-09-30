@@ -39,3 +39,13 @@ jobs:
           if-no-files-found: error
           compression-level: 0
           retention-days: 7
+      - name: Upload small hash policies and verification reports
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: jarvis-v4-runtime-proof
+          path: |
+            ${{ runner.temp }}/jarvis-runtime-rebuild/candidate/*.json
+            ${{ runner.temp }}/jarvis-runtime-rebuild/candidate/*.txt
+            ${{ runner.temp }}/jarvis-runtime-rebuild/proof/
+          if-no-files-found: error
+          retention-days: 7
