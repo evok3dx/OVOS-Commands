@@ -86,6 +86,50 @@ def refresh_session(home=None):
     finally:Path(name).unlink(missing_ok=True)
 
 
+def protected_rule_present(path):
+    """Inspect only this account's public rule with cached native authorisation.
+
+    No password prompt, file contents, shell, policy changes or root Python.
+    Unknown failures remain blocked rather than being treated as absence.
+    """
+    uid=os.getuid()
+    if uid<=0 or path!=Path(f'/etc/polkit-1/rules.d/90-jarvis-v4-{uid}.rules'):
+        raise RuntimeError('Unexpected protected policy path or account')
+    for name in ('sudo','stat'):
+        tool=Path('/usr/bin')/name
+        resolved=tool.resolve(strict=True)
+        for part in (resolved,*resolved.parents,tool.parent):
+            info=part.stat()
+            if info.st_uid!=0 or info.st_mode & 0o022:
+                raise RuntimeError('Native policy checker ownership needs review')
+    try:
+        result=subprocess.run(['/usr/bin/sudo','-n','--','/usr/bin/stat','--format=%f','--',str(path)],
+                              capture_output=True,text=True,timeout=5,
+                              env={**os.environ,'LC_ALL':'C','LANG':'C'})
+    except (OSError,subprocess.TimeoutExpired):
+        raise RuntimeError('Native policy metadata check unavailable; deployment remains blocked.') from None
+    if result.returncode==0 and not result.stderr and re.fullmatch(r'[a-f0-9]+\n?',result.stdout):
+        return True
+    missing={f"/usr/bin/stat: cannot {verb} '{path}': No such file or directory\n"
+             for verb in ('stat','statx')}
+    if result.returncode==1 and not result.stdout and result.stderr in missing:
+        return False
+    raise RuntimeError('Protected policy check needs owner review or cached authorisation. '
+                       'Run sudo -v in your own terminal and retry; never sudo the installer.')
+
+
+def native_policy_present(path,protected_rule=None):
+    try:
+        path.lstat()
+        return True  # Includes dangling symlinks; do not infer removal from a missing target.
+    except FileNotFoundError:
+        return False
+    except PermissionError:
+        if path==protected_rule:
+            return protected_rule_present(path)
+        raise RuntimeError('Cannot inspect native isolation policy. Review its removal in the owner terminal before deployment.') from None
+
+
 def guard_deployment(operation,home):
     if operation not in {'install','rollback','uninstall'}:raise ValueError('Unknown deployment operation')
     if active(home):
@@ -101,12 +145,11 @@ def guard_deployment(operation,home):
             # native-policy fixtures rather than the runner's protected /etc.
             native=home/'.local/state/jarvis/test-native'
         paths=[native/'systemd/system'/f'jarvis-v4-{os.getuid()}-{part}.service' for part in COMPONENTS]
-        paths.append(native/'polkit-1/rules.d'/f'90-jarvis-v4-{os.getuid()}.rules')
+        rule=native/'polkit-1/rules.d'/f'90-jarvis-v4-{os.getuid()}.rules'
+        paths.append(rule)
         paths.append(native/'systemd/system/ollama.service.d/90-jarvis-isolation.conf')
-        try:
-            remaining=any(path.exists() or path.is_symlink() for path in paths)
-        except PermissionError:
-            raise RuntimeError('Cannot inspect native isolation policy. Review its removal in the owner terminal before deployment.') from None
+        protected_rule=rule if native==Path('/etc') else None
+        remaining=any(native_policy_present(path,protected_rule) for path in paths)
         if remaining:
             raise RuntimeError('Remove the reviewed native isolation files before install, rollback or uninstall.')
 

@@ -9,6 +9,16 @@ than repeating release narratives.
 
 ## 4.0.0rc1 (published laptop test; stable release pending)
 
+**Post-publication laptop finding:** the initial installer guard stops before
+any Jarvis changes when the native polkit directory cannot be traversed by the
+desktop user. A bounded source hotfix checks only the current account's public
+rule with cached owner-authorised native stat; it requires a definite missing
+file result and continues rejecting existing policy or unknown/denied checks.
+Fixture checks cover exact arguments, protected directories, absence, existing
+rules/symlinks, missing authorisation and timeouts. The published archive/tag
+remain unchanged; the immutable, hash-verified source hotfix is applied to the
+downloaded copy for this laptop test. See [troubleshooting](troubleshooting.md).
+
 Status: **Implementation in progress. Owner authorised completion and publication;
 artifact and live acceptance gates remain open.** This entry supersedes the collection-only checklist; the full
 agreed scope is retained in the owner's V4 implementation plan.

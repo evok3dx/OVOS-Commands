@@ -80,6 +80,16 @@ deactivation/native removal instructions first. Do not delete only the receipt
 or disable the guard: rules must not continue referencing replaced code.
 
 The V4 source candidate now has a complete rebuilt, hash-verified runtime bundle.
+The initial 4.0.0rc1 archive can stop before installation with `Cannot inspect
+native isolation policy` on systems whose polkit rules directory is protected.
+This is not evidence that a Jarvis rule exists. The source hotfix uses cached
+owner authorisation for read-only native stat of only the current account's
+exact public Jarvis rule. Authorise with `sudo -v` in your own terminal, then
+run the hash-verified hotfixed installer as the normal user. It never prompts
+for a password, reads a root file or assumes an unreadable rule is absent.
+Existing rules, dangling links, denied checks and unknown failures still block
+deployment. Do not chmod the directory or run the installer with sudo.
+
 Use the exact archive named in `voice/runtime-bundle.json`; the installer checks
 its size, digest and all 296 wheel identities before staging. Older recovery
 checkouts may still report **REBUILD REQUIRED**. Updating the checksum alone or

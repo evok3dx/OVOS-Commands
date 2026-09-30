@@ -99,8 +99,54 @@ with tempfile.TemporaryDirectory(prefix='jarvis-native-guard-') as directory:
             rejected(services.guard_deployment,operation,home)
         rejected(services.guard_deployment,'install',Path.home())
     with patch.dict(os.environ,{'JARVIS_TEST_MODE':'0'}),patch.object(services,'active',return_value=False),\
-         patch.object(Path,'exists',side_effect=PermissionError):
+         patch.object(Path,'lstat',side_effect=PermissionError):
         rejected(services.guard_deployment,'install',home)
+
+# Restricted polkit directory: only exact native ENOENT can establish absence.
+# Root remains limited to native stat metadata for the current account's rule.
+with patch.object(services.os,'getuid',return_value=1000):
+    rule=Path('/etc/polkit-1/rules.d/90-jarvis-v4-1000.rules')
+    missing=f"/usr/bin/stat: cannot statx '{rule}': No such file or directory\n"
+    with patch.object(services.subprocess,'run',return_value=Mock(returncode=1,stdout='',stderr=missing)) as native:
+        assert services.protected_rule_present(rule) is False
+        assert native.call_args.args[0]==['/usr/bin/sudo','-n','--','/usr/bin/stat','--format=%f','--',str(rule)]
+        assert native.call_args.kwargs['timeout']==5 and native.call_args.kwargs['env']['LC_ALL']=='C'
+        for bad in (rule.with_name('90-jarvis-v4-1001.rules'),Path('/etc/shadow')):
+            rejected(services.protected_rule_present,bad)
+        assert native.call_count==1
+    for result in (Mock(returncode=0,stdout='81a4\n',stderr=''),
+                   Mock(returncode=0,stdout='a1ff\n',stderr='')):
+        with patch.object(services.subprocess,'run',return_value=result):
+            assert services.protected_rule_present(rule) is True
+    for result in (Mock(returncode=1,stdout='',stderr='sudo: a password is required\n'),
+                   Mock(returncode=1,stdout='',stderr='Permission denied\n'),
+                   Mock(returncode=1,stdout='unexpected',stderr=missing),
+                   Mock(returncode=2,stdout='',stderr=missing),
+                   Mock(returncode=0,stdout='not metadata',stderr='')):
+        with patch.object(services.subprocess,'run',return_value=result):
+            rejected(services.protected_rule_present,rule)
+    with patch.object(services.subprocess,'run',side_effect=subprocess.TimeoutExpired(['stat'],5)):
+        rejected(services.protected_rule_present,rule)
+    with patch.object(Path,'lstat',side_effect=PermissionError),\
+         patch.object(services,'protected_rule_present',return_value=False) as native:
+        assert not services.native_policy_present(rule,rule)
+        rejected(services.native_policy_present,Path('/etc/systemd/system/unknown.service'),rule)
+        rejected(services.native_policy_present,rule,None)
+        assert native.call_count==1
+    for present in (False,True):
+        def state(path,protected_rule=None):
+            if path==rule:
+                assert protected_rule==rule
+                return present
+            return False
+        with patch.dict(os.environ,{'JARVIS_TEST_MODE':'0'}),\
+             patch.object(services,'active',return_value=False),\
+             patch.object(services,'native_policy_present',side_effect=state):
+            if present:rejected(services.guard_deployment,'install',Path('/home/fixture'))
+            else:services.guard_deployment('install',Path('/home/fixture'))
+with patch.object(services.os,'getuid',return_value=0):
+    rejected(services.protected_rule_present,Path('/etc/polkit-1/rules.d/90-jarvis-v4-0.rules'))
+print('PASS: inaccessible policy directory, exact cached-native absence check and fail-closed denial/symlink/timeout cases')
 
 # Real files, private permissions and rollback after partial daemon-reload failure.
 with tempfile.TemporaryDirectory(prefix='jarvis-isolation-transaction-') as directory:
