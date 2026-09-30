@@ -11,12 +11,23 @@ case "${1:-}" in
     ;;
 esac
 
+if [[ -e "$HOME/.local/state/jarvis/isolation/active.json" || -L "$HOME/.local/state/jarvis/isolation/active.json" ]]; then
+  /usr/bin/python3 - "$mode" <<'PY'
+from pathlib import Path
+import sys
+sys.path.insert(0,str(Path.home()/'.local/src/ovos-skill-jarvis-dispatcher/scripts'))
+from control_runtime import service_action
+print(service_action('restart' if sys.argv[1]=='full' else 'commands'))
+PY
+  exit $?
+fi
+
 systemctl_command="${JARVIS_SYSTEMCTL:-systemctl}"
 
 wait_active() {
   local service="$1"
-  local attempt
-  for attempt in {1..60}; do
+  local _attempt
+  for _attempt in {1..60}; do
     if "$systemctl_command" --user is-active --quiet "$service"; then
       return 0
     fi
