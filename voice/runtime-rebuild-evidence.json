@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "status": "reviewed rebuilt candidate; stable release gates open",
+  "source_commit": "e1416bac799a012582376ac5518d2d13582dc3c6",
+  "source_ci_run": 36765769296,
+  "runtime_ci_run": 36765769244,
+  "artifact_id": 11120453380,
+  "proof_artifact_id": 11120708039,
+  "proof_artifact_sha256": "b72141bd48f254b8e5d5f5ffadccb0290cae6a22e45f4fe35fdd93b55faf635f",
+  "archive_identity": {
+    "archive_bytes": 453638809,
+    "archive_name": "jarvis-runtime-linux-x86_64-py311.zip",
+    "archive_sha256": "03cbba7effa9046d9ce7a63b26d9a0b886eebf4f58f445dda2ae37af07e8c288",
+    "inventory_sha256": "8f21b54aad088c41187ad7ee9e85287f6d15227b7dacb8fa30b162ac02627af7",
+    "lock_sha256": "5e9c800da317f9ce2ee58fa0cf10725cd42440af9d3ff0e193fcc78a3e98e7e1",
+    "schema_version": 1,
+    "status": "built and byte-verified; live acceptance required"
+  },
+  "build_evidence": {
+    "schema_version": 1,
+    "status": "candidate byte verification and offline staging passed",
+    "package_count": 296,
+    "metadata_exceptions": [],
+    "python_full_version": "3.11.16",
+    "source_build_count": 10,
+    "hash_changes_require_review": [
+      "combo-lock",
+      "docopt",
+      "phoonnx",
+      "pyalsaaudio",
+      "pywikihow",
+      "sonopy",
+      "srt",
+      "wallpaper-finder",
+      "webrtcvad"
+    ],
+    "compiler_version": "13.3.0",
+    "libc": [
+      "glibc",
+      "2.39"
+    ],
+    "locks_promoted": false,
+    "live_environment_modified": false,
+    "live_isolation_verified": false,
+    "inventory_sha256": "8f21b54aad088c41187ad7ee9e85287f6d15227b7dacb8fa30b162ac02627af7",
+    "build_tools_sha256": "ecd5d417849bc856a206c371eb3a7da5fc43233412c57425b8b48725f0da81b2"
+  },
+  "wheel_hash_differences": {
+    "combo-lock": {
+      "previous": "0c497d5d7c4d091fdef960407948c5b0b1cda357fd7cd284dba7143433bac1ea",
+      "rebuilt": "3c67b19b74c264616a46f0de4d3de110e7ea16530c29b24983ff73a2d7429c2c"
+    },
+    "docopt": {
+      "previous": "8d617220c13216b4ed4262f49641a0eb53505374cbf2a0e09a0e8b72e82d3485",
+      "rebuilt": "59b719d45514d9f1208258f924b0835efb94a3f7d69c7c46233d90e4827d134f"
+    },
+    "phoonnx": {
+      "previous": "1aa26d2e75c0702c39ab591fa2ceaa0208d2e3d105ac4a3631f91ec43aa15e8a",
+      "rebuilt": "ccd15b07a7950ae63270ec0e490f3119f3f193936c9d5c31f02f6105d62c36fe"
+    },
+    "pyalsaaudio": {
+      "previous": "cad391bb300d3cb0367a06732f725dfa5640cb243f82aab132b7a41fa5e206c1",
+      "rebuilt": "968292fc2f9a1ae7df77c59b03bf891ef1d92faa13b0cf6429e57a448b5da264"
+    },
+    "pywikihow": {
+      "previous": "7f872873fbcb2f7b342284fa3db1f480f25583a178599344a6115cdfcf5f82a7",
+      "rebuilt": "b8a7e04575a4d43c79ffb48d18754fa10dcd119e55f4fd062425ef7cc543d58f"
+    },
+    "sonopy": {
+      "previous": "15ead602080ef8c86fe1b49e6b4ff34381bd1ba271176eae6fd2e44a0162a7e0",
+      "rebuilt": "5e5c9699c34bfc1ba7628da77c93322b7c30c60c45950110e84ce5c6c153e255"
+    },
+    "srt": {
+      "previous": "bd88f74118c60ec0215ff8d9c70b33e08c2f88f43d145f0a5d02d3964fa5dfa4",
+      "rebuilt": "6bbab0290ff37483eea61be7fbe9294ccb34814f8fc994119f9e6ecca79a9a88"
+    },
+    "wallpaper-finder": {
+      "previous": "99b84104efc491a67a8701da66f724625520d4671ccc714678dc0141920ee3f2",
+      "rebuilt": "f7824e5631df4dfbd5d1734b612d62023cacbd0315fe73942506126baa1c202f"
+    },
+    "webrtcvad": {
+      "previous": "7cf1da6510e35a50681d5705ca737d3c190df14b965ec93b385a80379f135d5f",
+      "rebuilt": "f7b161cc8d553643a5a4c46a921fbf2a3d21220ebf4a205dd845a336d2c8ca23"
+    }
+  },
+  "wheel_versions_and_metadata_unchanged": true,
+  "downstream_wake_wheel_reproduced_identically": true,
+  "wake_inference": {
+    "status": "real ONNX silent-frame inference passed",
+    "numpy": "2.4.6",
+    "plugin": "0.4.5a2+jarvis.1",
+    "silent_frames": 50,
+    "network_connect_forbidden": true,
+    "tflite_not_imported": true,
+    "microphone_or_positive_recognition_tested": false
+  },
+  "redistribution_followup": {
+    "package": "espeakng-loader",
+    "version": "0.2.4",
+    "finding": "The verified wheel embeds libespeak-ng.so and contains no separately identified license/COPYING/NOTICE entry. The upstream eSpeak NG COPYING is GPLv3. Exact corresponding-source and notice handling must be completed before broad runtime-bundle redistribution.",
+    "upstream_license": "https://github.com/espeak-ng/espeak-ng/blob/master/COPYING",
+    "status": "OPEN; no legal-compliance or source-completeness claim"
+  },
+  "canonical_policy_promoted": false,
+  "stable_release_published": false
+}

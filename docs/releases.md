@@ -41,13 +41,44 @@ Ollama has a separate data-only network policy candidate preserving its existing
 ordinary-user daemon, executable, models and CPU/GPU settings. Nothing has been
 applied to the laptop. See [the bounded service candidate](core-isolation.md).
 
-**Current release blockers:** rebuild and revalidate the full exact runtime
-artifact; scan the final rebuilt artifact; actual OVOS/Ollama, model,
+**Current release blockers:** retain and adopt the exact verified rebuilt runtime
+artifact/policy; close bundled licence/corresponding-source handling; final asset scans; actual OVOS/Ollama, model,
 DNS/proxy/inherited-socket, voice, GUI, login, stage-switch and recovery
 acceptance; effective Hermes permissions and owner repository review. Fresh source and full-history Gitleaks scans pass after tool recovery; the
 production shell check also passes after correcting an unused loop variable.
 The source recovery branch is being published under the owner's authorisation.
 No V4 release/tag or live migration has been performed. The complete V4 scope remains.
+
+**VERIFIED current ordinary-user GitHub evidence:** source run `36765769296`
+passes security scans, production ShellCheck and the complete required suite
+on Python 3.10, 3.11, 3.12 and 3.13. The clean-extracted code archive passes the
+same complete suite and 350/350 non-executing policy cases. Runtime run
+`36765769244` passes all 296 unchanged package versions and dependency metadata,
+full hash-enforced offline and staged installation, three independent plugin
+builds/hash installs/imports, OVOS overlay API imports, real ONNX inference on
+50 silent frames with socket connects forbidden and no TFLite import, and
+packaged bundle-byte verification. Compiler 13.3.0 and glibc 2.39 match the
+recorded toolchain. The nine upstream source-built wheel hashes changed and are
+explicitly recorded; their hash-pinned sources and metadata are unchanged. The
+ONNX-only downstream wheel reproduces its existing hash. NumPy 2.4.6 and zero
+exemptions remain. No positive wake/microphone or actual laptop-service claim
+is inferred from these runs.
+
+The latest inner runtime ZIP is 453638809 bytes, SHA-256
+`03cbba7effa9046d9ce7a63b26d9a0b886eebf4f58f445dda2ae37af07e8c288`.
+GitHub artifact `11120453380` retains it with independently verified small proof
+artifact `11120708039`. CI artifacts expire after seven days. The older canonical
+wheel/bundle policy remains unchanged until the exact candidate is retained and
+final acceptance is closed; there is no silent lock promotion. Details are in
+`voice/runtime-rebuild-evidence.json`.
+
+**Remaining redistribution check:** the exact `espeakng-loader==0.2.4` wheel
+embeds `libespeak-ng.so` without a separately identified licence/COPYING/NOTICE
+entry. Upstream eSpeak NG uses GPLv3. Complete notice and corresponding-source
+handling, including bundled native libraries, before broad runtime-bundle
+redistribution; the report is an inventory, not a compliance conclusion. See
+[upstream COPYING](https://github.com/espeak-ng/espeak-ng/blob/master/COPYING).
+This does not change package versions or remove the agreed full-hash requirement.
 
 **VERIFIED restored-candidate checks:** required source validation/routing/Qwen/
 updater tests and the complete deployment suite pass. The rebuilt code archive's
