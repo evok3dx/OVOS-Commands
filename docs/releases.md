@@ -20,7 +20,11 @@ settings and unknown fields survive updates. Install/rollback/uninstall include
 the new owned voice-login entry. The Updates button itself is green when current
 and blue when an update is available, with neutral unknown/failed states and no
 duplicate green status line. Real GTK and four-combination startup regressions
-are added; current automated verification and owner laptop checks are pending.
+pass. **VERIFIED:** source commit `dacc2cdb35c585e715642971b7b85269457c9e5d`,
+run `36793219822`, passes real GTK 3, all four Python versions, security scans,
+independent login/failure/privacy regressions and the complete clean-copy
+deployment/recovery suite with 350/350 policy cases. Owner laptop checks remain
+pending; publishing the source does not update an installed laptop.
 
 **Owner-directed review location:** new core and Ollama candidate directories
 default to Downloads, with private directories/files and accurate native source
