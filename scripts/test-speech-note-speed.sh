@@ -100,7 +100,10 @@ PY
 grep -Fxq 'speech_speed2=13' "$settings"
 grep -Fxq '13' "$HOME/.config/jarvis/reading-normal-speed"
 for attempt in {1..300}; do
-  [[ ! -e "$HOME/.local/state/jarvis/reading-fast-active" ]] && break
+  if [[ ! -e "$HOME/.local/state/jarvis/reading-fast-active" ]] &&
+     grep -Fxq 'run net.mkiol.SpeechNote --start-in-tray 13' "$MOCK_LOG"; then
+    break
+  fi
   /usr/bin/sleep 0.01
 done
 [[ ! -e "$HOME/.local/state/jarvis/reading-fast-active" ]]

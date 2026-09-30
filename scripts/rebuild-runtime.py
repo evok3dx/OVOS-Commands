@@ -6,6 +6,7 @@ Never promote repository locks, install on a laptop, or execute as root.
 import argparse
 from concurrent.futures import ThreadPoolExecutor
 import hashlib
+from email.parser import BytesParser
 import importlib.util
 import json
 import os
@@ -18,6 +19,7 @@ import sys
 import urllib.parse
 import urllib.request
 import venv
+import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 HOSTS = {'pypi.org', 'files.pythonhosted.org', 'github.com', 'codeload.github.com',
@@ -256,6 +258,58 @@ def rebuild(output):
     dep.private_write(output / 'proof/plugins.json', json.dumps({
         'status': 'three plugin builds, hash-enforced staged installs and imports passed',
         'packages': plugin_records, 'live_desktop_tested': False,
+    }, indent=2) + '\n')
+    models = json.loads((ROOT / 'voice/model-identities.json').read_text())['wake_artifacts']
+    raw = subprocess.check_output([str(target / 'bin/python'), '-I', '-c',
+                                   'import importlib.util;print(next(iter(importlib.util.find_spec("openwakeword").submodule_search_locations)))'],
+                                  text=True, env=env)
+    resource = Path(raw.strip()) / 'resources/models'
+    if target not in resource.parents:
+        raise RuntimeError('Wake test resource path escaped the disposable stage')
+    resource.mkdir(parents=True, exist_ok=True)
+    for record in models:
+        if record['name'].endswith('.onnx'):
+            model = resource / record['name']
+            if model.exists():
+                if digest(model) != record['sha256']:
+                    raise RuntimeError('Unexpected packaged wake model')
+            else:
+                fetch(record['url'], record['sha256'], model)
+            if model.stat().st_size != record['bytes']:
+                raise RuntimeError('Wake test model bounds changed')
+    subprocess.run([str(target / 'bin/python'), '-I', '-c',
+                    'import socket,sys,numpy as np; '
+                    'from unittest.mock import patch; '
+                    'with_guard=patch.object(socket.socket,"connect",side_effect=AssertionError("Network connection forbidden")); '
+                    'with_guard.start(); '
+                    'from ovos_ww_plugin_openwakeword import OwwHotwordPlugin; '
+                    'wake=OwwHotwordPlugin("hey jarvis",{"inference_framework":"onnx","models":[sys.argv[1]]}); '
+                    'frame=np.zeros(1280,dtype=np.int16).tobytes(); '
+                    '[(wake.update(frame),None) for _ in range(50)]; '
+                    'assert not wake.found_wake_word(); '
+                    'assert not any(n.startswith("tflite_runtime") for n in sys.modules); '
+                    'print("Real ONNX wake inference passed on 50 silent frames with network connects forbidden.")',
+                    str(resource / 'hey_jarvis_v0.1.onnx')], check=True, env=env)
+    dep.private_write(output / 'proof/wake-inference.json', json.dumps({
+        'status': 'real ONNX silent-frame inference passed', 'numpy': '2.4.6',
+        'plugin': '0.4.5a2+jarvis.1', 'silent_frames': 50,
+        'network_connect_forbidden': True, 'tflite_not_imported': True,
+        'microphone_or_positive_recognition_tested': False,
+    }, indent=2) + '\n')
+    licensing = {}
+    for name, record in records.items():
+        with zipfile.ZipFile(output / 'wheels' / record['file']) as wheel:
+            entry = next(path for path in wheel.namelist()
+                         if path.endswith('.dist-info/METADATA') and len(Path(path).parts) == 2)
+            info = BytesParser().parsebytes(wheel.read(entry))
+            licensing[name] = {'version': record['version'],
+                               'declared_license': info.get('License-Expression') or info.get('License') or '',
+                               'license_classifiers': [v for v in info.get_all('Classifier', []) if v.startswith('License ::')],
+                               'packaged_notices': [v for v in wheel.namelist()
+                                                   if re.search(r'(?:^|/)(?:licenses?|copying|notice)(?:[./_-]|$)', v, re.I)]}
+    dep.private_write(output / 'proof/third-party-licenses.json', json.dumps({
+        'status': 'declared licenses and packaged notices collected; redistribution review still required',
+        'packages': licensing,
     }, indent=2) + '\n')
     bundle = module('rebuild_bundle', 'scripts/runtime_bundle.py')
     bundle.build(output / 'wheels', inventory, candidate_lock,
