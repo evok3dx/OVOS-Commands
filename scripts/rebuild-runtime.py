@@ -303,8 +303,8 @@ def rebuild(output):
                          if path.endswith('.dist-info/METADATA') and len(Path(path).parts) == 2)
             info = BytesParser().parsebytes(wheel.read(entry))
             licensing[name] = {'version': record['version'],
-                               'declared_license': info.get('License-Expression') or info.get('License') or '',
-                               'license_classifiers': [v for v in info.get_all('Classifier', []) if v.startswith('License ::')],
+                               'declared_license': str(info.get('License-Expression') or info.get('License') or ''),
+                               'license_classifiers': [str(v) for v in info.get_all('Classifier', []) if str(v).startswith('License ::')],
                                'packaged_notices': [v for v in wheel.namelist()
                                                    if re.search(r'(?:^|/)(?:licenses?|copying|notice)(?:[./_-]|$)', v, re.I)]}
     dep.private_write(output / 'proof/third-party-licenses.json', json.dumps({
@@ -321,6 +321,8 @@ def rebuild(output):
         'package_count': len(records), 'metadata_exceptions': [],
         'python_full_version': platform.python_version(),
         'source_build_count': len(sources) + 1, 'hash_changes_require_review': sorted(changes),
+        'compiler_version': subprocess.check_output(['gcc', '-dumpfullversion'], text=True, env=env).strip(),
+        'libc': list(platform.libc_ver()),
         'locks_promoted': False, 'live_environment_modified': False,
         'live_isolation_verified': False,
         'inventory_sha256': digest(inventory), 'build_tools_sha256': digest(tools_lock),
