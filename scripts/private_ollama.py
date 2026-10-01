@@ -177,10 +177,8 @@ def prepare_models(home, report=print):
         raise RuntimeError('Not enough space for the private Jarvis model copy')
     report('Preparing the private Jarvis model from existing local files…')
     from installer_progress import Progress
-    progress = Progress('Preparing private model')
     copied_bytes = 0
-    progress.__enter__()
-    with tempfile.TemporaryDirectory(prefix='.models-', dir=parent) as temporary:
+    with Progress('Preparing private model') as progress, tempfile.TemporaryDirectory(prefix='.models-', dir=parent) as temporary:
         stage = Path(temporary) / 'models'
         stage.mkdir(mode=0o700)
         for index, (name, (expected_digest, size)) in enumerate(files.items(), 1):
@@ -204,7 +202,6 @@ def prepare_models(home, report=print):
         if destination.exists():
             raise RuntimeError('Private model destination changed during preparation')
         stage.rename(destination)
-    progress.__exit__(None, None, None)
 
 
 def render_unit(uid, gid, home, binary):

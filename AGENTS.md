@@ -95,7 +95,8 @@ If any one of these layers is missing, the command change is incomplete.
   Never run the repository, pip, tar extraction or a whole upstream installer
   with `sudo`, and never use a root-owned checkout or temporary directory.
 - A protected polkit directory alone must not require administrator authentication
-  for routine deployment. Check the exact five native worker identities through
+  for routine deployment. Check the exact five native workers and dedicated
+  model identity through
   read-only system-manager properties, without sudo or password prompts. Proceed
   only if every worker is not-found/inactive with no fragment or drop-ins and all
   other native deployment paths/receipts are absent. A hidden rule is uninspected,

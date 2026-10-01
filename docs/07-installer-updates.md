@@ -3,6 +3,12 @@
 This page describes the current V4 deployment contract. Historical release
 trials and their failures are retained under [`docs/history/`](history/README.md).
 
+The unpublished 4.0.1 [guided-isolation candidate](core-isolation.md#guided-installer-candidate-401-not-yet-published)
+offers recommended protection on first installation, preserves existing choices,
+and coordinates isolated upgrades without manual policy removal. It uses a
+dedicated local Ollama and bounded administrator approval for native data only.
+The stable 4.0.0 procedure below remains the published installation path.
+
 ## Supported target
 
 The fully tested desktop target is Linux Mint on X11, x86_64 and Python 3.11.

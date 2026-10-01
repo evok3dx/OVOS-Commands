@@ -12,6 +12,7 @@ import tempfile
 
 LOGICAL = {'ovos-core.service':'core', 'ovos-listener.service':'listener', 'ovos-audio.service':'audio'}
 COMPONENTS = (*LOGICAL.values(), 'weather', 'media')
+NATIVE_COMPONENTS = (*COMPONENTS, 'ollama')
 
 
 def regular(path, private=False, owner=None, limit=65536):
@@ -95,7 +96,7 @@ def native_workers_absent():
     """
     uid=os.getuid()
     if uid<=0:raise RuntimeError('Deployment requires the normal desktop user')
-    names={f'jarvis-v4-{uid}-{part}.service' for part in COMPONENTS}
+    names={f'jarvis-v4-{uid}-{part}.service' for part in NATIVE_COMPONENTS}
     tool=Path('/usr/bin/systemctl')
     resolved=tool.resolve(strict=True)
     for part in (resolved,*resolved.parents,tool.parent):

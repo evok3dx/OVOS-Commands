@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 import tempfile
+import shutil
 from unittest.mock import Mock, patch
 
 import isolation_install as install
@@ -50,6 +51,13 @@ with tempfile.TemporaryDirectory() as folder:
     router.unlink()
     router.symlink_to(home / 'missing')
     rejects(endpoint.model_port, home)
+    router.unlink()
+
+    install.atomic(home / install.CHOICE, {'schema_version': 1, 'enabled': True, 'model_binary': '/usr/bin/ollama'})
+    rejects(endpoint.model_port, home)
+    install.atomic(router, {'backend': 'general'})
+    rejects(endpoint.model_port, home)
+    (home / install.CHOICE).unlink()
     router.unlink()
 
     # Only the exact reviewed model is copied, all content hashes are checked,
@@ -117,3 +125,128 @@ with tempfile.TemporaryDirectory() as folder:
     rejects(native.run, 'pip', 'install')
 
 print('PASS: default recommendation, upgrade preservation, no endpoint fallback, private model hash/copy and process-bound transaction guards')
+
+# Exercise the complete coordinator around an installation that changes source.
+# Native system operations are replaced at the boundary; all private files,
+# transaction records, source identity and preference restoration are real.
+import control_runtime
+for failure in (None, 'ready', 'port', 'stop'):
+    with tempfile.TemporaryDirectory() as folder:
+        home = Path(folder)
+        account = Mock(pw_uid=os.getuid(), pw_gid=os.getgid(), pw_name='fixture', pw_dir=str(home))
+        deployment = home / '.local/src/ovos-skill-jarvis-dispatcher'
+        deployment.mkdir(parents=True)
+        code = deployment / 'managed.py'
+        code.write_text('old source\n')
+        capabilities = home / '.config/jarvis/capabilities.json'
+        install.atomic(capabilities, {'future': 'preserve'})
+        router = home / '.config/jarvis/router.json'
+        install.atomic(router, {'backend': 'jarvis', 'model': model.MODEL, 'future': 'preserve'})
+        old_router = router.read_bytes()
+        preference = {'schema_version': 1, 'enabled': True, 'model_binary': '/usr/bin/ollama', 'future': 9}
+        install.atomic(home / install.CHOICE, preference)
+        store = model.private_root(home) / 'models' / model.MANIFEST
+        store.parent.mkdir(parents=True)
+        store.write_text('fixture model store already exists')
+        original_tree = install.tree_identity(deployment)
+        units, rule, _ = prepare.render(os.getuid(), os.getgid(), 'fixture', home, deployment, '/usr/bin/ollama')
+        backup = home / '.local/state/jarvis/backups/fixture'
+        calls = []
+
+        def child(command, environment):
+            assert environment['JARVIS_ISOLATION_TRANSACTION'] == str(home / install.JOURNAL)
+            assert install.installation_blocked(home)
+            backup.mkdir(parents=True)
+            shutil.copytree(deployment, backup / 'target-root')
+            value = json.loads((home / install.JOURNAL).read_text())
+            install.atomic(home / install.JOURNAL, dict(value, backup=str(backup)))
+            code.write_text('new source\n')
+            install.atomic(home / '.local/state/jarvis/current.json', {'rollback': str(backup)})
+            return 0
+
+        def stop(home, was_active, record=None):
+            desired = ['ovos-audio.service', 'ovos-core.service']
+            if record is not None:
+                record(desired)
+                if failure == 'stop':
+                    raise RuntimeError('injected service stop failure')
+            return desired
+
+        def native_process(command, **kwargs):
+            calls.append(command)
+            assert 'ollama.service' not in command  # Never control the general daemon.
+            if command[0] == 'bash':
+                assert command[2:] == [str(backup), '--no-restart']
+                code.write_bytes((backup / 'target-root/managed.py').read_bytes())
+            return Mock(returncode=0)
+
+        with patch.object(Path, 'home', return_value=home), \
+             patch.object(install.pwd, 'getpwuid', return_value=account), \
+             patch.object(install, 'active', return_value=True), \
+             patch.object(install, 'native_snapshot', return_value=(units, rule, '/usr/bin/ollama')), \
+             patch.object(install, 'stop_workers', side_effect=stop), \
+             patch.object(install, 'run_child', side_effect=child), \
+             patch.object(install, 'restore_running') as restarted, \
+             patch.object(install.Native, 'approve', side_effect=AssertionError('Routine upgrade must not authenticate')), \
+             patch.object(install.subprocess, 'run', side_effect=native_process), \
+             patch.object(model, 'verify_executable', return_value='/usr/bin/ollama'), \
+             patch.object(model, 'prepare_models'), \
+             patch.object(model, 'require_free_port', side_effect=RuntimeError('injected occupied port') if failure == 'port' else None), \
+             patch.object(model, 'wait_model', side_effect=[RuntimeError('injected readiness failure'), None] if failure == 'ready' else [None]), \
+             patch.object(control_runtime, 'service_action'), \
+             contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            if failure:
+                rejects(install.run_install, [], home)
+                assert install.tree_identity(deployment) == original_tree
+                assert router.read_bytes() == old_router
+            else:
+                assert install.run_install([], home) == 0
+                assert code.read_text() == 'new source\n'
+            assert not (home / install.JOURNAL).exists()
+            assert json.loads((home / install.CHOICE).read_text()) == preference
+            assert json.loads(capabilities.read_text()) == {'future': 'preserve'}
+            assert restarted.call_args.args[0] == ['ovos-audio.service', 'ovos-core.service']
+            assert 'ovos-listener.service' not in restarted.call_args.args[0]
+
+# Crash recovery revalidates native identity before stopping, then validates
+# stopped state before rollback. The same lock excludes concurrent recovery.
+with tempfile.TemporaryDirectory() as folder:
+    home = Path(folder)
+    account = Mock(pw_uid=os.getuid(), pw_gid=os.getgid(), pw_name='fixture', pw_dir=str(home))
+    state = home / install.JOURNAL
+    install.atomic(state, {'schema_version': 1, 'uid': os.getuid(), 'pid': 0,
+                          'process_start': 'dead', 'token': 'x' * 40, 'phase': 'checking',
+                          'was_active': True, 'binary': '/usr/bin/ollama',
+                          'original_binary': '/usr/bin/ollama', 'native_started': False,
+                          'previous_desired': ['ovos-core.service', 'ovos-audio.service']})
+    order = []
+
+    def authorised(operation, target, **kwargs):
+        assert operation == 'rollback' and target == home
+        order.append('identity' if kwargs.get('require_stopped') is False else 'stopped')
+
+    def recovered(target, journal, native):
+        assert order == ['identity', 'stop', 'stopped']
+        assert journal['pid'] == os.getpid() and journal['token'] != 'x' * 40
+        def competing():
+            with install.installation_lock(home):
+                raise AssertionError('Concurrent recovery acquired the installation lock')
+        rejects(competing)
+        state.unlink()
+
+    with patch.object(Path, 'home', return_value=home), \
+         patch.object(install.pwd, 'getpwuid', return_value=account), \
+         patch.object(model, 'verify_executable', return_value='/usr/bin/ollama'), \
+         patch.object(install, 'active', return_value=True), \
+         patch.object(install, 'authorised_transaction', side_effect=authorised), \
+         patch.object(install, 'stop_workers', side_effect=lambda *_: order.append('stop')), \
+         patch.object(install, 'recover_transaction', side_effect=recovered), \
+         patch.object(install.subprocess, 'run', return_value=Mock(returncode=0)), \
+         patch.dict(os.environ):
+        assert install.resume_recovery(home) == 0
+        assert order == ['identity', 'stop', 'stopped']
+        assert not state.exists()
+
+print('PASS: full coordinator success, readiness/port/stop recovery, muted-state retention and exclusive crash recovery')
+
+print('PASS: complete steady upgrade and failed-readiness recovery preserve source, native policy, private settings and muted microphone without administrator prompts')

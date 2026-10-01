@@ -1661,7 +1661,7 @@ trap cleanup EXIT
 # The dynamic Whisper hints modify a third-party plugin only after its exact
 # reviewed layout is checked. This add-on has its own backup and rollback;
 # unknown plugin revisions are reported and left untouched.
-if [[ "${JARVIS_TEST_MODE:-0}" != 1 && "$restart" == true ]]; then
+if [[ "${JARVIS_TEST_MODE:-0}" != 1 && "$restart" == true && -z "${JARVIS_ISOLATION_TRANSACTION:-}" ]]; then
   hint_installer="$target_root/extras/whisper-hints/install.py"
   if "$desktop_python" "$hint_installer" --check; then
     if ! "$desktop_python" "$hint_installer"; then

@@ -6,12 +6,14 @@ process-bound journal authorises only this transaction's install/rollback, never
 uninstall or arbitrary remaining native data. Interrupted transactions fail closed.
 """
 import argparse
+import contextlib
 import fcntl
 import hashlib
 import json
 import os
 from pathlib import Path
 import pwd
+import re
 import secrets
 import signal
 import stat
@@ -127,7 +129,7 @@ def ancestor(pid):
     return False
 
 
-def authorised_transaction(operation, home):
+def authorised_transaction(operation, home, *, require_stopped=True):
     if operation not in {'install', 'rollback'} or home != Path.home():
         raise RuntimeError('Only the active managed installation/rollback can use this boundary')
     journal = home / JOURNAL
@@ -160,7 +162,8 @@ def authorised_transaction(operation, home):
         if body not in {expected_units.get(name), desired.get(name)}:
             raise RuntimeError('Unexpected native policy; installation remains blocked')
         props = properties('--system', name, 'ActiveState', 'DropInPaths', 'User', 'Group')
-        if (props.get('ActiveState') not in {'inactive', 'failed'} or props.get('DropInPaths')
+        states = {'inactive', 'failed'} if require_stopped else {'active', 'inactive', 'failed', 'activating', 'deactivating'}
+        if (props.get('ActiveState') not in states or props.get('DropInPaths')
                 or props.get('User') != str(os.getuid()) or props.get('Group') != str(account.pw_gid)):
             raise RuntimeError('Native identity, overrides or running state changed')
     legacy = Path('/etc/systemd/system/ollama.service.d/90-jarvis-isolation.conf')
@@ -205,7 +208,7 @@ class Native:
             if info.st_uid != 0 or info.st_mode & 0o022:
                 raise RuntimeError('Native administrator tool ownership needs review')
         self.approve()
-        return subprocess.run([*self.prefix, str(path), *map(str, args)],
+        return subprocess.run([*self.prefix, str(path), *map(str, args)], env={**os.environ, 'LC_ALL': 'C'},
                               check=check, capture_output=capture, text=True, timeout=120)
 
 
@@ -279,7 +282,7 @@ def apply_native(native, units, rule, originals, old_rule, directory):
     return True
 
 
-def stop_workers(home, was_active):
+def stop_workers(home, was_active, record=None):
     from control_runtime import service_action
     desired = []
     if was_active:
@@ -291,16 +294,33 @@ def stop_workers(home, was_active):
         for unit in LOGICAL:
             if properties('--user', unit, 'ActiveState').get('ActiveState') == 'active':
                 desired.append(unit)
+    if record is not None:
+        record(desired)
     if was_active or desired:
         service_action('stop', print)
     return desired
 
 
 def restore_running(desired):
-    from control_runtime import run, wait_ready
+    from control_runtime import run, wait_ready, refresh_session
     if desired:
+        refresh_session()
         run(['systemctl', '--user', 'start', *desired], timeout=45)
         wait_ready(desired, print, timeout=180)
+
+
+@contextlib.contextmanager
+def installation_lock(home):
+    state = home / JOURNAL
+    if any(path.is_symlink() for path in (state.parent, *state.parent.parents)):
+        raise ValueError('Installation state must be regular')
+    state.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    lock_path = state.parent / 'operation.lock'
+    if lock_path.is_symlink():
+        raise ValueError('Installation lock must be regular')
+    with lock_path.open('a') as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        yield
 
 
 def run_child(command, environment):
@@ -316,6 +336,34 @@ def run_child(command, environment):
             os.killpg(child.pid, signal.SIGKILL)
             child.wait(timeout=10)
         raise
+
+
+def finish_desktop(home, desired):
+    """Optional desktop add-ons run only after the guarded transaction commits."""
+    hint = home / '.local/src/ovos-skill-jarvis-dispatcher/extras/whisper-hints/install.py'
+    if set(desired) == set(LOGICAL) and hint.is_file():
+        try:
+            regular(hint)
+            checked = subprocess.run([sys.executable, str(hint), '--check'], check=False)
+            if checked.returncode == 0:
+                subprocess.run([sys.executable, str(hint)], check=True)
+        except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
+            print('Optional Whisper hints need review: ' + str(error), file=sys.stderr)
+    tray = home / '.local/bin/ovos-tray'
+    if os.environ.get('DISPLAY') and tray.is_file():
+        try:
+            regular(tray)
+            subprocess.run(['/usr/bin/pkill', '-u', str(os.getuid()), '-f', re.escape(str(tray))],
+                           check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            log = home / '.local/state/jarvis/ovos-tray.log'
+            if any(p.is_symlink() for p in (log, *log.parents)):
+                raise ValueError('Tray log must be regular')
+            fd = os.open(log, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW, 0o600)
+            with os.fdopen(fd, 'w') as stream:
+                subprocess.Popen([str(tray)], stdin=subprocess.DEVNULL, stdout=stream,
+                                 stderr=subprocess.STDOUT, start_new_session=True, close_fds=True)
+        except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
+            print('Open the Jarvis tray manually: ' + str(error), file=sys.stderr)
 
 
 def tree_identity(root):
@@ -378,8 +426,7 @@ def recover_transaction(home, journal, native):
     journal['phase'] = 'recovering'
     atomic(state, journal)
     try:
-        from control_runtime import service_action
-        service_action('stop', print)
+        stop_workers(home, active(home))
         if native_started:
             native.run('systemctl', 'stop', *units)
             # Remove only unchanged new files; restore only exact reviewed originals.
@@ -450,6 +497,11 @@ def recover_transaction(home, journal, native):
 
 
 def resume_recovery(home):
+    with installation_lock(home):
+        return _resume_recovery(home)
+
+
+def _resume_recovery(home):
     if os.getuid() <= 0 or home != Path.home():
         raise RuntimeError('Recover as the normal desktop user, without sudo')
     state = home / JOURNAL
@@ -474,8 +526,21 @@ def resume_recovery(home):
                    token=secrets.token_urlsafe(32), phase='recovering')
     atomic(state, journal)
     os.environ.update(JARVIS_ISOLATION_TRANSACTION=str(state), JARVIS_ISOLATION_TOKEN=journal['token'])
+    # Validate exact native identity before stopping anything. A killed
+    # coordinator may have reached readiness with some workers already active.
+    authorised_transaction('rollback', home, require_stopped=False)
+    native = Native()
+    if journal.get('native_started'):
+        account = pwd.getpwuid(os.getuid())
+        units, _, _ = render(account.pw_uid, account.pw_gid, account.pw_name,
+                             home, home / '.local/src/ovos-skill-jarvis-dispatcher', journal['binary'])
+        native.run('systemctl', 'stop', *units)
+    stop_workers(home, active(home))
+    if journal.get('original_binary'):
+        subprocess.run(['/usr/bin/systemctl', '--system', '--no-ask-password',
+                        'stop', model.unit_name()], check=True)
     authorised_transaction('rollback', home)
-    recover_transaction(home, journal, Native())
+    recover_transaction(home, journal, native)
     print('Previous Jarvis deployment and isolation choice restored.')
     return 0
 
@@ -529,12 +594,7 @@ def run_install(arguments, home):
         native.approve()
         verify_rule(native, old_rule if originals else None)
     state = home / JOURNAL
-    state.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
-    lock_path = state.parent / 'operation.lock'
-    if lock_path.is_symlink():
-        raise ValueError('Installation lock must be regular')
-    with lock_path.open('a') as lock:
-        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    with installation_lock(home):
         old_router = home / '.config/jarvis/router.json'
         old_router_text = regular(old_router, private=True) if old_router.exists() else None
         token = secrets.token_urlsafe(32)
@@ -543,18 +603,8 @@ def run_install(arguments, home):
                    'phase': 'updating', 'was_active': was_active,
                    'binary': binary, 'original_binary': original_binary,
                    'original_tree': tree_identity(deployment)}
-        desired = stop_workers(home, was_active)
-        previous_desired = desired[:]
         journal.update(original_router=old_router_text, original_choice=read_choice(home),
-                       previous_desired=previous_desired, native_started=False)
-        if not existing and '--no-restart' not in forwarded:
-            desired = list(LOGICAL)
-        if '--no-restart' in forwarded:
-            desired = []
-        if original_binary:
-            subprocess.run(['/usr/bin/systemctl', '--system', '--no-ask-password',
-                            'stop', model.unit_name()], check=True)
-        model.require_free_port()
+                       previous_desired=[], native_started=False)
         atomic(state, journal)
         environment = {**os.environ, 'JARVIS_ISOLATION_COORDINATED': '1',
                        'JARVIS_ISOLATION_TRANSACTION': str(state), 'JARVIS_ISOLATION_TOKEN': token}
@@ -564,6 +614,20 @@ def run_install(arguments, home):
         native_started = False
         backup = None
         try:
+            def record_running(desired):
+                journal['previous_desired'] = desired[:]
+                atomic(state, journal)
+
+            desired = stop_workers(home, was_active, record_running)
+            record_running(desired)
+            if not existing and '--no-restart' not in forwarded:
+                desired = list(LOGICAL)
+            if '--no-restart' in forwarded:
+                desired = []
+            if original_binary:
+                subprocess.run(['/usr/bin/systemctl', '--system', '--no-ask-password',
+                                'stop', model.unit_name()], check=True)
+            model.require_free_port()
             print('Updating managed Jarvis files while network policies remain installed…')
             status = run_child(['bash', str(ROOT / 'scripts/install.sh'), *forwarded], environment)
             if status:
@@ -604,7 +668,6 @@ def run_install(arguments, home):
             atomic(home / CHOICE, dict(saved, enabled=True, model_binary=binary))
             state.unlink()
             print('Jarvis network isolation is enabled. General Ollama was not modified.')
-            return 0
         except BaseException:
             # A second cancellation must not interrupt native-file restoration.
             previous_signal = signal.signal(signal.SIGTERM, signal.SIG_IGN)
@@ -620,6 +683,9 @@ def run_install(arguments, home):
             finally:
                 signal.signal(signal.SIGTERM, previous_signal)
             raise
+        else:
+            finish_desktop(home, desired)
+            return 0
         finally:
             for key, value in previous_environment.items():
                 if value is None:

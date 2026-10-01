@@ -49,6 +49,14 @@ user. Existing native isolation blocks ordinary deployment until its reviewed
 [upgrade procedure](07-installer-updates.md#upgrading-an-isolated-installation)
 is completed; never run the installer or generated Python with sudo.
 
+The unpublished [guided-isolation candidate](core-isolation.md#guided-installer-candidate-401-not-yet-published)
+recommends isolation for first installs and preserves existing choices. It adds
+one dedicated, ordinary-user Ollama on `127.0.0.1:11435`, disables cloud features
+and applies the reviewed kernel IP policy. General Ollama is unchanged. Model
+calls never fall back between instances. Upgrades retain native policy and use a
+process-bound recovery journal; unchanged native data requires no new approval.
+Actual dedicated-daemon egress and laptop migration remain live acceptance work.
+
 Claude Desktop and ChatGPT Desktop are launched only into ordinary chat. Jarvis
 does not open Claude Code, Cowork, ChatGPT Codex or Work, approve their prompts,
 or install MCP tools. Hermes remains the intentional local assistant. Private

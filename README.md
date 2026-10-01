@@ -118,8 +118,9 @@ automatic cross-machine import.
 - Updates require reviewed HTTPS hosts, checksums and bounded archive extraction.
 - Optional native isolation restricts core/listener/audio and Ollama; weather
   and browser music retain separate online paths. Activation is an explicit step.
-- No new listening port is introduced. Ollama stays on its existing local
-  endpoint.
+- Stable V4 uses the existing local Ollama endpoint. The unpublished
+  [guided-isolation candidate](docs/core-isolation.md#guided-installer-candidate-401-not-yet-published)
+  adds a dedicated loopback model instance while preserving general Ollama.
 
 X11 applications in the same desktop session can observe or inject input, so
 X11 itself is not treated as a security boundary. See

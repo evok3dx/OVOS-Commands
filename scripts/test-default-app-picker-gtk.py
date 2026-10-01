@@ -100,3 +100,44 @@ for child in descendants(white_button):
 window.destroy()
 parent.destroy();centre.install_update.destroy();centre.update_health.destroy()
 print('PASS: General independent switches; GTK update button green/blue/neutral and disabled text/icon computed white')
+
+# Exercise the production first-install choice with a real dialog. Existing
+# choices are tested separately without a dialog or administrator prompt.
+import contextlib
+import io
+import sys
+import tempfile
+from unittest.mock import patch
+from gi.repository import GLib
+sys.path.insert(0, str(ROOT / 'scripts'))
+import isolation_install
+
+for accept, selected in ((True, True), (True, False), (False, True)):
+    observed = []
+    def respond():
+        for dialog in Gtk.Window.list_toplevels():
+            if isinstance(dialog, Gtk.Dialog) and dialog.get_title() == 'Jarvis installation':
+                choices = [widget for widget in descendants(dialog) if isinstance(widget, Gtk.CheckButton)]
+                assert len(choices) == 1 and choices[0].get_active() is True
+                observed.append(True)
+                choices[0].set_active(selected)
+                dialog.response(Gtk.ResponseType.OK if accept else Gtk.ResponseType.CANCEL)
+                return False
+        return True
+    GLib.idle_add(respond)
+    with tempfile.TemporaryDirectory() as folder, \
+         patch.object(isolation_install, 'active', return_value=False), \
+         patch.object(sys.stdin, 'isatty', return_value=False), \
+         patch.object(sys.stdout, 'isatty', return_value=False), \
+         contextlib.redirect_stdout(io.StringIO()):
+        if accept:
+            assert isolation_install.select(Path(folder), False)[0] is selected
+        else:
+            try:
+                isolation_install.select(Path(folder), False)
+            except RuntimeError as error:
+                assert 'cancelled' in str(error)
+            else:
+                raise AssertionError('Cancel changed isolation preference')
+        assert observed == [True]
+print('PASS: real GTK first-install recommendation, opt-out and cancellation without native operations')

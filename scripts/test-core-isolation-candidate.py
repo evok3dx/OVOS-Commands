@@ -129,7 +129,7 @@ with tempfile.TemporaryDirectory(prefix='jarvis-native-guard-') as directory:
 # All five fixed privileged targets must be absent in the actual system manager.
 with patch.object(services.os,'getuid',return_value=1000):
     rule=Path('/etc/polkit-1/rules.d/90-jarvis-v4-1000.rules')
-    names=sorted(f'jarvis-v4-1000-{part}.service' for part in services.COMPONENTS)
+    names=sorted(f'jarvis-v4-1000-{part}.service' for part in services.NATIVE_COMPONENTS)
     blocks=[f'Id={name}\nLoadState=not-found\nActiveState=inactive\nFragmentPath=\nDropInPaths=' for name in names]
     absent='\n\n'.join(blocks)+'\n'
     with patch.object(services.subprocess,'run',return_value=Mock(returncode=0,stdout=absent,stderr='')) as native:

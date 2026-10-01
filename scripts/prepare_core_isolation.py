@@ -143,9 +143,10 @@ def prepare(output,deployment,model_binary=None):
             removal.append('sudo /usr/bin/rm -- '+shlex.quote(dest))
         installs.append('sudo /usr/bin/systemctl daemon-reload');removal.append('sudo /usr/bin/systemctl daemon-reload')
         private_file(output/'REVIEW.md','# Private V4 service candidate\n\n'
-            'Inspect the units, account and exact five-unit/three-verb rule before native installation.\n'
+            f'Inspect the units, account and exact {len(units)}-unit/three-verb rule before native installation.\n'
             'Never sudo Python, pip, extraction, repository code or a whole generated script.\n'
-            'These native commands install data only. No boot enablement or listening port is added.\n'
+            'These native commands install data only. No boot enablement is added.\n'
+            + ('The dedicated Jarvis model listens only on 127.0.0.1:11435. General Ollama is unchanged.\n' if model_binary else 'No listening port is added.\n') +
             'Stop Jarvis before activate/deactivate. Settings, models and login choices stay owned by their existing files.\n\n'
             '## Native installation after review\n```bash\n'+'\n'.join(installs)+'\n```\n\n'
             'Activate as the ordinary user with prepare_core_isolation.py activate --candidate PATH.\n'
@@ -153,7 +154,7 @@ def prepare(output,deployment,model_binary=None):
             'Use Run Jarvis and complete actual-worker, voice, desktop, weather, Media and recovery acceptance.\n'
             'Known web/query skills are disabled in the core overlay. Weather and Media run separately. Local Qwen remains.\n'
             'Same-user IPC/desktop mediation is trusted. A receipt proves no enforcement.\n'
-            'The existing Ollama service remains unrestricted by this candidate and is a release gate.\n\n'
+            + ('Test the actual dedicated model for external denial and working local inference.\n\n' if model_binary else 'The existing Ollama service remains unrestricted by this candidate and is a release gate.\n\n') +
             '## Native removal after normal-user deactivate\n```bash\n'+'\n'.join(removal)+'\n```\n'
             'Only then use rollback/uninstall, or Run Jarvis to return to original user services.\n')
     except BaseException:
