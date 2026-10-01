@@ -19,8 +19,20 @@ search and reverse lookup, plus roughly two seconds in forecast retrieval.
 A repeated location skips those city lookups. These measurements do not isolate
 network transport from provider response time or prove that Stop interrupts a
 pending lookup. No network-policy, dependency or weather-provider change is
-included in this timing correction. Automated checks and guarded handover are
-pending; the published rc2 archive/tag is unchanged.
+included in this timing correction. **VERIFIED source:** commit
+6dd4283e080160a640aa358d61a44b1d40772412, run 36819524368 passes all six jobs,
+including fast/slow lookup timing, post-result cancellation, Python 3.10–3.13,
+GTK, source/history/archive scans, full deployment/recovery, 350/350 clean-copy
+policy cases and all 296 reviewed dependencies with zero exemptions.
+The guarded two-file handover in commit
+884259cf18c4df25819d630e78dcbee921fb700f uses immutable source/checksums and
+private Downloads backup, registers only Media locally without dependency
+resolution, and restores source/prior registration on failure. Its automated
+validation passes all six jobs in run 36819754595, including source guards,
+source/registration rollback, three-second transition cancellation and
+350/350 clean-copy policy cases. The laptop retry is pending.
+See [music timing handover](v4-media-timing.md). The published rc2 archive/tag
+is unchanged.
 
 ## V4 source correction after rc2 (verified source; laptop retry pending)
 
