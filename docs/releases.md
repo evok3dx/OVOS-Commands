@@ -43,9 +43,13 @@ before the worker's script-path setup failed under Python `-I`. Recovery then
 rejected stopped failed workers. The corrected candidate moves the import after
 identity/path setup and requires zero worker/control PIDs before recovery;
 normal GUI Stop remains strict. Regression checks execute the actual isolated
-Python bootstrap and retain the real transaction guard. Corrected CI and owner
-recovery acceptance remain pending; the earlier automated pass did not cover
-this startup path. Published V4.0.0 is unchanged.
+Python bootstrap and retain the real transaction guard. **VERIFIED correction:**
+run [36930863713](https://github.com/evok3dx/OVOS-Commands/actions/runs/36930863713)
+passes all six jobs at `5dd0a9069a22dff51bb3614aa8824a3e75adb8ba`, including
+the actual `-I` bootstrap and stopped-failed checks in the clean archive,
+350/350 policy cases and all 296 dependencies. Owner recovery and corrected
+live acceptance remain pending; the earlier automated pass did not cover this
+startup path. Published V4.0.0 is unchanged.
 
 ## 4.0.0 (published stable, 1 October 2026)
 
