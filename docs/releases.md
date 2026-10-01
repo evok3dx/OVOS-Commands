@@ -37,7 +37,12 @@ changing home preferences. The exact pinned core dispatcher reproduces the old
 Media timeout and resolves the corrected owner exactly once. A four-file
 normal-user handover checks known source identities/stopped workers, preserves
 settings/policy and registers only Media offline, with private Downloads backup
-and rollback. Its own verification is recorded on completion. The public rc2
+and rollback. **VERIFIED handover:** commit
+b20302fa9d334f86ba9b366b47f5dbfa81b2406a, run 36817351596 passes all six jobs,
+including normal-user/stopped-worker/custom-source guards, complete source and
+registration rollback, exact upstream regressions and 350/350 clean-copy cases.
+Script SHA-256: c9e814e47f36e22adb1d8eff9a12288c19491bb656b78c679324aff31e5500c7.
+See [weather handover](v4-weather-handover.md). The public rc2
 tag/assets are unchanged.
 
 **Owner-deferred compatibility gaps for a future release:** the supplied named-city time question transcribes

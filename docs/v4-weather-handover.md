@@ -16,9 +16,25 @@ atomically and registers only Media 0.3.4 using existing local tooling with no
 index/dependency resolution. Any registration failure restores prior source
 and attempts original registration. The dispatcher version label stays as it is.
 
-Stop Jarvis in the Control Centre, close the Control Centre, and use the
-immutable handover URL/checksum supplied with the passed handover revision.
-Run with the normal OVOS Python, without sudo. Reopen and choose Run Jarvis.
+Stop Jarvis in the Control Centre, close the Control Centre, and run:
+
+```bash
+(
+  set -e
+  test "$(id -u)" -ne 0
+  mkdir -p "$HOME/Downloads"
+  jarvis_weather_dir="$(mktemp -d "$HOME/Downloads/jarvis-v4-weather.XXXXXX")"
+  curl --fail --location --proto '=https' --proto-redir '=https' \
+    'https://raw.githubusercontent.com/evok3dx/OVOS-Commands/b20302fa9d334f86ba9b366b47f5dbfa81b2406a/scripts/apply-v4-weather-fix.py' \
+    -o "$jarvis_weather_dir/apply-v4-weather-fix.py"
+  printf '%s  %s\n' \
+    'c9e814e47f36e22adb1d8eff9a12288c19491bb656b78c679324aff31e5500c7' \
+    "$jarvis_weather_dir/apply-v4-weather-fix.py" | sha256sum --check
+  "$HOME/.venvs/ovos/bin/python" -I "$jarvis_weather_dir/apply-v4-weather-fix.py"
+)
+```
+
+Reopen the Control Centre and choose Run Jarvis.
 
 Ask for Sydney weather, then New York weather, and repeat one of those cities.
 Collect only the relevant fixed-worker logs:
