@@ -33,6 +33,30 @@ and prior registration; unknown/custom files reject before mutation. It changes
 no native units, network policy, models or preferences. This patch retains the
 installed dispatcher version label; the full cumulative archive is 4.0.0rc2.
 
+Stop Jarvis in the Control Centre, then close the Control Centre and run:
+
+```bash
+(
+  set -e
+  test "$(id -u)" -ne 0
+  mkdir -p "$HOME/Downloads"
+  jarvis_fix_dir="$(mktemp -d "$HOME/Downloads/jarvis-v4-final.XXXXXX")"
+  curl --fail --location --proto '=https' --proto-redir '=https' \
+    'https://raw.githubusercontent.com/evok3dx/OVOS-Commands/cc35fd7484d96dee05544082809549a8b8ee30da/scripts/apply-v4-final-fix.py' \
+    -o "$jarvis_fix_dir/apply-v4-final-fix.py"
+  printf '%s  %s\n' \
+    'd45039137946df746645d1c89fefc7688c8079ba8c10465f5582bbacedb9b95c' \
+    "$jarvis_fix_dir/apply-v4-final-fix.py" | sha256sum --check
+  "$HOME/.venvs/ovos/bin/python" -I "$jarvis_fix_dir/apply-v4-final-fix.py"
+)
+```
+
+Reopen the Control Centre and choose Run Jarvis. Test one clear song title,
+a second title within 11 seconds, and Stop during that wait. Confirm there is
+one acknowledgement and only the latest uncancelled title opens. Test Stop
+during weather separately. A source mismatch stops before changing anything;
+retain the named file for review rather than bypassing the hash guard.
+
 Do not run the full installer against active native isolation. The existing
 reviewed deactivation/removal guard still applies before full update, rollback
 or uninstall.

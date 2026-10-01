@@ -7,7 +7,23 @@ acceptance work. Durable design choices belong in
 under [`history/`](history/README.md). Other current documents link here rather
 than repeating release narratives.
 
-## 4.0.0rc2 (cumulative laptop candidate; publication pending)
+## 4.0.0rc2 (published cumulative laptop test; stable release pending)
+
+**VERIFIED publication:** release 400636664, tag `v4.0.0rc2`, commit
+`cc35fd7484d96dee05544082809549a8b8ee30da`. Source run 36812460617 passes all
+six jobs, including guarded handover rollback/new-file removal and 350/350
+clean-copy policy cases. Publication run 36812460641 verifies the retained
+296-wheel closure, rebuilds only current first-party wheels, checks their exact
+source inventories, scans the final archive/assets, repeats the clean-copy
+suite, publishes 11 fixed assets and downloads them again to verify checksums
+and the public tag. Archive SHA-256:
+`73166faa5d5e65db5e1a2db391615a6aee85c30a3d3611f8fc196d65a8da0010`.
+The 453638809-byte runtime digest remains
+`03cbba7effa9046d9ce7a63b26d9a0b886eebf4f58f445dda2ae37af07e8c288`.
+The immutable handover script SHA-256 is
+`d45039137946df746645d1c89fefc7688c8079ba8c10465f5582bbacedb9b95c`.
+Stable latest remains 3.9.0; the owner laptop queue/weather interruption and
+broader isolation/recovery gates are not declared complete by automated checks.
 
 **Owner-directed final music/UI/installer correction, source candidate:**
 Media 0.3.3 restores the deliberate-title fast route across the existing local
@@ -31,8 +47,8 @@ fault based only on its duration. The disabled green update button's label and
 icon are explicitly white. CLI installation now reports initial checks, measured
 download/archive/wheel progress and continuing activity during slow phases;
 percentages describe measured work, never readiness or elapsed-time guesses.
-Tests are added for these boundaries; final CI and laptop music timing are
-pending at this checkpoint. Frozen dependencies, models and native IP policy
+Tests for these boundaries pass in the runs recorded above; laptop music timing
+remains open. Frozen dependencies, models and native IP policy
 are unchanged.
 
 **VERIFIED source checks:** commit 2df1de58bdd09520606cbaa2ee2aa89ef839dc8f,
@@ -40,11 +56,11 @@ run 36812008636 passes all six jobs: Python 3.10–3.13, GTK, source/history/arc
 security scans, full deployment/recovery and 350/350 clean-copy policy cases.
 The exact pinned Padacioso detach method reproduces the reported race without
 the adapter and passes concurrent/alias/language preservation checks with it.
-GTK checks the computed white label/icon colours. The immutable 13-file normal-
-user handover targets those passed bytes, checks stopped native workers and
+GTK checks the computed white label/icon colours. The immutable 13-file normal-user
+handover targets those passed bytes, checks stopped native workers and
 known source identities, backs up in Downloads, and registers only Media with
 no index/dependency resolution. Handover rollback and cumulative release
-packaging/public-byte verification remain to be checked before publication.
+packaging/public-byte verification pass in the publication record above.
 See [cumulative handover](v4-final-candidate.md). Stable V4 remains subject to
 the retained live acceptance gates; this does not replace the original rc1 tag.
 
