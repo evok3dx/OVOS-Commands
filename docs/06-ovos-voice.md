@@ -1,6 +1,6 @@
 # OVOS voice stack
 
-This page records the voice-stack boundary and unpublished V4 candidate. It contains
+This page records the voice-stack boundary for V4. It contains
 portable behaviour and reviewed versions, not workstation logs or private
 machine configuration.
 
@@ -14,7 +14,7 @@ machine configuration.
 | VAD | Silero `0.1.3a2` |
 | Speech output | phoonnx `1.93.0a1`, reviewed Bella voice |
 | Wake word | OpenWakeWord ONNX, explicit Hey Jarvis model |
-| NumPy (V4 candidate) | `2.4.6`; ONNX-only downstream wake plugin, zero dependency exemptions |
+| NumPy | `2.4.6`; ONNX-only downstream wake plugin, zero dependency exemptions |
 | Natural-language fallback | local Qwen 4B instruct through Ollama |
 
 The complete package set and exact hashes live in `compatibility.json` and
@@ -40,8 +40,9 @@ The captured pre-V4 runtime used NumPy `2.4.6`, conflicting with the plugin's
 and loads preinstalled models without runtime downloads. The upstream license,
 source hash and patch provenance are retained. Full dependency checks and real
 plugin inference on silent frames pass with network connections forbidden and
-no TFLite import. The historical exception is removed from validation. Live
-microphone, recognition and Bella/Whisper acceptance remain required; see the
+no TFLite import. The historical exception is removed from validation. Scoped
+laptop voice operation is exercised; full acoustic/model-file assurance remains
+explicitly unverified. See the
 [release record](releases.md).
 
 The reviewed OpenWakeWord model recognises one trained phrase: **Hey Jarvis**.

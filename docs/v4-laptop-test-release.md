@@ -1,5 +1,9 @@
 # Jarvis V4 laptop test: 4.0.0rc1
 
+**Historical guarded handover:** stable 4.0.0 now includes these changes.
+Use [current release notes](release-v4.0.0.md) for installation and limits;
+keep the original prerelease/patch instructions below for their exact versions.
+
 Owner-authorised **prerelease for laptop testing**. The stable update channel
 remains 3.9.0. This release includes the complete separately downloaded,
 hash-verified Linux x86_64 / Python 3.11 runtime. NumPy remains 2.4.6; the ONNX-only

@@ -7,7 +7,7 @@ acceptance work. Durable design choices belong in
 under [`history/`](history/README.md). Other current documents link here rather
 than repeating release narratives.
 
-## 4.0.0 (owner-authorised stable release; publication in progress)
+## 4.0.0 (published stable, 1 October 2026)
 
 V4 includes the complete reviewed, hash-verified 296-package runtime with zero
 dependency exemptions, retained NumPy 2 and the ONNX-only wake plugin. Local
@@ -43,7 +43,20 @@ those behaviour files are unchanged, rebuilds only the three first-party wheels,
 rechecks the retained runtime, scans the exact archive/assets and verifies public
 checksums/tag. Runtime SHA-256 remains
 03cbba7effa9046d9ce7a63b26d9a0b886eebf4f58f445dda2ae37af07e8c288.
-Final publication evidence will be recorded after the public assets are verified.
+**VERIFIED publication:** release 400682742, tag `v4.0.0`, source commit
+72f7c85d15b1c7331e1e193356873354bdf178af. Publication run 36821631654 passes
+both packaging and publication jobs. It verifies unchanged passed behaviour,
+complete runtime closure, current wheel metadata/inventories, source/history and
+exact asset privacy, then uploads all 11 assets and downloads them again to
+verify SHA256SUMS and the public tag. The release is neither draft nor prerelease
+and is the latest stable. Code archive: 779260 bytes, SHA-256
+6983a37a9b2750a1dad24c6da648c8bf7e96e89a31917f3458d262ba38ed5652.
+Dispatcher wheel SHA-256:
+6606f49fe1181207fab3de6d1f39dceed0c4012b12b316bf39781537a60e0bac.
+Media wheel SHA-256:
+03e6fb92d807d47934b1f72caebc97c139f96308528e0299935eca32f2e2c6fc.
+File Search wheel SHA-256:
+b173c592fff3b843c9cf8189e8e567e02df757b453d30f1b5c06430c7384a3ef.
 See [V4 release notes](release-v4.0.0.md). Original rc1/rc2 assets remain intact.
 
 ## Post-rc2 music correction (verified source and exercised laptop retry)

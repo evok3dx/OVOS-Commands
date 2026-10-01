@@ -111,7 +111,7 @@ journalctl --user \
 
 Press `Ctrl+C` to stop following the logs.
 
-In the unpublished V4 isolation mode, user units are compatibility relays;
+In V4 native isolation mode, user units are compatibility relays;
 their active state alone does not prove that a voice worker is running. The
 Control Centre and fixed restart/microphone helpers query the actual mapped
 workers. See [service isolation](core-isolation.md) for the version-3 read-only

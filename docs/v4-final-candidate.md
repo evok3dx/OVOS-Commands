@@ -1,5 +1,9 @@
 # Jarvis V4 cumulative update: 4.0.0rc2
 
+**Historical guarded handover:** stable 4.0.0 now includes these changes.
+Use [current release notes](release-v4.0.0.md) for installation and limits;
+keep the original prerelease/patch instructions below for their exact versions.
+
 This cumulative laptop candidate includes the V4 installer, GUI, independent
 login options, desktop-session repair, readiness/lifecycle fixes and Media
 0.3.3. The complete 296-wheel, hash-verified runtime is reused byte for byte;

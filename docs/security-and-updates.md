@@ -21,7 +21,8 @@ desktop user. On a clean laptop, the installer can invoke the reviewed official
 OVOS installer and install missing command-line desktop-control prerequisites.
 That initial preparation requests administrator access because OVOS and the
 operating-system packages require it. It does not install desktop applications,
-create users or edit sudo rules. Existing OVOS installations are not replaced.
+create users or edit sudo rules. Machine-owned settings and models are preserved; the managed OVOS environment
+is staged and replaced only after validation.
 
 The OVOS source is fetched from the official OpenVoiceOS repository at the
 exact commit recorded in `compatibility.json`, verified before execution and

@@ -67,6 +67,9 @@ Contradictions stay visible in the [historical audit](history/v2.4-audit.md).
 
 ## V4 isolation and recovered runtime decisions
 
+These retain their original candidate evidence. The stable scope decision below
+supersedes earlier publication gates without relabelling unverified tests.
+
 - **VERIFIED privacy boundary:** public runtime manifests describe the reviewed
   installer package policy and its wheel hashes. Keep original laptop captures,
   observed model digests, source-install indicators and private diagnostic
@@ -103,7 +106,7 @@ Contradictions stay visible in the [historical audit](history/v2.4-audit.md).
   identify new collectors separately and revalidate reconstructed source/artifacts.
   Publication remains conditional on the full agreed V4 acceptance.
 
-## Owner-authorised V4 laptop test, 30 September 2026
+## Historical owner-authorised V4 laptop test, 30 September 2026
 
 - **VERIFIED owner requirement; implemented source candidate:** General has
   separate tray-minimised and voice-service login options. Dashboard keeps

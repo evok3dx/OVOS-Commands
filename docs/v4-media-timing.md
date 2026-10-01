@@ -1,5 +1,9 @@
 # V4 music result timing
 
+**Historical guarded handover:** stable 4.0.0 now includes these changes.
+Use [current release notes](release-v4.0.0.md) for installation and limits;
+keep the original prerelease/patch instructions below for their exact versions.
+
 Media 0.3.5 acknowledges an accepted title immediately, performs one bounded
 lookup and waits three seconds after finding a valid result before opening it.
 Stop or a replacement title interrupts that final wait. The shared 11-second

@@ -1,5 +1,9 @@
 # V4 weather correctness and timing check
 
+**Historical guarded handover:** stable 4.0.0 now includes these changes.
+Use [current release notes](release-v4.0.0.md) for installation and limits;
+keep the original prerelease/patch instructions below for their exact versions.
+
 The owner accepts the final music timing. This small follow-up corrects the
 exact pinned weather skill's named-city forecast coordinates and the false
 five-minute Media handler timeout. It adds stage/provider timing logs to find
