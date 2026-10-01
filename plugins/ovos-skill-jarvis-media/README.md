@@ -21,10 +21,10 @@ It also handles five approved MPRIS transport actions. The OVOS Media pipeline
 runs before Qwen; only those fixed actions can be selected by Jarvis's router.
 Real YouTube playback and spoken controls require checks on the target desktop.
 If Brave no longer exposes a resumable media session, a spoken resume now says
-“Open the music tab once” instead of failing silently. Brave's documented
-Memory Saver exception remains the preventive fix; Jarvis does not click a
+“Open the music tab once” instead of failing silently. Jarvis does not click a
 site inactivity confirmation or revive a discarded tab blindly. Browser/site
-settings cannot guarantee that an idle media session stays resumable.
+settings cannot guarantee that an idle media session stays resumable; reopen
+the tab or request another song.
 
 See [Media and file search](../../docs/10-media-files.md) for commands and
 limits, and [history](HISTORY.md) for the failures that shaped this package.
@@ -44,3 +44,7 @@ intent name so accepted requests do not leave a false five-minute watchdog.
 Opening a new result does not close or stop an earlier music tab. Concurrent
 playback is a known follow-up; pause/close the earlier tab explicitly. Longer
 `Put on {title}` wording uses the existing deliberate-title route.
+Other existing alternatives include `Listen to {title}`, `Can you play
+{title}?` and `Could you please put on {title}?`. The installed command help
+reads these examples from
+[`voice_phrases.json`](ovos_skill_jarvis_media/voice_phrases.json).

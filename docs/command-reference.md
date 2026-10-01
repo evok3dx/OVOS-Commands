@@ -1,6 +1,6 @@
 # Jarvis command reference
 
-The wake phrase is `Hey Jarvis`. Fixed phrases run locally. V3 also has a
+The default wake phrase is `Hey Jarvis`. Fixed phrases run locally. V4 also has a
 restricted local Qwen fallback for natural requests.
 
 This is a practical command index. Pronunciation variants and recognition
@@ -162,6 +162,9 @@ handles deliberate `Play {title}` requests with one bounded YouTube lookup.
 - `Play {title}` or `Put on {title}` searches for one YouTube video and opens
   the result in enabled Brave, with enabled Firefox as the fallback. Replace
   `{title}` with an actual song or video name.
+- Longer alternatives include `Listen to {title}`, `Can you play {title}?`
+  and `Could you please put on {title}?`. These use the same deliberate-title
+  route and can help when speech recognition mishears the short word `Play`.
 - `Play music` asks “What shall I play?”; say one song, artist or video title.
   The direct `Play {title}` form remains available.
 - `Pause music`, `Pose music`, `Poze music` and `Stop the music` pause a
@@ -181,17 +184,21 @@ Provider-backed browser and YouTube searches are submitted one at a time with
 the conservative pacing described in the linked guide. Jarvis does not retry
 provider blocks automatically. Local filename search and other commands are
 not delayed.
+Music acknowledges before lookup, then waits three seconds after finding a
+result before opening it. Another request can open a new tab while an earlier
+tab keeps playing; pause or close the earlier playback explicitly.
 
 ## Reading
 
 Examples:
 
+- `Read this`
 - `Read the page`
 - `Read the full page`
 - `Read selected text`
-- `Speak selected text` (V4 candidate)
-- `Speak highlighted text` (V4 candidate)
-- `Speak selected text at 2x` (V4 candidate)
+- `Speak selected text`
+- `Speak highlighted text`
+- `Speak selected text at 2x`
 - `Read this at double speed`
 - `Read this at 2x`
 - `Read this page at double speed`
@@ -199,14 +206,16 @@ Examples:
 - `Read window`
 - `Read it back`
 - `Read the latest response`
+- `Read the Codex response`
+- `Read the Claude response`
 
 If speech recognition hears `Write this` when you intend `Read this`, use
 `Speak selected text` in V4. It is a separate native reading phrase; the
 existing writing command keeps its behaviour. Correctly transcribed reading
 and writing stay distinct. Short-phrase acoustic accuracy still needs live
 testing; Jarvis cannot recover the intended word from a wrong transcript alone.
-- `Read the Codex response`
-- `Read the Claude response`
+Selected-text reading clears the temporary clipboard handoff and does not
+restore its previous contents.
 
 `Read the page` prefers the main article or main-content region and safely
 falls back to copied page text. `Read the full page` deliberately includes
@@ -226,6 +235,8 @@ Examples:
 
 Speech Note performs dictation and reading while the dispatcher controls its
 allowlisted actions.
+Generic writing and submission refuse terminal windows. Opening Terminal is a
+separate action and does not grant permission to type commands into it.
 
 Stopping continuous dictation keeps Speech Note's final full stop and adds one
 trailing space, ready for the next sentence. This also applies when the wake
@@ -277,8 +288,9 @@ Examples:
 - `Minimize all`
 - `Minimize everything`, `Minimise everything` or `Hide everything`
 
-These desktop phrases use Linux Mint's fixed `Super+D` shortcut. They do
+Show-desktop and minimise-all phrases use Linux Mint's fixed `Super+D` shortcut. They do
 not minimize windows one by one or accept a model-generated key sequence.
+Individual window actions target the verified focused window.
 
 
 ### Keyboard actions

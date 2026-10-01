@@ -163,6 +163,10 @@ as live tests; never relabel offline simulation as live evidence.
 
 - Keep the README concise and user-facing; put implementation detail in the
   linked focused documents.
+- Preserve the existing README headings, tables and style for maintenance edits.
+- Keep public release notes in the short V3 format: changes, verification and
+  links. Put detailed evidence in the release ledger and archive superseded V4
+  investigation records under `docs/history/`; never discard unresolved limits.
 - Keep one version across `pyproject.toml`, `compatibility.json` and
   `deployment-manifest.json`.
 - Pin CI actions to immutable commits.

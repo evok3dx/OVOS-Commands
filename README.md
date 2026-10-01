@@ -35,6 +35,9 @@ bash scripts/install.sh
 `--check` is read-only. A fresh setup may request administrator access once
 for the official OVOS installer and missing system tools. Jarvis itself,
 normal updates and daily use run as your desktop user.
+An isolated installation needs the reviewed
+[upgrade procedure](docs/07-installer-updates.md#upgrading-an-isolated-installation)
+before using the full installer or updater.
 
 ```mermaid
 flowchart TD
@@ -47,8 +50,9 @@ flowchart TD
 ## Requirements and stack
 
 The reviewed workstation target is Linux Mint, X11, x86_64 and Python 3.11.
-Setup checks the machine, prepares the pinned OVOS/voice environment and guides
-installation of Ollama plus the reviewed Qwen model. Exact versions and hashes
+Setup checks the machine, prepares the pinned OVOS/voice environment and reuses
+an existing local Ollama installation. It asks before downloading a missing
+reviewed Qwen model. Exact versions and hashes
 live in [`compatibility.json`](compatibility.json) and
 [`voice/reviewed-stack.json`](voice/reviewed-stack.json), not in this overview.
 
@@ -73,20 +77,11 @@ replace full desktop and voice acceptance testing.
 | Writing | “Write this”, “Start writing”, “Full stop”, “Press space” | Commands |
 | Windows | “Show desktop”, “Minimize all”, “Close window” | Commands |
 | Reading | “Read this”, “Read this at 2x” | Voice and Speech Note |
-| Media | “Play {title}”, “Play music”, “Pause music” | Media plugin |
+| Media | “Put on {title}”, “Play music”, “Pause music” | Media plugin |
 | Files | “Find {filename}”, “Search my documents” | File Search plugin |
 | Voice | Wake phrase, hotkeys and background-audio level | Voice |
 | Startup | Start the app minimised and/or voice services at login; Run/Stop this session | General / Dashboard |
 | Updates | Installed version, release date, check and install | Updates |
-
-V4 adds terminal-input protection, confirmation for tool-capable private-agent
-messages, short-lived reading clipboard text and private-report/update guards.
-The full 296-package runtime is version-pinned and hash-verified. Optional native
-service isolation restricts core/listener/audio and Ollama while weather and
-browser music use separate online paths. Installing Jarvis alone does not
-activate that boundary. Same-user desktop access remains trusted.
-See [security details](docs/security-and-updates.md),
-[V4 release notes](docs/release-v4.0.0.md) and the [release record](docs/releases.md).
 
 Fresh setup offers **Recommended**, **All** and **Custom** application modes.
 Only detected and enabled applications enter the voice catalogue, Whisper
@@ -97,7 +92,8 @@ or an arbitrary executable.
 
 Jarvis preserves your OVOS configuration, downloaded models, selected apps,
 default roles, spoken names, personal commands, shortcuts, listening sound,
-voice packages and unlisted private helpers. The previous Jarvis deployment
+and unlisted private helpers. The managed runtime uses the release's reviewed
+versions and hashes. The previous Jarvis deployment
 and OVOS virtual environment remain available for rollback:
 
 ```bash
@@ -113,16 +109,23 @@ automatic cross-machine import.
 ## Security boundary
 
 - Qwen returns an action ID, never code, a command line or an arbitrary URL.
-- Risky controls stay strict and pending typing is cancelled if focus changes.
+- Risky controls stay strict; writing rechecks focus and refuses terminal windows.
 - Discovered applications launch through their reviewed desktop entries.
 - Configuration writes are private and atomic.
-- Release archives have bounded size and structure and are checksum-verified.
+- Temporary reading text is cleared; the previous clipboard is never restored.
+- Tool-capable private-agent messages require readback and single-use confirmation.
+- All 296 runtime packages have exact versions and enforced wheel hashes.
+- Updates require reviewed HTTPS hosts, checksums and bounded archive extraction.
+- Optional native isolation restricts core/listener/audio and Ollama; weather
+  and browser music retain separate online paths. Activation is an explicit step.
 - No new listening port is introduced. Ollama stays on its existing local
   endpoint.
 
 X11 applications in the same desktop session can observe or inject input, so
 X11 itself is not treated as a security boundary. See
 [Security and updates](docs/security-and-updates.md) for the exact limits.
+Runtime wheels can be retained for offline use; voice/Qwen models and OS tools
+are separate. Checksums verify bytes; production signing remains future work.
 
 ## Documentation
 
@@ -133,6 +136,7 @@ X11 itself is not treated as a security boundary. See
 - [Media and filename search](docs/10-media-files.md)
 - [Troubleshooting](docs/troubleshooting.md) and [maintenance](docs/maintenance.md)
 - [Security](docs/security-and-updates.md), [decisions](docs/12-decisions.md) and [release record](docs/releases.md)
+- [V4 release notes](docs/release-v4.0.0.md) and [service isolation](docs/core-isolation.md)
 - [Contributor and AI-agent rules](AGENTS.md)
 
 ## Licence and thanks

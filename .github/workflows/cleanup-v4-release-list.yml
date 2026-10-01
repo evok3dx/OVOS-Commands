@@ -1,0 +1,74 @@
+name: Owner-authorised V4 release-list cleanup
+
+on:
+  push:
+    branches: [work/v4]
+    paths: [.github/workflows/cleanup-v4-release-list.yml]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cleanup-v4-release-list
+  cancel-in-progress: false
+
+jobs:
+  release-metadata:
+    if: github.repository == 'evok3dx/OVOS-Commands'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Update only the three reviewed release records
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.request
+          from pathlib import Path
+          
+          if os.getuid() == 0:
+              raise SystemExit("Run as ordinary runner user.")
+          base = "https://api.github.com/repos/evok3dx/OVOS-Commands/"
+          expected = {"400441025":{"tag":"v4.0.0rc1","assets":{"espeak-ng-COPYING":"sha256:8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903","jarvis-runtime-linux-x86_64-py311.zip":"sha256:03cbba7effa9046d9ce7a63b26d9a0b886eebf4f58f445dda2ae37af07e8c288","jarvis-runtime-linux-x86_64-py311.zip.sha256":"sha256:0a73f711389364f3647b400d7b846441f4291313e5eb472009c6525b89f0e21f","jarvis_file_search_skill-0.3.0-py3-none-any.whl":"sha256:eb598ec9e17b9a4ef25ee3a30ebbbc4c5f87e17c42efeb900f2419efb2633c9e","ovos-commands-4.0.0rc1.tar.gz":"sha256:763bb5bf8a75e90b1615d90758bdc30a54bfb937c3a5d437f3cf7082fa283ec4","ovos-commands-4.0.0rc1.tar.gz.sha256":"sha256:818c4087f519a9aa34a0b334c769634917cac2d7cfe55e2f6d7d61b49a3ab2ba","ovos_skill_jarvis_dispatcher-4.0.0rc1-py3-none-any.whl":"sha256:c7174dab7e4834d6892357d46ba8fa0de20890ec95ea711646acef50f63026cb","ovos_skill_jarvis_media-0.3.1-py3-none-any.whl":"sha256:e1e64eff5c0508012585ddf61e0bc44b2e39fea773f203dfc4c86032522281d7","RUNTIME-NOTICES.md":"sha256:5f90b8b06696fe1b93f7786110723f46cd3e1b0d1609b5007939b22729c063f6","SHA256SUMS":"sha256:3a38bda0de4851e2a69e9fb74ce2367e31c5d49a788c41dd8e5f754966ce6992","third-party-licenses.json":"sha256:a3e49d9e3d97ffa39a15269fa46b980d60b2ce7e93b2a936c6d3f0952e892a75"}},"400636664":{"tag":"v4.0.0rc2","assets":{"espeak-ng-COPYING":"sha256:8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903","jarvis-runtime-linux-x86_64-py311.zip":"sha256:03cbba7effa9046d9ce7a63b26d9a0b886eebf4f58f445dda2ae37af07e8c288","jarvis-runtime-linux-x86_64-py311.zip.sha256":"sha256:0a73f711389364f3647b400d7b846441f4291313e5eb472009c6525b89f0e21f","jarvis_file_search_skill-0.3.0-py3-none-any.whl":"sha256:39c752abe23948fea6434d8f7f4be0ca0aa2375b6057c61c39278c729f3cf4c1","ovos-commands-4.0.0rc2.tar.gz":"sha256:73166faa5d5e65db5e1a2db391615a6aee85c30a3d3611f8fc196d65a8da0010","ovos-commands-4.0.0rc2.tar.gz.sha256":"sha256:0a8a2f0e7b6d0bed022ab2747caec1fc578bda77dac29a642aa3553f6c68b512","ovos_skill_jarvis_dispatcher-4.0.0rc2-py3-none-any.whl":"sha256:3a9a6e34d713126f6e6ad377cde0ff621f8f30ddef0ba663b3e0998a77e59af4","ovos_skill_jarvis_media-0.3.3-py3-none-any.whl":"sha256:a8ab12fba76cf2c9e907fc1b4576ed74c96ff89626e9243f47f227ec97601888","RUNTIME-NOTICES.md":"sha256:5f90b8b06696fe1b93f7786110723f46cd3e1b0d1609b5007939b22729c063f6","SHA256SUMS":"sha256:47228a705fcbe26e35beae1fa7d1cdc817d061ae937e0bd30415848089cfd98d","third-party-licenses.json":"sha256:a3e49d9e3d97ffa39a15269fa46b980d60b2ce7e93b2a936c6d3f0952e892a75"}},"400682742":{"tag":"v4.0.0","assets":{"espeak-ng-COPYING":"sha256:8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903","jarvis-runtime-linux-x86_64-py311.zip":"sha256:03cbba7effa9046d9ce7a63b26d9a0b886eebf4f58f445dda2ae37af07e8c288","jarvis-runtime-linux-x86_64-py311.zip.sha256":"sha256:0a73f711389364f3647b400d7b846441f4291313e5eb472009c6525b89f0e21f","jarvis_file_search_skill-0.3.0-py3-none-any.whl":"sha256:b173c592fff3b843c9cf8189e8e567e02df757b453d30f1b5c06430c7384a3ef","ovos-commands-4.0.0.tar.gz":"sha256:6983a37a9b2750a1dad24c6da648c8bf7e96e89a31917f3458d262ba38ed5652","ovos-commands-4.0.0.tar.gz.sha256":"sha256:770ae7ff77e92e052f3a50057e067e7a035ee11cc4e1efd156c5c16b553556c8","ovos_skill_jarvis_dispatcher-4.0.0-py3-none-any.whl":"sha256:6606f49fe1181207fab3de6d1f39dceed0c4012b12b316bf39781537a60e0bac","ovos_skill_jarvis_media-0.3.5-py3-none-any.whl":"sha256:03e6fb92d807d47934b1f72caebc97c139f96308528e0299935eca32f2e2c6fc","RUNTIME-NOTICES.md":"sha256:5f90b8b06696fe1b93f7786110723f46cd3e1b0d1609b5007939b22729c063f6","SHA256SUMS":"sha256:47ab50270d519f18edff654827d1bf5a1701f73f1031c3897c3811a440fd5ecb","third-party-licenses.json":"sha256:a3e49d9e3d97ffa39a15269fa46b980d60b2ce7e93b2a936c6d3f0952e892a75"}}}
+          headers = {"Authorization": "Bearer " + os.environ["GH_TOKEN"],
+                     "Accept": "application/vnd.github+json",
+                     "X-GitHub-Api-Version": "2022-11-28"}
+          def api(path, data=None):
+              req = urllib.request.Request(base + path, headers=headers,
+                  data=None if data is None else json.dumps(data).encode(),
+                  method="GET" if data is None else "PATCH")
+              with urllib.request.urlopen(req, timeout=30) as response:
+                  return json.load(response)
+          def assets(release):
+              return {a["name"]: a["digest"] for a in release["assets"]}
+          releases = {}
+          for identity, record in expected.items():
+              release = api("releases/" + identity)
+              assert release["tag_name"] == record["tag"]
+              assert assets(release) == record["assets"]
+              releases[identity] = release
+          stable = releases["400682742"]
+          assert not stable["draft"] and not stable["prerelease"]
+          tag_before = api("git/ref/tags/v4.0.0")["object"]
+          assert tag_before["sha"] == "72f7c85d15b1c7331e1e193356873354bdf178af"
+          body = Path("docs/release-v4.0.0.md").read_text()
+          assert len(body) < 3000 and body.startswith("# Jarvis 4.0.0")
+          api("releases/400682742", {"name": "Jarvis 4.0.0", "body": body, "make_latest": "true"})
+          for identity in ("400441025", "400636664"):
+              api("releases/" + identity, {"draft": True, "prerelease": True})
+          for identity, record in expected.items():
+              release = api("releases/" + identity)
+              assert release["tag_name"] == record["tag"]
+              assert assets(release) == record["assets"]
+              assert release["draft"] == (identity != "400682742")
+          assert api("git/ref/tags/v4.0.0")["object"] == tag_before
+          assert api("releases/latest")["id"] == 400682742
+          assert api("releases/400682742")["body"] == body
+          print("Stable notes shortened; RC cards are drafts; every asset and stable tag unchanged.")
+          PY
+

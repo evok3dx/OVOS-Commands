@@ -43,6 +43,12 @@ administrator access for its own operating-system preparation. Ordinary
 updates use the same user-owned state boundary and cannot leave root-owned
 temporary files or staging-path launchers behind.
 
+Optional native isolation has a separate, explicit administrator boundary for
+reviewed service and policy data only. Worker Python still runs as the desktop
+user. Existing native isolation blocks ordinary deployment until its reviewed
+[upgrade procedure](07-installer-updates.md#upgrading-an-isolated-installation)
+is completed; never run the installer or generated Python with sudo.
+
 Claude Desktop and ChatGPT Desktop are launched only into ordinary chat. Jarvis
 does not open Claude Code, Cowork, ChatGPT Codex or Work, approve their prompts,
 or install MCP tools. Hermes remains the intentional local assistant. Private
@@ -128,25 +134,28 @@ OVOS packages in a clean virtual environment and saves
 the previous entire virtualenv for rollback. Fresh installations use the same
 reviewed target; see [migration details](07-installer-updates.md).
 
-This experimental repository may be private between announced update windows.
-Scheduled checks fail quietly while it is private or the laptop is offline.
-For an update window, make the repository public, publish a tested immutable
-GitHub Release, ask the small user group to update, and make it private again
-afterward. Because the public window may be shorter than one month, users
-should select **Check for updates** in the tray when an update is announced.
-After detection, selecting the version-labelled tray entry starts the same
-manual installer and confirmation prompt. A normal push is never treated as a
-client release.
+This repository and its retained Git history are public. Source, documentation,
+tags and published assets must therefore be suitable for public sharing.
+Private diagnostics and helper contents belong outside Git. A normal push does
+not update a client: the stable release and explicit installer remain separate.
+Scheduled checks fail quietly when the laptop is offline or the repository is
+unavailable. Publishing source does not publish an authenticated connector's
+credentials; release workflows use a temporary job token, not a password stored
+in the repository. Scans reduce accidental disclosure but are not a guarantee
+that all history is free of sensitive material.
 
 OVOS and Jarvis updates are deliberately supervised rather than unattended:
 
 1. Back up `~/.config/mycroft/mycroft.conf` and create a `jarvis-report`.
 2. Run `python3 scripts/check_upstream.py` to see which reviewed projects moved.
-3. Re-run the official OVOS virtualenv installer or its documented update flow.
-4. Run `bash scripts/install.sh --check`, then install this Jarvis release.
+3. Maintainers review upstream changes, resolve the complete closure and verify
+   exact wheel hashes before publishing another managed runtime. Do not update
+   the frozen V4 environment independently with pip or an upstream installer.
+4. Run `bash scripts/install.sh --check`, then install the published Jarvis
+   release and its verified runtime through the normal managed transaction.
 5. Run `jarvis-health-check` and exercise critical voice commands.
-6. Use `jarvis-update rollback` if the Jarvis deployment regresses. Restore the
-   OVOS configuration backup separately if the upstream update changed it.
+6. Use `jarvis-update rollback` if the managed deployment regresses. It retains
+   the previous virtual environment as well as managed Jarvis files.
 
 GitHub Actions are pinned to reviewed commit SHAs. For future releases, enable
 GitHub release immutability only after every asset is attached to a draft;

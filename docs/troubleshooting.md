@@ -30,9 +30,9 @@ system**. If it says `failed`, inspect the recent logs before changing files.
 | YouTube Music will not resume after being idle | Bring the music tab forward or choose a new song. A discarded tab or expired session can remove Brave's MPRIS player. | Jarvis controls the session Brave exposes. It cannot guarantee that a performance setting preserves playback or bypass YouTube inactivity checks; no automatic tab clicking or forced workaround is provided. |
 | `Read this` repeatedly says reading is still starting | Wait for the current request setup to finish, then retry once. | On 3.8.0 or earlier, update to 3.8.1; an X11 clipboard owner or 2× monitor could retain the setup lock. Do not delete Speech Note settings or its speed file. |
 | Control Centre remains on `Installing update` | Select **Stop update**, confirm, and wait for the page controls to return. | Reopen the Control Centre and compare the installed/latest versions. A completed command-line update can leave only the older GUI process stuck; do not run a second installer until the first process has stopped. |
-| Control Centre fails with `set_active_id` / `set_text(choice.get_label())` / `Argument 1 does not allow None` | Apply the reviewed V4 GUI source fix and reopen. | The icon row is a custom GTK child, so `get_label()` is empty; saved app choices must remain intact. Gdk screen-size deprecation warnings are not the cause. |
+| Control Centre fails with `set_active_id` / `set_text(choice.get_label())` / `Argument 1 does not allow None` | Install the stable V4 fix and reopen. | The icon row is a custom GTK child, so `get_label()` is empty; saved app choices must remain intact. Gdk screen-size deprecation warnings are not the cause. |
 | Tray icon is missing | The voice system can still run without the tray. Start `~/.local/bin/ovos-tray` from a terminal. | Check `~/.local/state/jarvis/ovos-tray.log`. |
-| Voice works manually but does not start after login | In the updated V4 candidate, turn on **General → Start voice services at login**. Use **Dashboard → Run Jarvis** for the current session. | **Start app minimised at login** controls the tray separately. Verify after a fresh login; changing either setting does not start/stop current services. Active service status alone does not prove auto-start. |
+| Voice works manually but does not start after login | In V4, turn on **General → Start voice services at login**. Use **Dashboard → Run Jarvis** for the current session. | **Start app minimised at login** controls the tray separately. Verify after a fresh login; changing either setting does not start/stop current services. Active service status alone does not prove auto-start. |
 | A problem began directly after a Jarvis update | Run the health check and view recent logs. | Use `jarvis-update rollback` only if the release caused the regression. |
 
 ## Service controls
@@ -201,8 +201,9 @@ jarvis-update check
 
 An update changes release-managed Jarvis code, helpers and desktop assets. It
 preserves OVOS configuration, enabled apps, personal commands, keyboard
-shortcuts, the listening sound, private unlisted helpers, voice packages and
-downloaded models.
+shortcuts, the listening sound, private unlisted helpers and downloaded models.
+Its managed runtime is staged and hash-verified, with the previous environment
+retained for rollback.
 
 Restore the latest pre-update Jarvis snapshot if a confirmed update regression
 cannot be resolved:
@@ -244,4 +245,13 @@ Collect the three fixed worker units with `journalctl -u ...` without forcing
 For a full upgrade with native isolation already installed, the guarded normal
 installer refuses the native state. Use the exact reviewed deactivation/removal
 path before the transaction and reprepare against the new source afterward.
-Do not remove policies broadly or bypass source identity checks.
+Do not remove policies broadly or bypass source identity checks. See the
+[isolated-upgrade procedure](07-installer-updates.md#upgrading-an-isolated-installation).
+
+An RC version label can remain after individual source patches; it does not
+prove those patches failed. A full stable installation updates the label.
+If an upgrade helper import fails, validate with the helper from the verified
+new archive rather than mixing old and new APIs. `reset-failed` reporting
+`Unit ... not loaded` can mean the stopped unit was already unloaded; clearing
+failure state is not a prerequisite for removing verified stopped native data.
+Keep voice stopped until the new mapping and model policy are restored.

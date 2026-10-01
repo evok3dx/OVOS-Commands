@@ -6,9 +6,10 @@ case-insensitive. A phrase like “Alex documentation” requires both words in
 one filename. The optional Qwen route may understand other wording when it
 responds within its time limit; it has no fixed list of extra phrases.
 
-The tray Commands tab belongs to the separate Jarvis dispatcher/GUI. This
-skill does not add buttons or entries to that tab. Its native voice phrases
-work without the tray, and installing the Qwen action does not populate it.
+The Jarvis Control Centre derives its read-only File Search section from the
+installed native intent templates. These phrases also work without the tray.
+Personal fixed phrases cannot supply a filename slot; the reviewed Qwen route
+is integrated by Jarvis, not granted automatically by OVOS plugin discovery.
 ## Search filenames in configured folders
 
 - `find file {query}`

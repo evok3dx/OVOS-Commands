@@ -12,8 +12,9 @@ command. See `ovos_skill_jarvis_dispatcher/action_registry.py` and
 The normal installer (`scripts/install.sh`) stages a release, backs up its managed
 files, deploys within the desktop user's home and runs the doctor. The rollback
 script restores the previous deployment. Fresh setup may invoke the reviewed
-upstream OVOS installer with administrator access; updates keep installed OVOS
-speech packages and host configuration in place. The tray and Control Centre
+upstream OVOS installer for bounded system preparation; updates stage the full
+hash-verified runtime and preserve host configuration and models. An exact
+verified runtime can be reused. The tray and Control Centre
 use system Python/GTK, separate from the OVOS virtualenv.
 
 **VERIFIED in the 3.6 laptop trial:** wake word, hotkey, local speech, bounded
@@ -22,3 +23,10 @@ combined tray/Control Centre all crossed their real desktop boundary. Jarvis
 bundles Media and File Search as separate skills; unrelated OCP providers stay
 host-owned. Earlier comparison evidence remains in the
 [historical audit](history/v2.4-audit.md).
+
+**VERIFIED V4 design:** optional native isolation runs core, listener and audio
+as the ordinary user with external IP access denied. Weather and Media use
+separate online workers; desktop launches retain the user's ordinary session.
+Ollama has its own reviewed loopback-only policy. Installation alone does not
+activate these policies. The same-user bus and X11 session remain trusted.
+See [security](security-and-updates.md) and [release evidence](releases.md).

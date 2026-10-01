@@ -66,6 +66,42 @@ Never bypass that guard or reset unrelated firewall/service policy. A laptop
 already using the final guarded patches has current behaviour code; publication
 alone does not require another runtime reinstall.
 
+## Upgrading an isolated installation
+
+**VERIFIED guard:** the normal updater stops before deployment when native
+isolation data remains. This is expected even when the installed version is an
+RC or has received individual source fixes. Those fixes do not change its
+installed version label.
+
+An isolated upgrade currently needs a reviewed owner-terminal transaction:
+
+1. Stop Jarvis and close its tray and Control Centre.
+2. Verify the old candidate against the exact five installed worker units and
+   polkit rule, and back up the verified native data privately in Downloads.
+   A previously reviewed `EnvironmentFile` quoting repair requires an exact
+   comparison; never accept arbitrary unit differences.
+3. Deactivate the old mapping as the desktop user. Remove only the verified
+   Jarvis units, rule and owned Ollama drop-in using bounded native commands.
+   Preserve unrelated policy and arrange restoration of the Ollama policy on
+   both success and failure.
+4. Verify the stable archive, then use its new helpers when validating an
+   upgrade from older helper APIs. Run the installer as the desktop user.
+   `--no-restart --no-speechnote` leaves voice stopped and preserves Speech Note;
+   the no-restart path requires the already verified runtime to match. If it
+   refuses, review the staging requirement rather than starting unrestricted
+   workers as a workaround.
+5. Restore Ollama's reviewed policy, prepare a new core candidate against the
+   installed source, install its reviewed native data, activate as the desktop
+   user and start Jarvis through its readiness-aware controls.
+
+Do not assume `reset-failed` is needed: a stopped unit may already be unloaded.
+Any unexpected file, source mismatch or failed check stops this procedure for
+review. Installation success is separate from restored isolation and worker
+readiness. See [core isolation](core-isolation.md) for these boundaries.
+
+**PLANNED:** a guided GUI transaction for this optional native boundary. V4
+retains the guard; the ordinary updater does not automate this manual procedure.
+
 ## What an update owns
 
 The release manages Jarvis code, its two bundled skills, generated helpers,

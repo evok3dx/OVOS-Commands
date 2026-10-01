@@ -19,23 +19,22 @@ native phrases are the reliable path for frequent requests.
 
 No. OVOS discovers the skill's `opm.skill` entry point, but Qwen has an
 explicit action catalogue, candidate filter, prompt and approved dispatcher.
-Installing an OVOS skill cannot modify that catalogue automatically. The
-The historical 0.2.0 standalone installer automated the **reviewed local
-edit** for that particular
-dispatcher version and verifies hashes first. It also adds the skill's phrases
-to the tray Commands tab. A changed dispatcher requires a
-new review and compatible update. `--no-qwen` skips the edit while keeping
-native search available. Whisper needs no file-search patch: the failed
-transcript was already correctly recognised.
+Installing an OVOS skill cannot grant a new Qwen action automatically. Jarvis
+V4 already includes the reviewed `files.search` action, query extraction and
+fixed event dispatcher. The managed installer registers this plugin and the
+Control Centre reads its installed intent templates. Historical standalone
+patch installers are not the current deployment path. Whisper needs no special
+File Search patch; speech recognition and intent matching are separate stages.
 
 ## How is Media different?
 
 The separate Jarvis Media plugin has its own OVOS pipeline and handles
 recognised title requests such as “Play Get Lucky” before the Qwen fallback.
-The Media installer places that pipeline before Qwen and integrates fixed
-transport actions with the dispatcher. Qwen can select existing approved
+Jarvis places that pipeline before Padatious and Qwen and integrates fixed
+transport actions with the dispatcher. Under isolation it reaches the separate
+Media worker directly. Qwen can select existing approved
 play, pause, stop, next and previous actions; that integration was explicitly
-configured by the Media installer. The presence of an OVOS plugin alone does
+configured in Jarvis's reviewed action catalogue. The presence of an OVOS plugin alone does
 not add an action to Qwen. File Search 0.3.0 changes no Media files.
 
 Qwen's browser YouTube search action is separate: it opens a search prompt.
@@ -51,10 +50,10 @@ Qwen into a general filesystem or browser controller.
 - Query words must all appear in a filename. A Word or PDF file is not parsed.
 - The result window replaces its previous instance; a file opens only after
   selection in that window.
-- The Qwen integration changes only three reviewed dispatcher source files.
-  It does not change Whisper, Media, OVOS settings or unrelated commands.
-- Insert New Line belongs to Jarvis core; the File Search installer applies
-  only its own action edits and preserves the core command.
+- The integrated Qwen route selects an allowlisted action; plugin discovery
+  cannot extend that catalogue. File Search does not modify Whisper or Media.
+- Insert New Line belongs to Jarvis core. The managed installer owns its
+  release files while preserving settings and user commands.
 - The tray displays the skill's installed voice patterns read-only. Personal
   fixed phrases cannot provide a filename slot, so `files.search` is not
   offered in the personal-phrase action list.

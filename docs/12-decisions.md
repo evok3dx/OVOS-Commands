@@ -166,3 +166,15 @@ this desktop-control release until there is an actual integration requirement.
   Hermes permissions and maintainer account protections retain their unverified
   status. Stable publication is not a claim those checks passed. Production
   signatures and fresh-OS/model offline packaging remain deferred.
+
+## Stable V4 documentation maintenance
+
+- **VERIFIED owner direction:** keep README structure and style; refresh current
+  command and plugin guides from source. Keep public release notes in the short
+  V3 format and retain detailed V4 trials under `docs/history/`.
+- **VERIFIED owner report:** the full stable laptop installation completed.
+  This report is not a new network or recovery acceptance test. Restored core
+  activation and readiness require their own result after the upgrade.
+- **PLANNED:** guided upgrades across the optional native isolation boundary.
+  The current updater must retain its refusal while native data remains;
+  manual owner-terminal removal and restoration must be exact and reviewed.

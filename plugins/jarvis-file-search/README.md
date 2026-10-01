@@ -6,32 +6,16 @@ document contents, copy files to Hermes or submit filenames to a remote service.
 
 ## Install on the OVOS computer
 
-Extract this release. Run from its extracted directory as your normal user:
+File Search 0.3.0 is included as a separate plugin in Jarvis V4. Install or
+update through the [managed Jarvis installer](../../docs/07-installer-updates.md).
+The current tree has no standalone `install.py`; old patch-installer instructions
+belong to the historical plugin releases.
 
-```bash
-~/.venvs/ovos/bin/python install.py --check
-~/.venvs/ovos/bin/python install.py
-```
-
-The second command installs the skill into the OVOS Python environment,
-configures the reviewed `files.search` action in the local Qwen dispatcher,
-adds the skill's phrases to the tray Commands tab, and restarts `ovos-core.service`.
-Only the File Search edits are applied;
-Insert New Line remains owned by Jarvis core. It requires no administrator access.
-The installer compares each Qwen and tray GUI file against reviewed snapshots.
-It stops **before installing anything** if a file has changed. Use `--no-qwen`
-to skip Qwen integration or `--no-gui` to leave the tray GUI alone.
-
-An existing Qwen patch is kept in place. Changed Qwen and GUI files are backed up at
-`~/.local/state/jarvis/backups/`. If a restart fails, the installer restores
-the dispatcher and GUI files it changed; the skill package may remain installed.
-The reviewed GUI Insert New Line alignment is recognised and retained when
-the Qwen action is already present. Close and reopen the tray Commands tab to
-see the installed File Search voice phrases.
-
-Wait until OVOS announces it is ready before testing: Padatious may compile
-the updated voice patterns in the background. A slow Qwen response can time
-out, but native search phrases still work.
+Jarvis already owns the reviewed `files.search` action and derives the Control
+Centre's read-only phrase list from the installed intent templates. No manual
+Qwen or GUI source patch is needed. Wait for Jarvis's readiness indication before
+using newly installed intents; Qwen fallback can time out while native patterns
+remain available.
 
 ## Voice examples
 
@@ -73,20 +57,17 @@ or time limit; increase those settings if you need a larger scan.
 ## Check the installation
 
 Say “Looking in my Documents for Alex”. Expect “Searching” and a results
-window, even if no file matches. For the route and any errors, run:
-
-```bash
-journalctl --user -u ovos-core.service -u ovos-listener.service \
-  --since '3 minutes ago' --no-pager -o cat |
-rg -i 'raw transcription|parsing utterance|file search found|files.search|qwen router|match call timed out|unavailable'
-```
+window, even if no file matches. Use **Maintenance → Recent logs** or the
+[service troubleshooting guide](../../docs/troubleshooting.md) for the route and
+errors. Native isolation uses system worker units; ordinary installations use
+OVOS user services, so select the journal belonging to the current deployment.
 
 The native intent appears as `jarvis-file-search.local:search.documents`;
 Qwen handling appears as `Qwen router: handler_invoked files.search`. Only
 the latter depends on Qwen responding inside OVOS's timeout.
 
 Run the included local tests with `python3 -m unittest discover -s tests -v`.
-See `COMMANDS.md` for all 47 native voice patterns. The tray shows these
+See `COMMANDS.md` for the native voice patterns. The tray shows these
 installed patterns in a read-only File Search section. See
 `ARCHITECTURE.md` for Qwen, Whisper and Media integration, and
 `HISTORY.md` for the changes in this release.

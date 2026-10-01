@@ -14,18 +14,21 @@ the model never receives or submits its dictated content. Detected apps and
 saved spoken names are supplied by the current profile, not a fixed phrase
 list.
 
-**V3 guided setup:** install and start Ollama first. `scripts/install.sh`
+**V4 guided setup:** install and start Ollama first. `scripts/install.sh`
 checks its local model list; if the reviewed model is missing, it asks to run
 `ollama pull qwen3:4b-instruct-2507-q4_K_M` before any Jarvis files change.
 In unattended installation, use `scripts/qwen-setup.py --prepare --yes` as an
 explicit separate preparation step. The installer registers Qwen command and
 chat stages plus a model-independent unmatched-command stage. Media runs
 first; deterministic commands that Qwen declines receive “Please repeat”
-before broad fallback skills such as DDG can claim them. Real questions still
-continue to DDG/common-query and then local Qwen chat. Setup then checks the
+before broad fallback skills such as DDG can claim them. In unrestricted mode,
+questions can continue to enabled DDG/common-query and local Qwen chat. Native
+isolation disables unreviewed online skills in core; Weather and Media have
+separate helpers, while Wikipedia/WikiHow and named-city time support remain
+future work. Setup then checks the
 model and private router settings. It refuses to overwrite a different selected
-model. No cloud account, extra listening port or OVOS voice-stack upgrade is
-needed. A missing Ollama service stops the guided installation with a clear
+model. No cloud account or extra listening port is needed. The managed V4
+runtime remains hash-verified. A missing Ollama service stops setup with a clear
 message.
 
 **VERIFIED on the earlier reference system:** a small paired sample improved
@@ -70,8 +73,8 @@ spoken path must still be measured separately from post-transcription routing.
 The first V3.5 singleton prompt incorrectly treated polite action requests such
 as “Can I search through Brave?” as information-seeking questions. Rc2 now
 distinguishes “Can I…”, “Could you…” and “Would you…” requests from genuine
-questions. This correction retains the same candidate allowlist and output
-validation and still requires a live model rerun. **PLANNED on the separate
+questions. This historical correction retains the same candidate allowlist and
+output validation; full live model coverage remains unverified. **PLANNED on the separate
 five-year-old 16 GB i7:** check model load, RAM and an alternating spoken
 command, question, command sequence. Do not infer its latency from either
 faster machine.

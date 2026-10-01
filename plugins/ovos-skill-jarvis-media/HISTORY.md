@@ -1,5 +1,13 @@
 # Jarvis Media plugin history
 
+## 0.3.5 — bundled with Jarvis 4.0.0
+
+- Acknowledge immediately before lookup without waiting for speech to finish.
+- Wait three seconds after a valid result, cancellable by Stop or a newer title.
+- Retain the direct separate-worker route, Qwen fallback and shared search gap.
+- Keep provider failures visible without automatic retries or alert guarantees.
+- Opening a result can leave an earlier tab playing; replacement is a follow-up.
+
 ## 0.3.4 — V4 source correction after rc2
 
 - Remote pipeline matches carry the fixed Media owner in match data while
@@ -348,7 +356,7 @@ and everyday command check before it should be marked release-ready.
 | Internal rollback test prints a failure | Capture successful test output and show details only when the test actually fails. |
 | Optional Qwen or Whisper component absent | Skip that enhancement cleanly; deterministic Media commands must remain functional. |
 
-## Current status
+## Historical standalone status
 
 - Brave-first YouTube playback: verified live.
 - Existing Brave profile selection: verified live.

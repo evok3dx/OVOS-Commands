@@ -129,6 +129,15 @@ drop-in. Install, rollback and uninstall refuse active or remaining native
 isolation files. They never silently leave rules referencing removed code.
 Settings, models, unrelated drop-ins and login choices remain intact.
 
+For an update, use the helpers from the verified new release when older helper
+APIs differ. Restore the model policy before running voice again, and prepare
+a new core candidate against the installed source rather than reusing an old
+source fingerprint. An exact reviewed native-file repair must be compared and
+backed up; arbitrary candidate differences are not accepted. See the current
+[isolated-upgrade procedure](07-installer-updates.md#upgrading-an-isolated-installation).
+Successful installation does not itself prove restored isolation or live
+network denial. Broader recovery acceptance remains separately scoped.
+
 See [V4 acceptance](v4-acceptance.md) and the current [release record](releases.md).
 Primary implementation references: [OVOS standalone skills](https://openvoiceos.github.io/beta-technical-manual/composable-deployments/),
 [systemd IP policy](https://www.freedesktop.org/software/systemd/man/latest/systemd.resource-control.html),
