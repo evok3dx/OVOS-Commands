@@ -429,7 +429,7 @@ print('PASS: exact source recovery retains pip-generated files and refuses chang
 units, rule, _ = prepare.render(os.getuid(), os.getgid(), 'fixture', '/home/fixture',
                                '/home/fixture/deployment', '/usr/bin/ollama')
 old, _, _ = prepare.render(os.getuid(), os.getgid(), 'fixture', '/home/fixture', '/home/fixture/deployment')
-with patch.object(Path, 'exists', side_effect=lambda path: path.name in old), \
+with patch.object(Path, 'exists', lambda path: path.name in old), \
      patch.object(Path, 'is_symlink', return_value=False), \
      patch.object(install, 'regular', side_effect=lambda path, **kw: old[path.name]):
     native = Mock()
