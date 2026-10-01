@@ -152,6 +152,16 @@ retry its installer only after recovery succeeds. Retain the journal and all
 network protections. The private model's successful readiness check alone does
 not establish voice startup or actual egress denial.
 
+If a guided recovery restored files but then rejected the source fingerprint,
+compare it with the transaction's original backup. Package rebuilds can add
+dispatcher/plugin `egg-info` and plugin `build` outputs absent from that backup.
+The corrected candidate accepts only these new files in fixed directories,
+verifies that every original file and the backup still match, retains the
+generated tree in retirement and restores an exact snapshot. It does not ignore
+metadata in future fingerprints. A retry also accepts that the newly introduced
+native model unit may already have been removed. Other differences remain
+blocked and require review; do not edit the journal's source identity.
+
 The V4 source candidate now has a complete rebuilt, hash-verified runtime bundle.
 The initial 4.0.0rc1 archive can stop before installation with `Cannot inspect
 native isolation policy` on systems whose polkit rules directory is protected.

@@ -248,6 +248,16 @@ for failure in (None, 'ready', 'port', 'stop'):
             if command[0] == 'bash':
                 assert command[2:] == [str(backup), '--no-restart']
                 code.write_bytes((backup / 'target-root/managed.py').read_bytes())
+                # Real rollback's editable install and plugin wheel builds add
+                # metadata/build copies which were absent from the snapshot.
+                for name in ('ovos_skill_jarvis_dispatcher.egg-info/PKG-INFO',
+                             'plugins/jarvis-file-search/build/lib/fixture.py',
+                             'plugins/jarvis-file-search/jarvis_file_search_skill.egg-info/SOURCES.txt',
+                             'plugins/ovos-skill-jarvis-media/build/lib/fixture.py',
+                             'plugins/ovos-skill-jarvis-media/ovos_skill_jarvis_media.egg-info/entry_points.txt'):
+                    generated = deployment / name
+                    generated.parent.mkdir(parents=True, exist_ok=True)
+                    generated.write_text('generated packaging output')
             return Mock(returncode=0)
 
         with patch.object(Path, 'home', return_value=home), \
@@ -363,7 +373,7 @@ for foreign in (False, True):
             else:
                 assert tool == 'systemctl' and arguments[0] in {'stop', 'daemon-reload'}
                 if arguments[0] == 'stop':
-                    assert set(arguments[1:]) == set(units)
+                    assert set(arguments[1:]) == {path.name for path in native_files if path.parent == Path('/etc/systemd/system')}
             return Mock(returncode=0)
 
         with patch.object(install.pwd, 'getpwuid', return_value=account), \
@@ -383,5 +393,51 @@ for foreign in (False, True):
                 restarted.assert_called_once_with([])
 
 print('PASS: partial native installation removal and refusal to overwrite unreviewed recovery data')
+
+# Exact restoration keeps generated outputs in retirement, never broadens the
+# source fingerprint, and refuses changed code, unknown additions or backups.
+for problem in (None, 'code', 'unknown', 'backup', 'link'):
+    with tempfile.TemporaryDirectory() as folder:
+        home = Path(folder)
+        deployment = home / '.local/src/ovos-skill-jarvis-dispatcher'
+        deployment.mkdir(parents=True)
+        (deployment / 'source.py').write_text('original')
+        expected = install.tree_identity(deployment)
+        backup = home / '.local/state/jarvis/backups/fixture'
+        shutil.copytree(deployment, backup / 'target-root')
+        artifact = deployment / 'ovos_skill_jarvis_dispatcher.egg-info/PKG-INFO'
+        artifact.parent.mkdir()
+        artifact.write_text('generated')
+        if problem == 'code': (deployment / 'source.py').write_text('changed')
+        if problem == 'unknown': (deployment / 'unknown.py').write_text('unreviewed')
+        if problem == 'backup': (backup / 'target-root/source.py').write_text('changed')
+        if problem == 'link': (deployment / 'alias').symlink_to(artifact)
+        if problem:
+            rejects(install.restore_build_artifacts, home, deployment, backup, expected)
+            assert artifact.exists()
+        else:
+            install.restore_build_artifacts(home, deployment, backup, expected)
+            assert install.tree_identity(deployment) == expected
+            preserved = list((home / '.local/state/jarvis/retired').glob('rollback-build-*'))
+            assert len(preserved) == 1
+            assert (preserved[0] / 'ovos_skill_jarvis_dispatcher.egg-info/PKG-INFO').read_text() == 'generated'
+            assert install.tree_identity(backup / 'target-root') == expected
+print('PASS: exact source recovery retains pip-generated files and refuses changed original, backup, unknown addition and symlink')
+
+# Already removed private-model data must not cause a repeated native stop to
+# fail or widen its service set. Existing legacy files still need exact review.
+units, rule, _ = prepare.render(os.getuid(), os.getgid(), 'fixture', '/home/fixture',
+                               '/home/fixture/deployment', '/usr/bin/ollama')
+old, _, _ = prepare.render(os.getuid(), os.getgid(), 'fixture', '/home/fixture', '/home/fixture/deployment')
+with patch.object(Path, 'exists', side_effect=lambda path: path.name in old), \
+     patch.object(Path, 'is_symlink', return_value=False), \
+     patch.object(install, 'regular', side_effect=lambda path, **kw: old[path.name]):
+    native = Mock()
+    install.stop_native_for_recovery(native, units, old)
+    native.run.assert_called_once_with('systemctl', 'stop', *old)
+    assert model.unit_name() not in native.run.call_args.args
+    with patch.object(install, 'regular', return_value='changed'):
+        rejects(install.stop_native_for_recovery, native, units, old)
+print('PASS: native recovery retry stops only still-present exact reviewed services')
 
 print('PASS: complete steady upgrade and failed-readiness recovery preserve source, native policy, private settings and muted microphone without administrator prompts')

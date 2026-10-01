@@ -15,6 +15,7 @@ from pathlib import Path
 import pwd
 import re
 import secrets
+import shutil
 import signal
 import stat
 import subprocess
@@ -397,6 +398,66 @@ def tree_identity(root):
     return values
 
 
+def restore_build_artifacts(home, deployment, backup, expected):
+    """Restore the exact snapshot after pip added only known build outputs.
+
+    Keep all differing files in retirement. Never ignore generated files in
+    the fingerprint, accept a changed original file or trust a changed backup.
+    """
+    saved = backup / 'target-root'
+    for root in (saved, deployment):
+        if (any(p.is_symlink() for p in (root, *root.parents))
+                or not root.is_dir() or root.stat().st_uid != os.getuid()):
+            raise RuntimeError('Recovery source ownership or path needs review')
+    if tree_identity(saved) != expected:
+        raise RuntimeError('Recovery source backup differs from the original identity')
+    current = tree_identity(deployment)
+    if any(current.get(name) != digest for name, digest in expected.items()):
+        raise RuntimeError('An original source file changed during recovery; review required')
+    generated = (
+        Path('ovos_skill_jarvis_dispatcher.egg-info'),
+        Path('plugins/jarvis-file-search/build'),
+        Path('plugins/jarvis-file-search/jarvis_file_search_skill.egg-info'),
+        Path('plugins/ovos-skill-jarvis-media/build'),
+        Path('plugins/ovos-skill-jarvis-media/ovos_skill_jarvis_media.egg-info'),
+    )
+    additions = set(current) - set(expected)
+    if not additions or any(not any(root in Path(name).parents for root in generated)
+                            for name in additions):
+        raise RuntimeError('Recovery found unreviewed additional source; review required')
+    retired = home / '.local/state/jarvis/retired'
+    if any(p.is_symlink() for p in (retired, *retired.parents)):
+        raise RuntimeError('Recovery retirement path needs review')
+    retired.mkdir(parents=True, exist_ok=True, mode=0o700)
+    stage = deployment.parent / ('source-recovery-' + secrets.token_hex(12))
+    shutil.copytree(saved, stage)
+    if tree_identity(stage) != expected or tree_identity(deployment) != current:
+        raise RuntimeError('Recovery source changed during snapshot preparation')
+    preserved = retired / ('rollback-build-' + secrets.token_hex(12))
+    deployment.rename(preserved)
+    try:
+        stage.rename(deployment)
+    except BaseException:
+        preserved.rename(deployment)
+        raise
+    if tree_identity(deployment) != expected:
+        raise RuntimeError('Exact recovered source did not verify; workers remain stopped')
+    print('Verified original source restored; generated build files retained in retirement.')
+
+
+def stop_native_for_recovery(native, units, originals):
+    """A retry may already have removed a newly introduced service."""
+    present = []
+    for name, body in units.items():
+        path = Path('/etc/systemd/system') / name
+        if path.exists() or path.is_symlink():
+            if regular(path, owner=0) not in {body, originals.get(name)}:
+                raise RuntimeError('Native recovery found changed data; workers remain stopped')
+            present.append(name)
+    if present:
+        native.run('systemctl', 'stop', *present)
+
+
 def record_backup(home, backup):
     authorised_transaction('install', home)
     base = home / '.local/state/jarvis/backups'
@@ -443,7 +504,7 @@ def recover_transaction(home, journal, native):
     try:
         stop_workers(home, active(home), recovery=True)
         if native_started:
-            native.run('systemctl', 'stop', *units)
+            stop_native_for_recovery(native, units, originals)
             # Remove only unchanged new files; restore only exact reviewed originals.
             recovery = state.parent / ('restore-' + secrets.token_hex(8))
             recovery.mkdir(mode=0o700)
@@ -491,7 +552,9 @@ def recover_transaction(home, journal, native):
             subprocess.run(['bash', str(ROOT / 'scripts/rollback.sh'), str(backup), '--no-restart'],
                            env=environment, check=True)
         if tree_identity(deployment) != journal['original_tree']:
-            raise RuntimeError('Previous source identity did not restore; workers remain stopped')
+            if backup is None or journal['original_tree'] is None:
+                raise RuntimeError('Previous source identity did not restore; workers remain stopped')
+            restore_build_artifacts(home, deployment, backup, journal['original_tree'])
         if old_router_text is None:
             old_router.unlink(missing_ok=True)
         else:
@@ -553,7 +616,9 @@ def _resume_recovery(home):
         account = pwd.getpwuid(os.getuid())
         units, _, _ = render(account.pw_uid, account.pw_gid, account.pw_name,
                              home, home / '.local/src/ovos-skill-jarvis-dispatcher', journal['binary'])
-        native.run('systemctl', 'stop', *units)
+        originals, _, _ = render(account.pw_uid, account.pw_gid, account.pw_name,
+                                 home, home / '.local/src/ovos-skill-jarvis-dispatcher', journal.get('original_binary'))
+        stop_native_for_recovery(native, units, originals if journal['was_active'] else {})
     stop_workers(home, active(home), recovery=True)
     if journal.get('original_binary'):
         subprocess.run(['/usr/bin/systemctl', '--system', '--no-ask-password',

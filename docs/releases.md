@@ -51,6 +51,16 @@ the actual `-I` bootstrap and stopped-failed checks in the clean archive,
 live acceptance remain pending; the earlier automated pass did not cover this
 startup path. Published V4.0.0 is unchanged.
 
+**Second live recovery gate:** rollback rebuilt local packages and added only
+their metadata/build copies; the original backup and original source files
+matched. Recovery now stages the exact verified backup after accepting only
+new files in the five fixed packaging-output directories, retains those outputs
+in retirement, and checks the complete original fingerprint again. Changed
+original files, changed backups, unknown additions and symlinks remain blocked.
+Native retries stop only still-present exact reviewed units, allowing recovery
+to resume after removal of the new private-model unit. Corrected validation and
+owner recovery remain pending; this does not alter stable V4.0.0.
+
 ## 4.0.0 (published stable, 1 October 2026)
 
 V4 includes the complete reviewed, hash-verified 296-package runtime with zero
