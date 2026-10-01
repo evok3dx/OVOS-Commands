@@ -172,6 +172,9 @@ this desktop-control release until there is an actual integration requirement.
 - **VERIFIED owner direction:** keep README structure and style; refresh current
   command and plugin guides from source. Keep public release notes in the short
   V3 format and retain detailed V4 trials under `docs/history/`.
+- **VERIFIED release-list cleanup:** stable V4 is the only published V4 release.
+  RC1/RC2 remain drafts with their assets intact; keep tags and Git history.
+  Stable downloads are not rebuilt for documentation maintenance.
 - **VERIFIED owner report:** the full stable laptop installation completed.
   This report is not a new network or recovery acceptance test. Restored core
   activation and readiness require their own result after the upgrade.

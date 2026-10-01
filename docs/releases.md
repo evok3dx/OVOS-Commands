@@ -59,6 +59,11 @@ File Search wheel SHA-256:
 b173c592fff3b843c9cf8189e8e567e02df757b453d30f1b5c06430c7384a3ef.
 See [V4 release notes](release-v4.0.0.md). Original rc1/rc2 evidence is retained.
 
+**VERIFIED release-list cleanup:** run 36826895321 shortens the stable release
+card and retains RC1/RC2 as drafts, leaving only stable V4 published. All 11
+assets on each retained release and the stable tag are unchanged. Historical
+RC download instructions are no longer public installation paths.
+
 **VERIFIED owner report, post-publication:** the full stable laptop installation
 completed. Documentation maintenance updates command, plugin, security and
 isolated-upgrade guidance without changing behaviour, versions, tags or assets.

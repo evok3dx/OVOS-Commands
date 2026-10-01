@@ -3,6 +3,8 @@
 **Historical guarded handover:** stable 4.0.0 now includes these changes.
 Use [current release notes](release-v4.0.0.md) for installation and limits;
 keep the original prerelease/patch instructions below for their exact versions.
+RC1/RC2 release cards are now retained as drafts. Their old public download
+commands are historical; install from the stable V4 release instead.
 
 This cumulative laptop candidate includes the V4 installer, GUI, independent
 login options, desktop-session repair, readiness/lifecycle fixes and Media

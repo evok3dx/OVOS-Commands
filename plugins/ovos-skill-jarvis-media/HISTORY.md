@@ -22,8 +22,9 @@
 - A resume request with no Brave/Chromium MPRIS session now says “Open the
   music tab once” instead of failing silently.
 - Jarvis still does not guess a tab or bypass an on-page inactivity prompt.
-  Brave Memory Saver should keep `music.youtube.com` and `youtube.com` active
-  when uninterrupted system media control is wanted.
+  The earlier Memory Saver suggestion is historical; it does not guarantee
+  that Brave retains an idle player or that YouTube preserves a paused session.
+  Current recovery is to reopen the music tab or request a new song.
 
 ## 0.3.0 — bundled with Jarvis 3.7
 
