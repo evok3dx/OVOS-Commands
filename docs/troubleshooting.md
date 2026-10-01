@@ -141,6 +141,17 @@ another installation; use the verified candidate's `scripts/isolation_install.py
 with sudo. Unknown native changes still require review. See
 [guided isolation](core-isolation.md#guided-installer-candidate-401-not-yet-published).
 
+The first guided-isolation trial could fail at worker startup with
+`ModuleNotFoundError: No module named 'isolation_install'`: Python `-I` excludes
+the script directory until the worker explicitly adds it. The corrected
+candidate adds that path after worker identity checks and before importing the
+guard. Recovery accepts a failed unit only after confirming inactive/failed
+state, dead/failed substate and zero worker/control PIDs. Use the corrected
+verified candidate outside the managed deployment for `-- --recover`, then
+retry its installer only after recovery succeeds. Retain the journal and all
+network protections. The private model's successful readiness check alone does
+not establish voice startup or actual egress denial.
+
 The V4 source candidate now has a complete rebuilt, hash-verified runtime bundle.
 The initial 4.0.0rc1 archive can stop before installation with `Cannot inspect
 native isolation policy` on systems whose polkit rules directory is protected.

@@ -38,6 +38,15 @@ legacy-isolation migration and native recovery still need the owner's laptop.
 Stable V4.0.0 assets and tag are unchanged. See
 [isolation guide](core-isolation.md) and [approved decisions](12-decisions.md).
 
+**Live trial blocked:** the dedicated model became available, but a guard import
+before the worker's script-path setup failed under Python `-I`. Recovery then
+rejected stopped failed workers. The corrected candidate moves the import after
+identity/path setup and requires zero worker/control PIDs before recovery;
+normal GUI Stop remains strict. Regression checks execute the actual isolated
+Python bootstrap and retain the real transaction guard. Corrected CI and owner
+recovery acceptance remain pending; the earlier automated pass did not cover
+this startup path. Published V4.0.0 is unchanged.
+
 ## 4.0.0 (published stable, 1 October 2026)
 
 V4 includes the complete reviewed, hash-verified 296-package runtime with zero

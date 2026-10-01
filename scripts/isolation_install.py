@@ -282,7 +282,7 @@ def apply_native(native, units, rule, originals, old_rule, directory):
     return True
 
 
-def stop_workers(home, was_active, record=None):
+def stop_workers(home, was_active, record=None, *, recovery=False):
     from control_runtime import service_action
     desired = []
     if was_active:
@@ -296,7 +296,22 @@ def stop_workers(home, was_active, record=None):
                 desired.append(unit)
     if record is not None:
         record(desired)
-    if was_active or desired:
+    if recovery:
+        # Recovery may follow an import/startup failure. A failed unit is safe
+        # to restore only after the actual processes and stop jobs are gone.
+        # Keep the ordinary GUI Stop path strict about shutdown failures.
+        from control_runtime import operation_lock, run, UNITS
+        with operation_lock():
+            run(['systemctl', '--user', 'stop', *reversed(UNITS)], timeout=45)
+            names = [f'jarvis-v4-{os.getuid()}-{part}.service' for part in COMPONENTS] if was_active else list(LOGICAL)
+            scope = '--system' if was_active else '--user'
+            for name in names:
+                state = properties(scope, name, 'ActiveState,SubState,MainPID,ControlPID')
+                if (state.get('ActiveState') not in {'inactive', 'failed'}
+                        or state.get('SubState') not in {'dead', 'failed'}
+                        or state.get('MainPID') != '0' or state.get('ControlPID') != '0'):
+                    raise RuntimeError('Recovery requires verified stopped voice workers; review service state')
+    elif was_active or desired:
         service_action('stop', print)
     return desired
 
@@ -426,7 +441,7 @@ def recover_transaction(home, journal, native):
     journal['phase'] = 'recovering'
     atomic(state, journal)
     try:
-        stop_workers(home, active(home))
+        stop_workers(home, active(home), recovery=True)
         if native_started:
             native.run('systemctl', 'stop', *units)
             # Remove only unchanged new files; restore only exact reviewed originals.
@@ -539,7 +554,7 @@ def _resume_recovery(home):
         units, _, _ = render(account.pw_uid, account.pw_gid, account.pw_name,
                              home, home / '.local/src/ovos-skill-jarvis-dispatcher', journal['binary'])
         native.run('systemctl', 'stop', *units)
-    stop_workers(home, active(home))
+    stop_workers(home, active(home), recovery=True)
     if journal.get('original_binary'):
         subprocess.run(['/usr/bin/systemctl', '--system', '--no-ask-password',
                         'stop', model.unit_name()], check=True)
@@ -672,10 +687,11 @@ def run_install(arguments, home):
             atomic(home / CHOICE, dict(saved, enabled=True, model_binary=binary))
             state.unlink()
             print('Jarvis network isolation is enabled. General Ollama was not modified.')
-        except BaseException:
+        except BaseException as original:
             # A second cancellation must not interrupt native-file restoration.
             previous_signal = signal.signal(signal.SIGTERM, signal.SIG_IGN)
             print('Restoring the previous deployment and its isolation policy…', file=sys.stderr)
+            print('Installation failure: ' + str(original), file=sys.stderr)
             persisted = json.loads(regular(state, private=True, limit=200000))
             if persisted.get('backup'):
                 journal['backup'] = persisted['backup']
@@ -684,6 +700,8 @@ def run_install(arguments, home):
             atomic(state, journal)
             try:
                 recover_transaction(home, journal, native)
+            except BaseException as recovery:
+                raise RuntimeError(f'{original}\nRecovery also needs attention: {recovery}') from original
             finally:
                 signal.signal(signal.SIGTERM, previous_signal)
             raise

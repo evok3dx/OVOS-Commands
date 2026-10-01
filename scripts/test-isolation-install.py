@@ -9,6 +9,8 @@ import os
 from pathlib import Path
 import tempfile
 import shutil
+import subprocess
+import sys
 from unittest.mock import Mock, patch
 
 import isolation_install as install
@@ -24,6 +26,66 @@ def rejects(function, *args, **kwargs):
     except (ValueError, RuntimeError, OSError):
         return
     raise AssertionError('Unsafe input accepted')
+
+
+# Exercise the real main/guard imports under systemd's Python -I invocation.
+# Stub only privileged identity, runtime pins and OVOS execution boundaries;
+# do not add the script directory or stub the installer guard in the child.
+bootstrap = '''
+import os, runpy, sys, types
+path, component = sys.argv[1:]
+events = []
+namespace = runpy.run_path(path)
+namespace['main'].__globals__.update(
+    worker_identity=lambda *args: events.append('identity'),
+    verify_pins=lambda: events.append('pins'),
+    install_overlay=lambda component: events.append('overlay'),
+    run_component=lambda component: events.append('run'))
+boundary = types.ModuleType('verify_core_isolation')
+boundary.attach = lambda *args: None
+sys.modules['verify_core_isolation'] = boundary
+sys.argv = [path, component, '--uid', str(os.getuid()), '--gid', str(os.getgid())]
+try:
+    namespace['main']()
+except RuntimeError as error:
+    assert 'Managed installation is incomplete' in str(error), str(error)
+    assert events == ['identity'], events
+    print('BLOCKED')
+else:
+    assert events == ['identity', 'pins', 'overlay', 'run'], events
+    print('STARTED')
+'''
+for phase in (None, 'checking', 'recovering-ready', 'blocked'):
+    with tempfile.TemporaryDirectory() as folder:
+        home = Path(folder)
+        if phase is not None:
+            install.atomic(home / install.JOURNAL, {'phase': phase})
+        for component in ('core', 'listener', 'audio'):
+            child = subprocess.run([sys.executable, '-I', '-c', bootstrap,
+                                    str(Path(__file__).with_name('isolation_worker.py')), component],
+                                   env={**os.environ, 'HOME': str(home)}, cwd=home,
+                                   capture_output=True, text=True, timeout=20)
+            assert child.returncode == 0, child.stderr
+            assert child.stdout.strip() == ('BLOCKED' if phase == 'blocked' else 'STARTED')
+print('PASS: actual Python -I worker imports and real interrupted-install guard before runtime startup')
+
+# A failed worker may be restored during recovery only when the actual worker
+# and any control process are gone. Missing/unknown state fails closed.
+stopped = {'ActiveState': 'failed', 'SubState': 'failed', 'MainPID': '0', 'ControlPID': '0'}
+for isolated in (False, True):
+    with patch.object(install, 'properties', return_value=stopped), \
+         patch.object(install, 'LOGICAL', services.LOGICAL), \
+         patch('control_runtime.operation_lock', return_value=contextlib.nullcontext()), \
+         patch('control_runtime.run') as command, patch('control_runtime.service_action') as strict:
+        install.stop_workers(Path.home(), isolated, recovery=True)
+        assert command.call_count == 1 and not strict.called
+        install.stop_workers(Path.home(), True)
+        strict.assert_called_once_with('stop', print)
+        for unsafe in ({}, dict(stopped, MainPID='42'), dict(stopped, ControlPID='42'),
+                       dict(stopped, ActiveState='active'), dict(stopped, SubState='stop-sigterm')):
+            with patch.object(install, 'properties', return_value=unsafe):
+                rejects(install.stop_workers, Path.home(), isolated, recovery=True)
+print('PASS: recovery accepts verified stopped failed workers and rejects live, stopping or unknown state')
 
 
 with tempfile.TemporaryDirectory() as folder:
@@ -171,7 +233,8 @@ for failure in (None, 'ready', 'port', 'stop'):
             install.atomic(home / '.local/state/jarvis/current.json', {'rollback': str(backup)})
             return 0
 
-        def stop(home, was_active, record=None):
+        def stop(home, was_active, record=None, *, recovery=False):
+            assert recovery == (record is None)
             desired = ['ovos-audio.service', 'ovos-core.service']
             if record is not None:
                 record(desired)
@@ -246,7 +309,7 @@ with tempfile.TemporaryDirectory() as folder:
          patch.object(model, 'verify_executable', return_value='/usr/bin/ollama'), \
          patch.object(install, 'active', return_value=True), \
          patch.object(install, 'authorised_transaction', side_effect=authorised), \
-         patch.object(install, 'stop_workers', side_effect=lambda *_: order.append('stop')), \
+         patch.object(install, 'stop_workers', side_effect=lambda *_, **kw: order.append('stop') if kw == {'recovery': True} else (_ for _ in ()).throw(AssertionError('Recovery mode required'))), \
          patch.object(install, 'recover_transaction', side_effect=recovered), \
          patch.object(install.subprocess, 'run', return_value=Mock(returncode=0)), \
          patch.dict(os.environ):
