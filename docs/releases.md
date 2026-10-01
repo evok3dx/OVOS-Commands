@@ -18,8 +18,11 @@ specifier escaping, retaining the existing private session file, ordinary-user
 identity and network policy. Exact legacy candidates remain accepted only for
 removal; new activation rejects them. A native parser regression reproduces the
 ignored quoted setting and checks paths containing spaces and percent signs.
-Ordinary-user CI and owner repair/desktop acceptance remain pending. This does
-not establish the separate microphone Stop/Start cause.
+**VERIFIED:** source commit `1e0c525c1e7cb02c6c28caba16d51315093ac087`,
+run `36803027157`, passes the native parser and legacy-removal regressions,
+Python 3.10-3.13, GTK, security scans and the complete clean-copy deployment/
+recovery suite. Owner native-data repair and desktop acceptance remain pending.
+This does not establish the separate microphone Stop/Start cause.
 
 **Owner-directed controls refinement, source candidate:** Overview is labelled
 Dashboard; General contains separate **Start app minimised at login** and
