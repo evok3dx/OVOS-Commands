@@ -216,8 +216,10 @@ this desktop-control release until there is an actual integration requirement.
 - **VERIFIED explicit owner approval:** finalise and release 4.0.1 after supplied
   successful interrupted recovery, legacy migration and voice/model readiness.
   The owner accepts the dedicated daemon's actual generation and IPv4/IPv6
-  egress checks after release. Keep these unverified; never present inventory
-  or service properties as live network enforcement. Fresh-install coverage
+  egress checks after release. Those checks were unverified at publication;
+  subsequent supplied live reports close the tested generation/direct-network
+  gates as recorded in the [release ledger](releases.md). Never present inventory
+  or service properties alone as live network enforcement. Fresh-install coverage
   and the existing scoped V4 limitations remain unverified.
 - Preserve the tested production code and dependency closure. Finalise short
   public release notes, exact archive/wheel payload and checksum verification,

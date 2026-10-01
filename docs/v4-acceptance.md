@@ -3,7 +3,10 @@
 Status: **owner-authorised stable V4 publication** using existing passed source,
 recovery and clean-copy checks plus exercised laptop results. See
 [release record](releases.md) for the current evidence and explicit limits.
-No additional laptop tests are requested for this release.
+**VERIFIED post-release, 1 October 2026:** the supplied current-source worker
+report and dedicated-model report close local generation and tested direct
+IPv4/IPv6 network-denial gates. The [release record](releases.md) gives the exact
+scope. Fresh-install and broader acceptance below remain separate.
 
 Completed evidence includes full 296-package pins/hash installation with zero
 exemptions, scoped actual core/listener/audio/Ollama IPv4/IPv6 controls, exercised

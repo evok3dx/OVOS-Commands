@@ -55,8 +55,13 @@ one dedicated, ordinary-user Ollama on `127.0.0.1:11435`, disables cloud feature
 and applies the reviewed kernel IP policy. General Ollama is unchanged. Model
 calls never fall back between instances. Upgrades retain native policy and use a
 process-bound recovery journal; unchanged native data requires no new approval.
-Supplied live recovery/migration and readiness passed. Dedicated-daemon
-generation/IPv4/IPv6 egress remains unverified and was accepted for later testing.
+Supplied live recovery/migration and readiness passed. **VERIFIED post-release
+on 1 October 2026:** the dedicated daemon generates locally and denies tested
+external IPv4/IPv6 TCP connections, with unchanged daemon identity and successful
+outside controls before/after. The voice-worker collector independently passes
+IPv4/IPv6 TCP and direct DNS/UDP tests while preserving local connections.
+See the [scoped live evidence](releases.md); fresh installation and broader
+mediated/inherited paths remain unverified.
 
 Claude Desktop and ChatGPT Desktop are launched only into ordinary chat. Jarvis
 does not open Claude Code, Cowork, ChatGPT Codex or Work, approve their prompts,
@@ -113,8 +118,10 @@ restricted core/listener/audio. Scoped actual IPv4/IPv6 TCP/DNS probes and
 Ollama denial/local inference pass. Broader mediated/inherited sockets and native
 recovery remain unverified. The same-user bus, plugins and X11 session remain
 trusted; no defence against a compromised desktop user is claimed. Installation
-alone does not activate isolation. Existing native data blocks a full normal
-update until its reviewed deactivation/removal path is completed.
+alone is not evidence of network enforcement. The guided 4.0.1 installer
+preserves existing isolation or activates the selected reviewed policy; its
+managed transaction retains native policy during upgrades. Older 4.0.0
+installers still require the reviewed manual upgrade procedure.
 
 Production signatures remain deferred for the controlled small-client deployment.
 Hermes sandbox/tool permissions and maintainer-account protections require their

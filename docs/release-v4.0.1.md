@@ -13,8 +13,10 @@ All six CI jobs passed, including clean-archive recovery, 350 policy cases and
 all 296 hash-verified dependencies. Supplied laptop recovery, installation and
 readiness passed with zero health-check failures or warnings.
 
-Dedicated-model generation and IPv4/IPv6 egress checks are accepted for testing
-after release. Signing and complete offline fresh-machine setup remain deferred.
+Post-release laptop checks verify dedicated-model generation, external
+IPv4/IPv6 TCP denial and voice-worker TCP/DNS isolation with working outside
+controls and local connections. Fresh-install and broader mediated-path checks,
+signing and complete offline fresh-machine setup remain deferred.
 Media stays 0.3.5 and File Search 0.3.0.
 
 See the [release record](https://github.com/evok3dx/OVOS-Commands/blob/main/docs/releases.md),

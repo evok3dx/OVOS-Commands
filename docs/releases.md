@@ -27,9 +27,19 @@ and recovery, 350/350 policy cases and all 296 dependencies with zero exemptions
 Supplied live output confirms interrupted recovery, legacy migration, private
 model inventory, voice readiness and a health check with zero failures/warnings.
 
-**VERIFIED owner release decision:** publish the working update for the controlled
-small-client deployment with dedicated-daemon generation/IPv4/IPv6 egress and
-fresh-install coverage explicitly unverified and accepted for later testing.
+**HISTORICAL owner release decision:** the working update was published for the
+controlled small-client deployment with dedicated-daemon generation/IPv4/IPv6
+egress and fresh-install coverage accepted for later testing.
+
+**VERIFIED post-release live checks, 1 October 2026:** supplied private reports
+confirm local generation by the dedicated Ollama, unchanged daemon identity,
+and denied external IPv4/IPv6 TCP attempts with functioning outside controls
+before and after each attempt. The current-source actual core/listener/audio
+collector passes external IPv4/IPv6 TCP and direct DNS/UDP comparisons for all
+three workers while preserving messagebus/model loopback connections. These
+close the dedicated-generation and tested direct-network gates. Raw reports
+remain private. Fresh installation/login, mediated or inherited sockets and
+broader acceptance remain unverified; no complete-security claim is made.
 No new production behaviour was added after the exercised build. Existing V4
 limits, signing and complete fresh-machine offline setup remain unchanged.
 See [installation](07-installer-updates.md), [security](security-and-updates.md)

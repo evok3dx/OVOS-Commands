@@ -122,6 +122,8 @@ automatic cross-machine import.
 - The [guided isolation installer](docs/core-isolation.md#guided-installer-401)
   offers isolation recommended for new installs and preserves existing choices.
   Its dedicated loopback model instance leaves general Ollama unchanged.
+  [Live checks](docs/releases.md) verify local generation and the tested
+  IPv4/IPv6 network restrictions.
 
 X11 applications in the same desktop session can observe or inject input, so
 X11 itself is not treated as a security boundary. See

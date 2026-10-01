@@ -21,7 +21,7 @@ future diagnostics; no repeat is requested for this release.
 | Weather | Reviewed standalone Weather plugin; fixed Open-Meteo forecast and Nominatim city/reverse/details operations | Named-city/cached lookup exercised; interruption/failure variants remain |
 | Media | Existing separate plugin, standalone ordinary-user worker with network access | Title search/open exercised; full queue/Stop/browser variants remain |
 | Desktop apps | Existing fixed GIO/Flatpak launcher through the user session manager | Cold/warm Brave, Zoom, reading, writing and File Search |
-| Ollama | Separate network-only drop-in candidate for the existing ordinary-user system daemon | Actual IPv4/IPv6 denial and local inference pass; recovery remains |
+| Ollama | Dedicated ordinary-user Jarvis daemon with private model data and kernel IP filtering; general Ollama unchanged | Local generation and actual external IPv4/IPv6 TCP denial with outside controls pass; broader paths remain |
 | Updater | Existing manually approved user-space HTTPS path outside restricted workers | Exact full runtime artifact, live stage/update/rollback |
 
 The core's process-local configuration overlay blacklists the known hosted or
@@ -67,8 +67,12 @@ ordinary-user; the grant covers six exact units and three control verbs only.
 
 The automated suite passes. Supplied laptop output confirms interrupted
 recovery, legacy migration, private-model availability and voice readiness.
-Actual dedicated-daemon generation/IPv4/IPv6 egress and fresh-install coverage
-remain unverified; the owner approved publication with those checks deferred. See the
+**VERIFIED post-release on 1 October 2026:** dedicated-daemon local generation
+and actual external IPv4/IPv6 TCP denial pass, with unchanged daemon identity
+and working outside controls before/after. All three voice workers also pass
+current-source IPv4/IPv6 TCP and direct DNS/UDP comparisons with local bus/model
+connections preserved. Fresh-install coverage and broader mediated/inherited
+paths remain unverified. Raw reports stay private; see the
 [release evidence](releases.md). Separate
 instances protect the selected daemon's direct networking, not every same-user
 program, mediated request or filesystem path. Reusing an installed executable
