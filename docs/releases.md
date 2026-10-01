@@ -7,7 +7,7 @@ acceptance work. Durable design choices belong in
 under [`history/`](history/README.md). Other current documents link here rather
 than repeating release narratives.
 
-## V4 source correction after rc2 (verification pending)
+## V4 source correction after rc2 (verified source; laptop retry pending)
 
 **VERIFIED owner music timing:** the owner reports the final patch works and
 the song timing is satisfactory. The acknowledgement is queued before the
@@ -29,8 +29,16 @@ Media 0.3.4 carries its fixed remote owner in match data and includes the fixed
 intent name in its completion signal. This allows core's existing dispatcher
 to resolve the handler without activating an unloaded local skill or producing
 a false five-minute timeout. Search pacing, acknowledgement order and Qwen are
-unchanged. Exact pinned upstream regression checks are added; their run is
-recorded after verification. The public rc2 tag/assets are unchanged.
+unchanged. **VERIFIED:** source 1576681ec61d37c5363873c9ecf41a73f8ed900b,
+run 36817087134 passes all six jobs, Python 3.10–3.13, GTK, source/history/archive
+scans, full deployment/recovery and clean-copy policy checks. The exact
+hash-locked Weather methods fetch separate named-city coordinates without
+changing home preferences. The exact pinned core dispatcher reproduces the old
+Media timeout and resolves the corrected owner exactly once. A four-file
+normal-user handover checks known source identities/stopped workers, preserves
+settings/policy and registers only Media offline, with private Downloads backup
+and rollback. Its own verification is recorded on completion. The public rc2
+tag/assets are unchanged.
 
 **Owner-deferred compatibility gaps for a future release:** the supplied named-city time question transcribes
 correctly but finds no time intent. The installed time skill has city phrases,
