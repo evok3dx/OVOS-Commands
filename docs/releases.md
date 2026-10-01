@@ -21,8 +21,20 @@ policy removal. Native changes require administrator approval for service data;
 normal upgrades with unchanged native data do not. Existing microphone, startup,
 applications and unknown settings are retained.
 
-**Validation pending:** source/failure tests, clean deployment suite and live
-dedicated-model setup/egress have not yet been recorded for this candidate.
+Private settings export includes the saved isolation choice, excluding native
+data and transaction journals. Explicit model removal uses the verified private
+copy when selected and leaves general Ollama's model intact.
+
+**VERIFIED automated:** ordinary-user run
+[36926814093](https://github.com/evok3dx/OVOS-Commands/actions/runs/36926814093)
+passes all six jobs at `cbb0238f0fb3b1ac9eefebd26f194c3ccd5a2842`:
+Python 3.10–3.13, real GTK recommendation/opt-out/cancel, source/history/archive
+scans, clean-copy deployment/recovery/uninstall and 350/350 policy cases.
+All 296 reviewed dependency records pass with zero exemptions. The development
+branch retains a checksum-bearing candidate archive after validation.
+
+**Live acceptance pending:** actual dedicated-model setup/egress, fresh setup,
+legacy-isolation migration and native recovery still need the owner's laptop.
 Stable V4.0.0 assets and tag are unchanged. See
 [isolation guide](core-isolation.md) and [approved decisions](12-decisions.md).
 

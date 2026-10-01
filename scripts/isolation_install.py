@@ -447,9 +447,13 @@ def recover_transaction(home, journal, native):
             # A partial write may leave the old or new rule; neither permits arbitrary services.
             result = native.run('sha256sum', '--', rule_path, capture=True, check=False)
             digest = result.stdout.split()[:1]
-            accepted = [hashlib.sha256(text.encode()).hexdigest() for text in (rule, old_rule) if text]
+            reviewed_rules = (rule, old_rule) if originals else (rule,)
+            accepted = [hashlib.sha256(text.encode()).hexdigest() for text in reviewed_rules]
             if digest and digest[0] not in accepted:
                 raise RuntimeError('Native rule changed during recovery; review required')
+            expected_rule = next((text for text in reviewed_rules
+                                  if digest and hashlib.sha256(text.encode()).hexdigest() == digest[0]), None)
+            verify_rule(native, expected_rule)
             if originals:
                 private_file(recovery / rule_path.name, old_rule)
                 native.run('install', '-o', 'root', '-g', 'root', '-m', '0644', '--', recovery / rule_path.name, rule_path)

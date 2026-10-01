@@ -134,6 +134,13 @@ native policy, stop the actual workers and follow that candidate's reviewed
 deactivation/native removal instructions first. Do not delete only the receipt
 or disable the guard: rules must not continue referencing replaced code.
 
+The unpublished guided installer handles isolated upgrades through its own
+process-bound transaction instead. A remaining interrupted journal blocks
+another installation; use the verified candidate's `scripts/isolation_install.py
+-- --recover` as your desktop user. Do not delete the journal or run recovery
+with sudo. Unknown native changes still require review. See
+[guided isolation](core-isolation.md#guided-installer-candidate-401-not-yet-published).
+
 The V4 source candidate now has a complete rebuilt, hash-verified runtime bundle.
 The initial 4.0.0rc1 archive can stop before installation with `Cannot inspect
 native isolation policy` on systems whose polkit rules directory is protected.
@@ -243,7 +250,7 @@ Collect the three fixed worker units with `journalctl -u ...` without forcing
 `--system`; accessible per-user journal output may otherwise be omitted.
 
 For a full upgrade with native isolation already installed, the guarded normal
-installer refuses the native state. Use the exact reviewed deactivation/removal
+stable 4.0.0 installer refuses the native state. Use the exact reviewed deactivation/removal
 path before the transaction and reprepare against the new source afterward.
 Do not remove policies broadly or bypass source identity checks. See the
 [isolated-upgrade procedure](07-installer-updates.md#upgrading-an-isolated-installation).

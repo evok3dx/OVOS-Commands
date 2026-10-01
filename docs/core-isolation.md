@@ -65,7 +65,9 @@ First enablement or a native-data migration needs bounded administrator approval
 Repeated upgrades with unchanged native data do not. Worker/model execution remains
 ordinary-user; the grant covers six exact units and three control verbs only.
 
-The implementation candidate still needs automated and live acceptance. Separate
+The automated candidate suite passes; actual dedicated-daemon activation,
+egress, migration and native recovery still need laptop acceptance. See the
+[release evidence](releases.md). Separate
 instances protect the selected daemon's direct networking, not every same-user
 program, mediated request or filesystem path. Reusing an installed executable
 does not bundle/authenticate upstream Ollama or provide complete offline setup.
@@ -74,6 +76,24 @@ After a killed or interrupted coordinator, workers remain guarded. Use the
 verified new source's `scripts/isolation_install.py -- --recover` as the desktop
 user to restore the recorded previous deployment. Do not delete the journal or
 run recovery with sudo. Unknown or changed native files stop recovery for review.
+
+The development workflow retains the validated archive and checksum together.
+After downloading its ZIP artifact and unpacking it into Downloads, run these
+as your ordinary desktop user from the unpacked artifact directory:
+
+```bash
+sha256sum --check ovos-commands-4.0.1.tar.gz.sha256
+tar -xzf ovos-commands-4.0.1.tar.gz
+cd ovos-commands-4.0.1
+bash scripts/install.sh --no-speechnote
+```
+
+Existing isolation is preserved. First native-model migration asks for bounded
+administrator approval; do not sudo the installer. An existing general-Ollama
+restriction is left in place. Check the dedicated unit and local inference on
+port 11435, then run the actual-worker collector before calling protection live
+verified. The published updater continues to offer stable 4.0.0 until a new
+release is approved.
 
 ## Stable 4.0.0: prepare and review before native changes
 

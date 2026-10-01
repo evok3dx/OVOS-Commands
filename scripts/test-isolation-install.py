@@ -256,4 +256,69 @@ with tempfile.TemporaryDirectory() as folder:
 
 print('PASS: full coordinator success, readiness/port/stop recovery, muted-state retention and exclusive crash recovery')
 
+# A partial first native installation can remove only its exact new data.
+# Foreign content stops recovery and retains the startup guard for review.
+for foreign in (False, True):
+    with tempfile.TemporaryDirectory() as folder:
+        home = Path(folder)
+        account = Mock(pw_uid=os.getuid(), pw_gid=os.getgid(), pw_name='fixture', pw_dir=str(home))
+        units, rule, _ = prepare.render(os.getuid(), os.getgid(), 'fixture', home,
+                                       home / '.local/src/ovos-skill-jarvis-dispatcher', '/usr/bin/ollama')
+        names = list(units)
+        native_files = {Path('/etc/systemd/system') / name: units[name] for name in (names[0], names[-1])}
+        if foreign:
+            native_files[Path('/etc/systemd/system') / names[0]] = 'unreviewed native content'
+        rule_path = Path('/etc/polkit-1/rules.d') / f'90-jarvis-v4-{os.getuid()}.rules'
+        native_files[rule_path] = rule
+        journal = {'schema_version': 1, 'uid': os.getuid(), 'binary': '/usr/bin/ollama',
+                   'original_binary': None, 'was_active': False, 'native_started': True,
+                   'previous_desired': [], 'token': 'x' * 40, 'original_router': None,
+                   'original_choice': None, 'original_tree': None}
+        state = home / install.JOURNAL
+        install.atomic(state, journal)
+        exists = Path.exists
+        original_regular = install.regular
+        operations = []
+
+        def present(path):
+            if str(path).startswith('/etc/systemd/system/jarvis-v4-') or path == rule_path:
+                return path in native_files
+            return exists(path)
+
+        def read(path, **kwargs):
+            return native_files[path] if path in native_files else original_regular(path, **kwargs)
+
+        def native(tool, *arguments, **kwargs):
+            operations.append((tool, arguments))
+            if tool == 'rm':
+                assert arguments[0] == '--'
+                native_files.pop(arguments[1])
+            elif tool == 'sha256sum':
+                return Mock(returncode=0, stdout=hashlib.sha256(native_files[rule_path].encode()).hexdigest() + ' rule', stderr='')
+            elif tool == 'stat':
+                return Mock(returncode=0, stdout='0 81a4', stderr='')
+            else:
+                assert tool == 'systemctl' and arguments[0] in {'stop', 'daemon-reload'}
+                if arguments[0] == 'stop':
+                    assert set(arguments[1:]) == set(units)
+            return Mock(returncode=0)
+
+        with patch.object(install.pwd, 'getpwuid', return_value=account), \
+             patch.object(install, 'active', return_value=False), \
+             patch.object(install, 'stop_workers', return_value=[]), \
+             patch.object(install, 'restore_running') as restarted, \
+             patch.object(install, 'regular', side_effect=read), \
+             patch.object(Path, 'exists', present), \
+             contextlib.redirect_stderr(io.StringIO()):
+            if foreign:
+                rejects(install.recover_transaction, home, journal, Mock(run=native))
+                assert json.loads(state.read_text())['phase'] == 'blocked'
+                assert len(native_files) == 3 and not restarted.called
+            else:
+                install.recover_transaction(home, journal, Mock(run=native))
+                assert not native_files and not state.exists()
+                restarted.assert_called_once_with([])
+
+print('PASS: partial native installation removal and refusal to overwrite unreviewed recovery data')
+
 print('PASS: complete steady upgrade and failed-readiness recovery preserve source, native policy, private settings and muted microphone without administrator prompts')

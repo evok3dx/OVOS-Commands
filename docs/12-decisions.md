@@ -178,13 +178,14 @@ this desktop-control release until there is an actual integration requirement.
 - **VERIFIED owner report:** the full stable laptop installation completed.
   This report is not a new network or recovery acceptance test. Restored core
   activation and readiness require their own result after the upgrade.
-- **PLANNED:** guided upgrades across the optional native isolation boundary.
+- **PLANNED in published 4.0.0; implemented in the candidate below:** guided
+  upgrades across the optional native isolation boundary.
   The current updater must retain its refusal while native data remains;
   manual owner-terminal removal and restoration must be exact and reviewed.
 
 ## Guided isolation and dedicated model, 1 October 2026
 
-- **VERIFIED owner direction; implementation validation pending:** new installs
+- **VERIFIED owner direction and automated candidate tests; live pending:** new installs
   offer network isolation selected by default, briefly explaining administrator
   approval. Existing installs keep their actual isolation choice and unknown
   settings. Declining isolation retains the existing ordinary-user model path.
@@ -205,3 +206,7 @@ this desktop-control release until there is an actual integration requirement.
   exact account grant expands to its five workers and dedicated model unit,
   start/stop/restart only. Routine upgrades require no new authentication when
   native data is unchanged. Same-user and loopback mediation remain trusted.
+- Private settings exports retain the saved choice, not native policies or
+  recovery journals. After reviewed native removal, explicit model deletion
+  targets only the verified private copy when selected; general Ollama stays
+  intact. Unreviewed private data blocks deletion. See the [release evidence](releases.md).
