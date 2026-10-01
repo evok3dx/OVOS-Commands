@@ -16,9 +16,12 @@ enter recovery and leave the microphone paused even though Commands finishes
 loading later. Allow a bounded 180-second default wait, report continued loading
 every 15 seconds and retain current-invocation readiness markers. An actually
 failed worker fails immediately; never-ready workers still time out. No setting,
-microphone preference, native unit or dependency changes are made. Ordinary-user
-CI and owner retry remain pending. The separate core shutdown timeout and absent
-boot announcement are still open; this change does not claim to fix them.
+microphone preference, native unit or dependency changes are made.
+**VERIFIED:** source commit `0aad146972e2494655755ae5d819c807c41165e6`,
+run `36805354003`, passes delayed/never-ready/failed-worker regressions,
+Python 3.10-3.13, GTK, security scans and the complete clean-copy deployment/
+recovery suite. Owner retry, core shutdown timeout and the absent boot
+announcement remain open; this change does not claim to fix the latter two.
 
 **Isolation desktop regression, source correction:** systemd 255 treats enclosing
 quotes in `EnvironmentFile=` as literal filename characters and ignores the
