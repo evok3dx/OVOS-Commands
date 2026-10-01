@@ -75,6 +75,17 @@ workers. See [service isolation](core-isolation.md) for the version-3 read-only
 worker collector, native review and owned removal sequence. It never unmutes
 a deliberately muted listener for a test.
 
+If selected-text reading and focused-window controls fail together after
+isolation, inspect the actual worker's desktop environment and the effective
+`EnvironmentFiles` property. A correctly saved session file is not proof that
+the worker loaded it. In systemd 255 an enclosing quote on the
+`EnvironmentFile=` filename makes it non-absolute and the parser ignores it.
+The corrected generator uses a literal absolute path, with doubled percent
+signs for specifiers. Existing native data needs a bounded owner-terminal
+repair with stopped workers and a backup before reload/start. Keep the IP
+restrictions and configuration intact; do not reinstall the runtime or replace
+the clipboard helper. Exact old candidates remain usable for removal only.
+
 If update, rollback or uninstall refuses an isolation receipt or remaining
 native policy, stop the actual workers and follow that candidate's reviewed
 deactivation/native removal instructions first. Do not delete only the receipt

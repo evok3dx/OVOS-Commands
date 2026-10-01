@@ -9,6 +9,18 @@ than repeating release narratives.
 
 ## 4.0.0rc1 (published laptop test; stable release pending)
 
+**Isolation desktop regression, source correction:** systemd 255 treats enclosing
+quotes in `EnvironmentFile=` as literal filename characters and ignores the
+resulting non-absolute path. The saved session could therefore be correct while
+workers started without the desktop environment, breaking selected-text reading
+and focused-window actions. Generate the literal absolute path with percent
+specifier escaping, retaining the existing private session file, ordinary-user
+identity and network policy. Exact legacy candidates remain accepted only for
+removal; new activation rejects them. A native parser regression reproduces the
+ignored quoted setting and checks paths containing spaces and percent signs.
+Ordinary-user CI and owner repair/desktop acceptance remain pending. This does
+not establish the separate microphone Stop/Start cause.
+
 **Owner-directed controls refinement, source candidate:** Overview is labelled
 Dashboard; General contains separate **Start app minimised at login** and
 **Start voice services at login** switches. Tray startup alone never starts

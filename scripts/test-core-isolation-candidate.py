@@ -57,6 +57,29 @@ with patch.multiple(worker.os,getuid=lambda:1000,geteuid=lambda:1000,getgid=lamb
 
 units,rule,dropins=prepare.render(1000,1000,'fixture','/home/fixture','/home/fixture/deployment')
 assert len(units)==5 and '[Install]' not in ''.join(units.values())
+assert all('EnvironmentFile=/home/fixture/.local/state/jarvis/isolation/session.env\n' in body for body in units.values())
+assert prepare.environment_file_path('/home/fixture space%name/session.env')=='/home/fixture space%%name/session.env'
+for path in ('relative/path','/home/fixture\nEnvironment=bad','/home/fixture\x00'):
+    rejected(prepare.environment_file_path,path)
+# Exercise the native parser, which ignores quoted EnvironmentFile paths even
+# when verify returns success. No service is installed, started or restarted.
+analyze=shutil.which('systemd-analyze')
+if analyze:
+    if os.getuid()==0:raise RuntimeError('Run native parser regression as an ordinary user')
+    with tempfile.TemporaryDirectory(prefix='jarvis-env-parser-') as directory:
+        root=Path(directory);session=root/'session space%name.env'
+        session.write_text('DISPLAY=":0"\nXAUTHORITY="/home/fixture/.Xauthority"\n')
+        for quoted in (True,False):
+            path=prepare.unit_string(session) if quoted else prepare.environment_file_path(session)
+            fixture=root/'jarvis-env-parser.service'
+            fixture.write_text('[Service]\nType=oneshot\nExecStart=/usr/bin/true\nEnvironmentFile='+path+'\n')
+            result=subprocess.run([analyze,'verify',str(fixture)],capture_output=True,text=True,
+                                  timeout=20,env={**os.environ,'LC_ALL':'C','SYSTEMD_LOG_COLOR':'0'})
+            assert result.returncode==0,result.stderr
+            if quoted:assert 'EnvironmentFile' in result.stderr and 'not absolute' in result.stderr,result.stderr
+            else:assert 'EnvironmentFile' not in result.stderr,result.stderr
+    print('PASS: native systemd EnvironmentFile parser rejects enclosing quotes and accepts literal space/percent paths')
+else:print('NOT RUN: native systemd EnvironmentFile parser unavailable')
 assert all('User=1000\nGroup=1000\n' in body and 'NoNewPrivileges=yes' in body for body in units.values())
 for name,body in units.items():assert ('IPAddressDeny=any' in body)==any(name.endswith('-'+part+'.service') for part in services.LOGICAL.values())
 rejected(prepare.render,0,1000,'fixture','/home/fixture','/home/fixture/deployment')
@@ -205,6 +228,23 @@ with tempfile.TemporaryDirectory(prefix='jarvis-download-candidates-') as direct
             assert output.stat().st_mode & 0o777==0o700
             assert all(path.stat().st_mode & 0o777==0o600 for path in output.iterdir())
             prepare.read_candidate(output)
+            # Exact quoted legacy candidates remain removable after upgrade,
+            # but cannot be activated and changed native policy still fails.
+            info=json.loads((output/'candidate.json').read_text())
+            session=home/'.local/state/jarvis/isolation/session.env'
+            for name in info['sha256']:
+                path=output/name
+                text=path.read_text().replace('EnvironmentFile='+prepare.environment_file_path(session)+'\n',
+                                             'EnvironmentFile='+prepare.unit_string(session)+'\n')
+                path.write_text(text)
+                import hashlib
+                info['sha256'][name]=hashlib.sha256(text.encode()).hexdigest()
+            (output/'candidate.json').write_text(json.dumps(info))
+            prepare.read_candidate(output,validate_source=False)
+            rejected(prepare.read_candidate,output)
+            first=output/next(name for name in info['sha256'] if name.endswith('.service'))
+            first.write_text(first.read_text()+'Environment=UNREVIEWED=1\n')
+            rejected(prepare.read_candidate,output,False)
             assert str(output) in (output/'REVIEW.md').read_text()
         rejected(prepare.prepare,home/'Downloads/unreviewed',deployment)
         root=home/'Downloads/jarvis-v4-isolation-candidates';root.chmod(0o755)

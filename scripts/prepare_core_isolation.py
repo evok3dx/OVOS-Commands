@@ -46,6 +46,15 @@ def unit_string(value):
     return '"'+value.replace('\\','\\\\').replace('"','\\"').replace('%','%%')+'"'
 
 
+def environment_file_path(value):
+    # EnvironmentFile uses a literal path, not Environment's word parser.
+    # In systemd 255 enclosing quotes become a non-absolute filename.
+    value=str(value)
+    if not value.startswith('/') or any(ord(c)<32 or ord(c)==127 for c in value):
+        raise ValueError('Invalid environment-file path')
+    return value.replace('%','%%')
+
+
 def render(uid,gid,username,home,deployment):
     if type(uid) is not int or type(gid) is not int or uid<=0 or gid<=0:
         raise ValueError('Workers must use an ordinary user/group')
@@ -71,7 +80,7 @@ def render(uid,gid,username,home,deployment):
               f'Environment={unit_string("HOME="+str(home))}\n'
               f'Environment={unit_string("XDG_RUNTIME_DIR=/run/user/"+str(uid))}\n'
               f'Environment={unit_string("DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/"+str(uid)+"/bus")}\n'
-              f'EnvironmentFile={unit_string(home/".local/state/jarvis/isolation/session.env")}\n'
+              f'EnvironmentFile={environment_file_path(home/".local/state/jarvis/isolation/session.env")}\n'
               'Environment=HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1\n'
               f'ExecStart={unit_string(home/".venvs/ovos/bin/python")} -I '
               f'{unit_string(deployment/"scripts/isolation_worker.py")} {name} --uid {uid} --gid {gid}\n')
@@ -156,7 +165,17 @@ def read_candidate(path,validate_source=True):
         raise ValueError('Candidate source changed. Prepare/review a new candidate before activation')
     files={**units,f'90-jarvis-v4-{info["uid"]}.rules':rule,**{name+'.dropin':body for name,body in dropins.items()}}
     if info.get('sha256')!={name:hashlib.sha256(body.encode()).hexdigest() for name,body in files.items()}:
-        raise ValueError('Candidate policy was changed')
+        # Retain exact old candidates solely for safe removal. Never activate
+        # the known broken quoted directive with a new worker deployment.
+        session=Path(info['home'])/'.local/state/jarvis/isolation/session.env'
+        legacy={name:body.replace('EnvironmentFile='+environment_file_path(session)+'\n',
+                                  'EnvironmentFile='+unit_string(session)+'\n')
+                for name,body in files.items()}
+        if info.get('sha256')!={name:hashlib.sha256(body.encode()).hexdigest() for name,body in legacy.items()}:
+            raise ValueError('Candidate policy was changed')
+        if validate_source:raise ValueError('Prepare a new candidate with an unquoted EnvironmentFile path')
+        files=legacy
+        units={name:files[name] for name in units}
     for name,body in files.items():
         if regular(path/name,private=True)!=body:raise ValueError('Candidate data was changed')
     return info,units,rule,dropins
