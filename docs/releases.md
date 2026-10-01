@@ -9,6 +9,32 @@ than repeating release narratives.
 
 ## 4.0.0rc1 (published laptop test; stable release pending)
 
+**Owner-directed final music/UI/installer correction, source candidate:**
+Media 0.3.3 restores the deliberate-title fast route across the existing local
+bus when the separate helper reports ready. The original owner blacklist is
+checked before applying the isolation load blacklist, including configuration
+reloads. Remote delivery uses the fixed pipeline-owned helper event and never
+activates a Media instance deliberately unloaded from core. Qwen remains the
+semantic fallback. The owner selected an **11-second gap between searches**;
+accepted music requests acknowledge once, wait locally and cancellably for the
+remaining gap, and perform one lookup. Only the latest pending request is kept.
+Stop cancels it; provider challenges never trigger retries. The brief 0.5–1
+second pre-search pause and 0.35-second result transition remain. No timing
+value guarantees avoidance of provider alerts.
+
+The exact pinned Padacioso adapter serialises mutation callbacks to prevent
+concurrent detach check/remove races, preserving alias and language handling.
+Boot acknowledgement reuses the existing listening cue for the missing default
+sound, retaining custom sound choices. Upstream deprecation notices remain
+visible; background intent compilation remains enabled and is not labelled a
+fault based only on its duration. The disabled green update button's label and
+icon are explicitly white. CLI installation now reports initial checks, measured
+download/archive/wheel progress and continuing activity during slow phases;
+percentages describe measured work, never readiness or elapsed-time guesses.
+Tests are added for these boundaries; final CI and laptop music timing are
+pending at this checkpoint. Frozen dependencies, models and native IP policy
+are unchanged.
+
 **VERIFIED owner laptop lifecycle retry, 30 September 2026:** after the guarded
 patch, the owner reports the ready announcement working, all voice services
 starting with green status and the tray returning to grey on Stop. This closes
@@ -121,12 +147,12 @@ Owner GUI retry remains open; microphone-wide acceptance is not inferred from
 the reported successful normal commands. The original frozen release needs
 this additional GUI source fix, now included in the testing instructions.
 
-**PLANNED release requirement:** the owner clarified that initial feedback is
+**Implemented source requirement; validation pending:** the owner clarified that initial feedback is
 missing in the CLI installer, not the GUI. Show current steps and visible
 activity throughout slow download/verification/staging phases, with a green
 progress bar for measurable progress and an activity indicator otherwise.
 Do not invent percentages or leave a silent initial phase. The GUI already
-has its progress bar; this requirement remains open for final V4.
+has its progress bar; real CLI download/verification feedback is now included.
 
 **Post-publication dependency verifier finding:** the laptop's bundle staging
 rejected `phoonnx -> ovos-number-parser>=0.4.0` although the exact selected

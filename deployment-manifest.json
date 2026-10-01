@@ -86,6 +86,7 @@
       "scripts/probe-offline-runtime.py",
       "scripts/runtime_provenance.py",
       "scripts/runtime_bundle.py",
+      "scripts/installer_progress.py",
       "voice/runtime-bundle.json",
       "scripts/v4-laptop-check.py",
       "scripts/startup_settings.py",

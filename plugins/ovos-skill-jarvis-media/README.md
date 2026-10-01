@@ -26,3 +26,11 @@ site inactivity confirmation or revive a discarded tab blindly.
 
 See [Media and file search](../../docs/10-media-files.md) for commands and
 limits, and [history](HISTORY.md) for the failures that shaped this package.
+
+V4 Media 0.3.3 supports a separately isolated helper over the existing local
+bus. Direct titles require actual helper readiness and respect the owner's
+original disabled-skill choice. Qwen remains available for semantic fallback.
+The shared 11-second gap and 0.5–1 second pre-delay limit bursts. A pending title
+acknowledges once, waits cancellably and is replaced by a newer title; Stop
+cancels it. Provider errors are never retried automatically. Timings do not
+guarantee avoidance of provider alerts.

@@ -3,6 +3,17 @@ import weakref
 
 
 _SKILL = None
+_REMOTE_ENABLED = False
+
+
+def enable_remote(enabled):
+    """In-memory isolation policy, derived from the owner's original blacklist."""
+    global _REMOTE_ENABLED
+    _REMOTE_ENABLED = enabled is True
+
+
+def remote_enabled():
+    return _REMOTE_ENABLED
 
 
 def register(skill):

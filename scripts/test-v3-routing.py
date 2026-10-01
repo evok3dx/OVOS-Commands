@@ -255,8 +255,8 @@ assert flow._message_stage is None
 assert flow.emitted[0].msg_type == "jarvis.media.play_query"
 assert flow.emitted[0].data == {"query": "Get Lucky"}
 
-# A valid title receives one concise acknowledgement before the asynchronous
-# Brave lookup starts. Empty or generic requests never reach this handler.
+# A valid title receives a nonblocking acknowledgement; the asynchronous
+# worker waits for the shared gap instead of issuing contradictory feedback.
 skill_source = (ROOT / "plugins/ovos-skill-jarvis-media/ovos_skill_jarvis_media/__init__.py").read_text()
 skill_tree = ast.parse(skill_source)
 skill_class = next(node for node in skill_tree.body if isinstance(node, ast.ClassDef)
@@ -283,17 +283,52 @@ fake_skill = SimpleNamespace(
     _cancel_locked=lambda: None,
     _search_and_open=lambda *_args: None,
     speak=lambda text, **kwargs: (media_order.append("acknowledgement"), spoken.append((text, kwargs))),
+    log=SimpleNamespace(info=lambda *_args: None),
 )
+from ovos_skill_jarvis_dispatcher.search_pacing import SearchCoolingDown
 handle_scope = {"normalise_query": media.normalise_query,
-                "threading": SimpleNamespace(Thread=FakeThread)}
+                "threading": SimpleNamespace(Thread=FakeThread,Event=threading.Event),
+                "SearchCoolingDown": SearchCoolingDown}
 exec(compile(ast.Module(body=[handle_play], type_ignores=[]),
              "ovos_skill_jarvis_media/__init__.py", "exec"), handle_scope)
 handle_scope["_handle_play"](fake_skill, SimpleNamespace(data={"query": "Get Lucky"}))
 assert spoken == [("Let me spin that track.", {"wait": False})]
-assert started == [("Get Lucky", 1)]
-assert media_order == ["search", "acknowledgement"]
+assert len(started)==1 and started[0][:2] == ("Get Lucky", 1)
+assert isinstance(started[0][2],threading.Event)
+assert media_order == ["acknowledgement", "search"]
 assert "RESULT_TRANSITION_SECONDS = 0.35" in skill_source
-assert 'pace_search("media", jitter=0.0)' in skill_source
+assert skill_source.count('pace_search("media", sleeper=cancel.wait)') == 1
+wait_slot=next(node for node in skill_class.body if isinstance(node,ast.FunctionDef)
+               and node.name=='_wait_search_slot')
+attempts=[];waits=[]
+def reserve(_provider, *, sleeper):
+    attempts.append(_provider)
+    if len(attempts)==1:raise SearchCoolingDown(3)
+    sleeper(0.75)
+queue_scope={'pace_search':reserve,'SearchCoolingDown':SearchCoolingDown,
+             'time':SimpleNamespace(monotonic=lambda:0)}
+exec(compile(ast.Module(body=[wait_slot],type_ignores=[]),'media-wait-slot','exec'),queue_scope)
+cancel=SimpleNamespace(is_set=lambda:False,wait=lambda seconds:waits.append(seconds) or False)
+assert queue_scope['_wait_search_slot'](fake_skill,cancel)
+assert attempts==['media','media'] and waits==[3,0.75]
+cancel.is_set=lambda:True
+assert not queue_scope['_wait_search_slot'](fake_skill,cancel) and len(attempts)==2
+# Stop/latest-request cancellation interrupts the cooldown, with no provider
+# call and no 'disabled/paused' failure followed by a success phrase.
+attempts.clear();waits.clear();cancel.is_set=lambda:False
+cancel.wait=lambda seconds:waits.append(seconds) or True
+assert not queue_scope['_wait_search_slot'](fake_skill,cancel)
+assert attempts==['media'] and waits==[3]
+cancel_method=next(n for n in skill_class.body if isinstance(n,ast.FunctionDef) and n.name=='_cancel_locked')
+stop_method=next(n for n in skill_class.body if isinstance(n,ast.FunctionDef) and n.name=='_handle_cancel')
+exec(compile(ast.Module(body=[cancel_method,stop_method],type_ignores=[]),'media-cancel','exec'),handle_scope)
+fake_skill._media_process=None
+fake_skill._cancel_locked=lambda:handle_scope['_cancel_locked'](fake_skill)
+prior_cancel=fake_skill._media_cancel
+handle_scope['_handle_play'](fake_skill,SimpleNamespace(data={'query':'New title'}))
+assert prior_cancel.is_set() and not fake_skill._media_cancel.is_set()
+handle_scope['_handle_cancel'](fake_skill)
+assert fake_skill._media_cancel.is_set()
 
 # A discarded Brave tab withdraws its MPRIS player. Resume must give one short
 # actionable response rather than appearing to succeed silently.

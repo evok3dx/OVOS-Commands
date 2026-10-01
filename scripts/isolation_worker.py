@@ -10,6 +10,7 @@ import re
 import sys
 import threading
 import time
+from functools import wraps
 
 COMPONENTS=('core','listener','audio','weather','media')
 ONLINE_SKILLS=tuple('ovos-skill-'+name+'.openvoiceos' for name in
@@ -17,6 +18,29 @@ ONLINE_SKILLS=tuple('ovos-skill-'+name+'.openvoiceos' for name in
 ONLINE_STAGES={'ovos-common-query-pipeline-plugin','ovos-persona-pipeline-plugin','ovos-ocp-pipeline-plugin',
                'common_qa','ocp_high','ocp_medium','ocp_low','ocp_legacy'}
 BOOT_SOURCE_SHA256='1bc356474e0d970fdd7955b5e2592a4c053178c1c1f2e8c2aa075e7b8e0d1a5b'
+PADACIOSO_SOURCE_SHA256='645edc74b0711bc9d0547e8c809acea6ae0b24ad61f38528d48fc1a49fdab02c'
+
+
+def install_intent_cleanup():
+    """Serialize reviewed Padacioso mutations; repeated detach stays idempotent."""
+    import padacioso.opm as engine
+    if hashlib.sha256(Path(engine.__file__).read_bytes()).hexdigest()!=PADACIOSO_SOURCE_SHA256:
+        raise RuntimeError('Intent cleanup source differs from the reviewed runtime')
+    cls=engine.PadaciosoPipeline
+    if getattr(cls,'_jarvis_cleanup_installed',False):return
+    lock=threading.RLock()
+    def guarded(function):
+        @wraps(function)
+        def call(self,*args,**kwargs):
+            with lock:return function(self,*args,**kwargs)
+        return call
+    for name in ('register_intent','register_entity','handle_register_template',
+                 'handle_register_entity','handle_detach_intent','handle_detach_skill',
+                 'handle_deregister_intent','handle_deregister_entity',
+                 'handle_deregister_skill','handle_disable_intent','handle_enable_intent',
+                 '_PadaciosoPipeline__detach_intent','_PadaciosoPipeline__detach_entity'):
+        setattr(cls,name,guarded(getattr(cls,name)))
+    cls._jarvis_cleanup_installed=True
 
 
 def install_boot_readiness():
@@ -87,6 +111,15 @@ def install_boot_readiness():
             self._jarvis_ready_announced=True
         announce(self,message)  # Retains speak_ready / ready_sound choices.
 
+    original_acknowledge=getattr(cls,'acknowledge',None)
+    def acknowledge(self):
+        configured=self.config_core.get('sounds',{}).get('acknowledge','snd/acknowledge.mp3')
+        cue=Path.home()/'.local/share/ovos/sounds/jarvis-ready.wav'
+        if configured=='snd/acknowledge.mp3' and cue.is_file():
+            self.play_audio(str(cue),instant=True)
+        elif original_acknowledge is not None:
+            original_acknowledge(self)
+
     def stop(self):
         self._jarvis_ready_stop.set()
         return shutdown(self)
@@ -95,6 +128,7 @@ def install_boot_readiness():
     cls.is_device_ready=ready
     cls.handle_check_device_readiness=check_readiness
     cls.handle_ready=announce_ready
+    cls.acknowledge=acknowledge
     cls.shutdown=stop
     cls._jarvis_readiness_installed=True
 
@@ -149,8 +183,24 @@ def overlay(config,component):
 def install_overlay(component):
     from ovos_config import Configuration
     original=Configuration.filter_and_merge
-    Configuration.filter_and_merge=staticmethod(lambda configs:overlay(original(configs),component))
+    remote_allowed=False
+    def merge(configs):
+        nonlocal remote_allowed
+        value=original(configs)
+        result=overlay(value,component)
+        if component=='core':
+            blocked=value.get('skills',{}).get('blacklisted_skills',[])
+            remote_allowed='ovos-skill-jarvis-media.openvoiceos' not in blocked
+            # Do not import skills inside Configuration's initial load; that
+            # can recursively request configuration while it is being built.
+            bridge=sys.modules.get('ovos_skill_jarvis_media.bridge')
+            if bridge is not None:bridge.enable_remote(remote_allowed)
+        return result
+    Configuration.filter_and_merge=staticmethod(merge)
     Configuration.load_all_configs()
+    if component=='core':
+        from ovos_skill_jarvis_media.bridge import enable_remote
+        enable_remote(remote_allowed)
 
 
 def run_component(component):
@@ -164,6 +214,7 @@ def run_component(component):
         container.skill_directory=None
         container.run()
     elif component=='core':
+        install_intent_cleanup()
         install_boot_readiness()
         from ovos_core.__main__ import main
         main(enable_installer=False)

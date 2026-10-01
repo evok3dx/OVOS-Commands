@@ -524,7 +524,7 @@ class BrowserActionsMixin:
                 stderr=subprocess.DEVNULL,
             )
         except SearchCoolingDown:
-            self.speak("Search is paused for a moment. Please try again shortly.")
+            self.speak("Just a moment before the next search.")
         except Exception:
             self.log.exception("Browser search submission failed")
             self.speak("I could not submit that search.")
@@ -672,7 +672,7 @@ class BrowserActionsMixin:
                 stderr=subprocess.DEVNULL
             )
         except SearchCoolingDown:
-            self.speak("Search is paused for a moment. Please try again shortly.")
+            self.speak("Just a moment before the next search.")
         except Exception:
             self.log.exception("YouTube search failed")
             self.speak("I could not search YouTube.")

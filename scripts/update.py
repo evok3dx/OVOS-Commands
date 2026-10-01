@@ -90,7 +90,7 @@ def request_json(url: str) -> dict[str, object]:
         return json.load(response)
 
 
-def download(url: str, destination: Path, limit: int = 100_000_000) -> None:
+def download(url: str, destination: Path, limit: int = 100_000_000, *, progress=None) -> None:
     request = urllib.request.Request(url, headers={"User-Agent": "Jarvis-Updater"})
     with open_update(request, timeout=60) as response, destination.open("wb") as stream:
         written = 0
@@ -99,6 +99,8 @@ def download(url: str, destination: Path, limit: int = 100_000_000) -> None:
             if written > limit:
                 raise RuntimeError("Release download exceeds the 100 MB safety limit")
             stream.write(chunk)
+            if progress is not None:
+                progress(written, limit)
 
 
 def version_key(value: str) -> tuple[int, ...]:

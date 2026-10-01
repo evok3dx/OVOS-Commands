@@ -37,6 +37,18 @@ system**. If it says `failed`, inspect the recent logs before changing files.
 
 ## Service controls
 
+The final V4 music candidate restores direct title routing to the separate
+Media worker; Qwen still handles semantic fallbacks. A new music request during
+the owner-selected 11-second shared search gap waits locally and says only
+"Let me spin that track". Stop cancels the pending request, and another title
+replaces it. This is pacing, not playback paused or search disabled. Actual
+YouTube/429 refusal is still reported without automatic retries.
+
+The reviewed Padacioso cleanup adapter serialises concurrent registration and
+detach mutations. Unknown upstream source fails review instead of applying an
+unverified patch. Deprecation warnings and background intent compilation are
+retained; a compile duration alone does not prove a failed service.
+
 The isolation boot-readiness adapter checks enabled local services and skills.
 It excludes blacklisted IDs only from the default inventory, preserves explicit
 owner readiness/announcement settings and cancels its callback on skill

@@ -29,34 +29,24 @@ administrator boundary, and installs `yt-dlp` in the OVOS virtualenv only when
 absent. Existing voice packages and personal settings are preserved. An update
 backs up the Jarvis source and records managed package versions for rollback.
 
-Brave already connects browser audio to Jarvis through its MPRIS media session,
-which `playerctl` discovers again for every command. This permits pause, resume,
-stop, next and previous while Brave still exposes a compatible player. It does
-not bypass YouTube's own inactivity confirmation. Brave also documents that
-Memory Saver deactivates inactive tabs and provides an **Always keep these
-sites active** exception under **Settings → System → Performance**. Add
-`music.youtube.com` and `youtube.com` there for reliable long-running system
-media control. Once the site withdraws its session or Brave discards the tab,
-a system resume command has no player to address; 3.9 says “Open the music tab
-once” rather than failing silently. Jarvis does not guess a tab or simulate an
-inactivity confirmation.
+Brave exposes browser audio through its MPRIS session, rediscovered for each
+command. Pause and resume work while that session exists. If Brave discards a
+tab or YouTube expires its session, reopen the tab or request another song.
+This external limit is accepted; no performance-setting guarantee, automatic
+inactivity clicking or provider workaround is promised.
 
-Browser searches and Media's YouTube title lookup use one shared local pacing
-guard: one reservation at a time and at least 12 seconds between submissions.
-Browser and visible YouTube searches retain their short pre-submit pacing. A
-Media title request says “Let me spin that track” immediately, starts its
-bounded lookup before the nonblocking acknowledgement, then uses a 0.35-second
-transition after a valid result before the browser opens. Search pre-submit
-pacing is 0.5–1 second; provider/network response time remains variable.
-Enabled Brave is first and enabled Firefox is the bounded fallback. Visible Brave, Firefox and
-YouTube searches type the query at 10 ms per character, pause briefly, recheck
-the focused window, and only then press Enter. Media title lookup remains a
-bounded background lookup before opening its first result in the selected
-browser. Jarvis does not automatically
-retry blocked requests, rotate networks, bypass a CAPTCHA or imitate browsing
-activity. A local cooldown asks the user to wait; an explicit YouTube/429 bot
-challenge is reported and left for the user. Local filename search is not
-delayed because it never contacts a provider.
+The owner-selected V4 pacing uses one shared local reservation and an
+**11-second minimum gap between separate searches**. It does not make each
+accepted request wait 11 seconds. Brief pre-submit pacing remains 0.5–1 second.
+Media acknowledges once without waiting for speech to finish, queues only the
+latest explicit title and waits locally and cancellably for the remaining gap.
+Stop cancels it. One valid result opens after a 0.35-second transition, with
+Brave first and enabled Firefox as the reviewed fallback. Network/provider time
+remains variable. Clear title requests route directly across the existing local
+bus when the isolated Media helper is ready; Qwen remains the semantic fallback.
+Provider challenges are reported without retries, CAPTCHA bypass or simulated
+activity. No interval is a guarantee against provider alerts. Local file search
+is unaffected.
 
 **reference system evidence:** the 24 September final archive contains the earlier
 integrated Brave media implementation and file-search 0.1.9. The attached

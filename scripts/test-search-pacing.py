@@ -32,17 +32,16 @@ with tempfile.TemporaryDirectory() as temporary:
     assert (state_root / "search-pacing.json").stat().st_mode & 0o777 == 0o600
     assert (state_root / "search-pacing.lock").stat().st_mode & 0o777 == 0o600
 
-    # Media starts its lookup immediately. It keeps the shared anti-burst
-    # reservation and applies its deliberate transition only after a result.
+    # Media keeps a brief pre-delay plus the owner-selected 11-second gap.
     media_root = Path(temporary) / "media-state"
     media_slept = []
     delay = pace_search(
         "media", state_root=media_root, clock=lambda: 200.0,
-        sleeper=media_slept.append, jitter=0.0,
+        sleeper=media_slept.append, jitter=0.75,
     )
-    assert delay == 0.0 and media_slept == []
+    assert delay == 0.75 and media_slept == [0.75]
     media_state = json.loads((media_root / "search-pacing.json").read_text())
-    assert media_state == {"last_reserved": 200.0, "provider": "media"}
+    assert media_state == {"last_reserved": 200.75, "provider": "media"}
 
     try:
         pace_search(
@@ -50,7 +49,7 @@ with tempfile.TemporaryDirectory() as temporary:
             sleeper=slept.append, jitter=1.0,
         )
     except SearchCoolingDown as error:
-        assert 7.9 < error.remaining < 8.1
+        assert 6.9 < error.remaining < 7.1
     else:
         raise AssertionError("A burst search bypassed the shared cooldown")
 

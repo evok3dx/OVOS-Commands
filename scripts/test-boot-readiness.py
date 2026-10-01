@@ -115,6 +115,7 @@ if len(sys.argv)==2:
         def add_event(self,name,handler):self.events[name]=handler
         def shutdown(self):pass
         def acknowledge(self):pass
+        def play_audio(self,file,instant=False):self.audio=(file,instant)
         def speak_dialog(self,name):self.speech.append(name)
     dependencies['ovos_workshop.skills']=types.SimpleNamespace(OVOSSkill=Base)
     # The actual upstream Message call uses data/context keyword arguments.
@@ -133,6 +134,16 @@ if len(sys.argv)==2:
             real.handle_ready(RealMessage('mycroft.ready'))
             assert real.speech==['ready'] and real.requests==['skills','voice','audio','local']
             assert real.messages==['mycroft.ready.check','mycroft.ready']
+            cue_home=Path(folder)/'desktop';cue=cue_home/'.local/share/ovos/sounds/jarvis-ready.wav'
+            cue.parent.mkdir(parents=True);cue.write_bytes(b'cue fixture')
+            with patch.object(worker.Path,'home',return_value=cue_home):
+                real.acknowledge()
+            assert real.audio==(str(cue),True)
+            # The adapter preserves explicit custom acknowledgement choices.
+            del real.audio
+            real.config_core['sounds']={'acknowledge':'custom-owner.wav'}
+            with patch.object(worker.Path,'home',return_value=cue_home):real.acknowledge()
+            assert not hasattr(real,'audio')
             real.shutdown();real.handle_check_device_readiness()
             assert real.messages==['mycroft.ready.check','mycroft.ready']
             pending=upstream.BootFinishedSkill({'ready_settings':['disabled'],'speak_ready':False})

@@ -11,8 +11,10 @@ import os
 from pathlib import Path
 import re
 import stat
+import sys
 import tempfile
 import zipfile
+from installer_progress import Progress
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -106,21 +108,22 @@ def stage(bundle,policy,inventory,lock,artifacts,output):
     with tempfile.TemporaryDirectory(prefix='.runtime-stage-',dir=output.parent) as directory:
         root=Path(directory);copy=root/'runtime.zip'
         result=hashlib.sha256();size=0
-        with bundle.open('rb') as source,copy.open('xb') as destination:
+        with Progress('Verifying runtime archive bytes') as progress, bundle.open('rb') as source,copy.open('xb') as destination:
             while chunk:=source.read(1024*1024):
                 size+=len(chunk)
                 if size>policy['archive_bytes']:raise ValueError('Runtime archive exceeds code-pinned size')
                 destination.write(chunk);result.update(chunk)
-        if size!=policy['archive_bytes'] or result.hexdigest()!=policy['archive_sha256']:
-            raise ValueError('Runtime archive identity failed')
+                progress.fraction(size,policy['archive_bytes'])
+            if size!=policy['archive_bytes'] or result.hexdigest()!=policy['archive_sha256']:
+                raise ValueError('Runtime archive identity failed')
         expected={'runtime.txt':{'bytes':lock.stat().st_size,'sha256':digest(lock)},
                   **{'wheels/'+name:value for name,value in wheels.items()}}
         target=root/'wheels';target.mkdir(mode=0o700)
-        with zipfile.ZipFile(copy) as archive:
+        with Progress('Verifying and staging runtime wheels') as progress, zipfile.ZipFile(copy) as archive:
             entries=archive.infolist()
             if len(entries)!=len(expected) or {entry.filename for entry in entries}!=set(expected):
                 raise ValueError('Extra, duplicate or missing runtime archive entry')
-            for entry in entries:
+            for number,entry in enumerate(entries,1):
                 mode=entry.external_attr>>16
                 value=expected[entry.filename]
                 if (entry.flag_bits&1 or entry.is_dir() or entry.compress_type!=zipfile.ZIP_STORED
@@ -134,11 +137,14 @@ def stage(bundle,policy,inventory,lock,artifacts,output):
                         if count>value['bytes']:raise ValueError('Wheel bounds failed')
                         destination.write(data);digest_value.update(data)
                 if count!=value['bytes'] or digest_value.hexdigest()!=value['sha256']:raise ValueError('Packaged wheel identity failed')
-        records(target,inventory,lock)
+                progress.fraction(number,len(entries))
+        with Progress('Checking complete dependency closure'):
+            records(target,inventory,lock)
         target.rename(output)
 
 
 def obtain(bundle,policy,inventory,lock,artifacts,output):
+    print('Preparing the hash-verified runtime. Existing settings and models are preserved.',file=sys.stderr,flush=True)
     validate_policy(policy,inventory,lock,artifacts)
     if bundle is not None:
         stage(bundle,policy,inventory,lock,artifacts,output);return
@@ -150,7 +156,8 @@ def obtain(bundle,policy,inventory,lock,artifacts,output):
     output.parent.mkdir(parents=True,exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='.runtime-download-',dir=output.parent) as directory:
         file=Path(directory)/'runtime.zip'
-        transport.download(url,file,limit=policy['archive_bytes'])
+        with Progress('Downloading runtime') as progress:
+            transport.download(url,file,limit=policy['archive_bytes'],progress=progress.fraction)
         stage(file,policy,inventory,lock,artifacts,output)
 
 

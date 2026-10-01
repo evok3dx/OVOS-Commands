@@ -12,10 +12,10 @@ import tempfile
 import time
 
 
-MINIMUM_INTERVAL = 12.0
+MINIMUM_INTERVAL = 11.0
 JITTER_RANGE = (0.5, 1.0)
 YOUTUBE_JITTER_RANGE = (0.5, 1.0)
-MEDIA_JITTER_RANGE = (0.0, 0.0)
+MEDIA_JITTER_RANGE = (0.5, 1.0)
 MAX_STATE_BYTES = 4096
 
 
@@ -67,7 +67,7 @@ def pace_search(provider: str, *, state_root: Path | None = None,
 
     The shared timestamp prevents concurrent browser and YouTube submissions.
     It deliberately does not retry, rotate networks or answer a provider
-    challenge. Media title lookup has no pre-delay; its skill owns the short
+    challenge. Media title lookup retains the brief pre-delay and a short
     post-result transition before opening the browser. ``provider`` is retained
     only for local diagnostics.
     """

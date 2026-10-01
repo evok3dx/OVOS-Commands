@@ -145,6 +145,7 @@ if [[ -n "$runtime_wheelhouse" && -n "$runtime_bundle" ]] || \
 fi
 
 if ! "$check_only"; then
+  printf '%s\n' 'Checking deployment boundaries…'
   python3 "$repo_root/scripts/isolation_services.py" --guard-install "$jarvis_home"
 fi
 
@@ -768,6 +769,7 @@ PY
   exit 1
 }
 
+printf '%s\n' 'Checking Jarvis source and installation prerequisites…'
 python3 "$repo_root/scripts/validate_refactor.py"
 
 if [[ -n "$profile_name" ]]; then

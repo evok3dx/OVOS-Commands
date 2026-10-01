@@ -32,6 +32,7 @@ class JarvisMediaSkill(OVOSSkill):
         self._media_lock = threading.RLock()
         self._media_generation = 0
         self._media_process = None
+        self._media_cancel = threading.Event()
         self.add_event(pipeline.EVENT_PLAY, self._handle_play,
                        handler_info="mycroft.skill.handler", is_intent=True)
         self.add_event(EVENT_CONTROL, self._handle_control)
@@ -53,14 +54,33 @@ class JarvisMediaSkill(OVOSSkill):
             self._cancel_locked()
             self._media_generation += 1
             generation = self._media_generation
-        threading.Thread(target=self._search_and_open, args=(query, generation),
-                         name="jarvis-media-youtube", daemon=True).start()
+            cancel = self._media_cancel = threading.Event()
         self.speak("Let me spin that track.", wait=False)
+        threading.Thread(target=self._search_and_open, args=(query, generation, cancel),
+                         name="jarvis-media-youtube", daemon=True).start()
 
-    def _search_and_open(self, query, generation):
+    def _wait_search_slot(self, cancel):
+        """Wait for one explicit request locally; never retry provider failures."""
+        deadline = time.monotonic() + 60
+        while not cancel.is_set():
+            try:
+                pace_search("media", sleeper=cancel.wait)
+                return not cancel.is_set()
+            except SearchCoolingDown as error:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise
+                self.log.info("Waiting for the shared search gap")
+                if cancel.wait(min(error.remaining, remaining)):
+                    return False
+        return False
+
+    def _search_and_open(self, query, generation, cancel):
         process = None
         try:
-            pace_search("media", jitter=0.0)
+            if not self._wait_search_slot(cancel):
+                return
+            started = time.monotonic()
             self.log.info("Reserved one bounded YouTube title lookup")
             process = subprocess.Popen(
                 search_command(sys.executable, query), stdout=subprocess.PIPE,
@@ -77,6 +97,7 @@ class JarvisMediaSkill(OVOSSkill):
                     raise ProviderSearchBlocked()
                 raise RuntimeError((stderr or "YouTube search failed").strip()[-500:])
             url, title = first_result(stdout)
+            self.log.info("YouTube lookup completed in %.2f seconds", time.monotonic()-started)
             with self._media_lock:
                 if generation != self._media_generation:
                     return
@@ -89,24 +110,28 @@ class JarvisMediaSkill(OVOSSkill):
             if not browser:
                 raise RuntimeError("No enabled reviewed browser could open the result")
             self.log.info("Opened first YouTube result in %s: %s", browser.title(), title)
-        except SearchCoolingDown:
-            self.log.info("Provider-backed search is cooling down")
-            self.speak("Search is paused for a moment. Please try again shortly.")
         except ProviderSearchBlocked:
             self.log.warning("YouTube refused the search request")
-            self.speak("YouTube is limiting searches. Please try again later.")
+            self._search_feedback(generation, "YouTube is limiting searches. Please try again later.")
+        except SearchCoolingDown:
+            self._search_feedback(generation, "Give me a moment before another search.")
         except subprocess.TimeoutExpired:
             if process is not None:
                 process.kill()
             self.log.warning("YouTube result search timed out")
-            self.speak("YouTube search took too long.")
+            self._search_feedback(generation, "YouTube search took too long.")
         except Exception as error:
             self.log.warning("Media request failed: %s", error)
-            self.speak("I could not open that on YouTube.")
+            self._search_feedback(generation, "I could not open that on YouTube.")
         finally:
             with self._media_lock:
                 if generation == self._media_generation:
                     self._media_process = None
+
+    def _search_feedback(self, generation, text):
+        with self._media_lock:
+            if generation == self._media_generation:
+                self.speak(text)
 
     def _handle_control(self, message):
         action = str(message.data.get("action") or "")
@@ -139,6 +164,7 @@ class JarvisMediaSkill(OVOSSkill):
             self._cancel_locked()
 
     def _cancel_locked(self):
+        self._media_cancel.set()
         process = self._media_process
         self._media_process = None
         if process is not None and process.poll() is None:

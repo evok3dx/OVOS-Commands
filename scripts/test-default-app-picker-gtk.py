@@ -6,7 +6,7 @@ from pathlib import Path
 
 import gi
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gio, Gtk
+from gi.repository import Gio, Gtk, Gdk
 
 assert os.getuid() != 0, 'Run GUI tests as the ordinary user'
 assert Gtk.init_check()[0], 'A test display is required; use xvfb-run'
@@ -80,5 +80,23 @@ css=next(node.value for node in control_source.body if isinstance(node,ast.Assig
          and any(isinstance(target,ast.Name) and target.id=='CSS' for target in node.targets))
 provider=Gtk.CssProvider();provider.load_from_data(ast.literal_eval(css))
 assert '.jarvis-update:disabled' in ast.literal_eval(css).decode()
+# Verify computed text/icon colours, not only the presence of CSS strings.
+Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(),provider,
+                                        Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+window=Gtk.Window();white_button=Gtk.Button(label='Everything is up to date')
+white_button.set_image(Gtk.Image.new_from_icon_name('software-update-available-symbolic',Gtk.IconSize.BUTTON))
+white_button.set_always_show_image(True)
+white_button.get_style_context().add_class('jarvis-update')
+white_button.set_sensitive(False);window.add(white_button);window.show_all()
+while Gtk.events_pending():Gtk.main_iteration()
+def descendants(widget):
+    yield widget
+    if isinstance(widget,Gtk.Container):
+        for child in widget.get_children():yield from descendants(child)
+for child in descendants(white_button):
+    if isinstance(child,(Gtk.Label,Gtk.Image)):
+        colour=child.get_style_context().get_color(child.get_state_flags())
+        assert all(abs(value-1)<0.001 for value in (colour.red,colour.green,colour.blue,colour.alpha)),colour
+window.destroy()
 parent.destroy();centre.install_update.destroy();centre.update_health.destroy()
-print('PASS: General has two independent switches; real GTK update button is green/blue/neutral and CSS loads')
+print('PASS: General independent switches; GTK update button green/blue/neutral and disabled text/icon computed white')

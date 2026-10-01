@@ -31,6 +31,7 @@ CSS = b'''
 .jarvis-update { background-image: none; background-color: #20A464; border-color: #16814C; color: #FFFFFF; }
 .jarvis-update:hover { background-color: #198F56; border-color: #106E40; color: #FFFFFF; }
 .jarvis-update:disabled { background-image: none; background-color: #20A464; border-color: #16814C; color: #FFFFFF; opacity: 1; }
+.jarvis-update:disabled label, .jarvis-update:disabled image { color: #FFFFFF; opacity: 1; }
 .jarvis-update-available { background-image: none; background-color: #2F6FED; border-color: #2459C2; color: #FFFFFF; }
 .jarvis-update-available:hover { background-color: #285FCF; border-color: #1E4DA7; color: #FFFFFF; }
 .jarvis-enable { background-image: none; background-color: #20A464; border-color: #16814C; color: #FFFFFF; }
