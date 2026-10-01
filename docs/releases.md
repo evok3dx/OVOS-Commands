@@ -58,8 +58,12 @@ new files in the five fixed packaging-output directories, retains those outputs
 in retirement, and checks the complete original fingerprint again. Changed
 original files, changed backups, unknown additions and symlinks remain blocked.
 Native retries stop only still-present exact reviewed units, allowing recovery
-to resume after removal of the new private-model unit. Corrected validation and
-owner recovery remain pending; this does not alter stable V4.0.0.
+to resume after removal of the new private-model unit. **VERIFIED correction:**
+run [36933078765](https://github.com/evok3dx/OVOS-Commands/actions/runs/36933078765)
+passes all six jobs at `24dec6a8e412fe55a14461e0e57bb36f5374af62`, including
+exact source recovery and native retry regressions in the clean archive,
+350/350 policy cases and the unchanged 296-package closure. Owner recovery
+remains pending; this does not alter stable V4.0.0.
 
 ## 4.0.0 (published stable, 1 October 2026)
 
