@@ -1,5 +1,14 @@
 # Jarvis Media plugin history
 
+## 0.3.4 — V4 source correction after rc2
+
+- Remote pipeline matches carry the fixed Media owner in match data while
+  leaving the unloaded local skill inactive. Framework completion includes the
+  fixed intent name, so the core can conclude the accepted request without a
+  false five-minute handler timeout.
+- The accepted acknowledgement-before-lookup order, cancellable search queue,
+  owner-selected pacing and Qwen fallback are retained.
+
 ## 0.3.1 — bundled with Jarvis 3.9
 
 - A resume request with no Brave/Chromium MPRIS session now says “Open the

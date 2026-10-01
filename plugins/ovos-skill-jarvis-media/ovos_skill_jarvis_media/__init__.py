@@ -34,7 +34,8 @@ class JarvisMediaSkill(OVOSSkill):
         self._media_process = None
         self._media_cancel = threading.Event()
         self.add_event(pipeline.EVENT_PLAY, self._handle_play,
-                       handler_info="mycroft.skill.handler", is_intent=True)
+                       handler_info="mycroft.skill.handler", is_intent=True,
+                       intent_name=pipeline.EVENT_PLAY)
         self.add_event(EVENT_CONTROL, self._handle_control)
         self.add_event(EVENT_CANCEL, self._handle_cancel)
         self.add_event(EVENT_STATUS, self._handle_status)

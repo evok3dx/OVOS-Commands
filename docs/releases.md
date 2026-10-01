@@ -7,6 +7,42 @@ acceptance work. Durable design choices belong in
 under [`history/`](history/README.md). Other current documents link here rather
 than repeating release narratives.
 
+## V4 source correction after rc2 (verification pending)
+
+**VERIFIED owner music timing:** the owner reports the final patch works and
+the song timing is satisfactory. The acknowledgement is queued before the
+lookup thread, without waiting for TTS completion. Queue replacement and Stop
+acceptance still need their separate live checks.
+
+**VERIFIED diagnostic finding:** two named-city weather commands match in
+about 0.55 seconds, then take 15.4–16.5 seconds before the first speech submission.
+This locates the main delay after intent matching; the provider/lookup/display
+split is not yet measured. Inspection of the exact pinned Weather 1.4.8a1 source
+finds that it resolves the named city for labels but passes the configured home
+coordinates to its forecast call. A source-hash-guarded in-memory adapter clones
+only that request's coordinates/timezone from its resolved location. Saved
+configuration, session preferences, units, intents and provider restrictions
+stay intact. Stage/provider timing logs contain no city or coordinate values.
+This correctness correction does not claim the latency is resolved.
+
+Media 0.3.4 carries its fixed remote owner in match data and includes the fixed
+intent name in its completion signal. This allows core's existing dispatcher
+to resolve the handler without activating an unloaded local skill or producing
+a false five-minute timeout. Search pacing, acknowledgement order and Qwen are
+unchanged. Exact pinned upstream regression checks are added; their run is
+recorded after verification. The public rc2 tag/assets are unchanged.
+
+**Owner-deferred compatibility gaps for a future release:** the supplied named-city time question transcribes
+correctly but finds no time intent. The installed time skill has city phrases,
+yet its built-in resolver attempts online geocoding before local tables; the
+core must remain blocked. Wikipedia/WikiHow are installed but disabled by the
+isolation load blacklist and have no separate reviewed online worker. The
+supplied pie question therefore falls through to local Qwen, which times out.
+Do not call those web skills enabled, silently restore their core network access,
+or label this local-model timeout an internet failure. Restoring supported web
+answers/world-time routing is recorded for the future release at the owner's
+request, with these V4 limitations kept visible.
+
 ## 4.0.0rc2 (published cumulative laptop test; stable release pending)
 
 **VERIFIED publication:** release 400636664, tag `v4.0.0rc2`, commit
@@ -47,8 +83,8 @@ fault based only on its duration. The disabled green update button's label and
 icon are explicitly white. CLI installation now reports initial checks, measured
 download/archive/wheel progress and continuing activity during slow phases;
 percentages describe measured work, never readiness or elapsed-time guesses.
-Tests for these boundaries pass in the runs recorded above; laptop music timing
-remains open. Frozen dependencies, models and native IP policy
+Tests for these boundaries pass in the runs recorded above; exercised laptop music timing
+is accepted in the post-rc2 checkpoint above. Frozen dependencies, models and native IP policy
 are unchanged.
 
 **VERIFIED source checks:** commit 2df1de58bdd09520606cbaa2ee2aa89ef839dc8f,

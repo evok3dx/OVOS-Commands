@@ -37,6 +37,19 @@ system**. If it says `failed`, inspect the recent logs before changing files.
 
 ## Service controls
 
+For slow named-city weather, compare transcription, intent-match and first
+`Speak` timestamps. The observed post-rc2 delay is after matching. The source
+correction logs `Weather intent/location`, `forecast`, `display`, `speech
+submission` and fixed provider-operation durations; use those measurements
+before changing timeouts or blaming the laptop. The exact pinned upstream
+skill also used home coordinates for a named-city forecast; the guarded adapter
+corrects that per request without changing your saved home location.
+
+Wikipedia and WikiHow package installation does not mean their online skills
+are enabled in isolation. They are blacklisted in the core and have no reviewed
+standalone helper yet. General questions can consequently reach local Qwen.
+Preserve network isolation while investigating those compatibility gaps.
+
 The final V4 music candidate restores direct title routing to the separate
 Media worker; Qwen still handles semantic fallbacks. A new music request during
 the owner-selected 11-second shared search gap waits locally and says only

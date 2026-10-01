@@ -3,17 +3,74 @@
 Same-user code remains trusted. This is not a sandbox for malicious plugins.
 """
 import json
+from copy import deepcopy
+from functools import wraps
+import hashlib
 import math
 import os
 from pathlib import Path
 import re
 import subprocess
 import sys
+import time
 from zoneinfo import ZoneInfo,ZoneInfoNotFoundError
 
 MAX_BYTES=2*1024*1024
 FORECAST='https://api.open-meteo.com/v1/forecast'
 NOMINATIM='https://nominatim.openstreetmap.org/'
+WEATHER_SOURCES={
+    '__init__.py':'7eca96084ad5c4c8c3be44ffd7f2e9204f83ff339e791a393a4964f834cb22a9',
+    'weather_helpers/intent.py':'844d3c476623a216826b6eacaa77a61c2022b117213a578b034282626e43fa9d',
+    'weather_helpers/openmeteo.py':'c83d4e4ff633720dc266a21db4a5db48f61660979555aba9aca7b60c20536685',
+}
+
+
+def install_weather_skill():
+    """Correct the exact pinned skill's requested-city forecast in memory.
+
+    Upstream resolves the named city but passes the home configuration to
+    get_report. Clone that request's configuration with its resolved coordinates
+    and timezone. Never change the saved configuration or session location.
+    Timings contain stage names only, never city/coordinate/query values.
+    """
+    import ovos_skill_weather as weather
+    from ovos_utils.log import LOG
+    root=Path(weather.__file__).parent
+    for name,digest in WEATHER_SOURCES.items():
+        if hashlib.sha256((root/name).read_bytes()).hexdigest()!=digest:
+            raise RuntimeError('Weather source differs from the reviewed runtime')
+    cls=weather.WeatherSkill
+    if getattr(cls,'_jarvis_location_installed',False):return
+    original=cls._get_intent_data
+
+    @wraps(original)
+    def intent_data(self,message):
+        started=time.monotonic()
+        try:
+            result=original(self,message)
+            if result is not None and result.location:
+                geo=result.geolocation
+                config=deepcopy(result.config)
+                config.core_config['location']['coordinate']={
+                    'latitude':coordinate(geo['latitude'],90),
+                    'longitude':coordinate(geo['longitude'],180)}
+                config.core_config['location']['timezone']={'code':geo['timezone']}
+                result.config=config
+            return result
+        finally:LOG.info('Weather intent/location stage: %.2f seconds',time.monotonic()-started)
+    cls._get_intent_data=intent_data
+
+    def timed(name,function):
+        @wraps(function)
+        def call(self,*args,**kwargs):
+            started=time.monotonic()
+            try:return function(self,*args,**kwargs)
+            finally:LOG.info('Weather %s stage: %.2f seconds',name,time.monotonic()-started)
+        return call
+    for name,stage in (('_get_weather','forecast'),('_display_current_conditions','display'),
+                       ('_speak_weather','speech submission')):
+        setattr(cls,name,timed(stage,getattr(cls,name)))
+    cls._jarvis_location_installed=True
 
 
 def coordinate(value,bound):
@@ -94,8 +151,12 @@ def fetch(original,session,url,data,language):
 
 def request(session,method,url,**kwargs):
     import requests
+    from ovos_utils.log import LOG
+    started=time.monotonic()
+    operation='validation'
     try:
         data,language=validated(method,url,kwargs)
+        operation='forecast' if url==FORECAST else url.removeprefix(NOMINATIM)
         payload=json.dumps({'url':url,'params':data,'language':language})
         if len(payload.encode())>8192:raise ValueError('Request too large')
         env={key:value for key,value in os.environ.items() if not key.lower().endswith('_proxy')}
@@ -105,6 +166,7 @@ def request(session,method,url,**kwargs):
             raise ValueError('Invalid response')
     except (OSError,UnicodeError,ValueError,TypeError,subprocess.SubprocessError):
         raise requests.RequestException('Weather request unavailable') from None
+    finally:LOG.info('Weather provider %s operation: %.2f seconds',operation,time.monotonic()-started)
     response=requests.Response();response.status_code=200;response.encoding='utf-8'
     response._content=result.stdout.encode();response._content_consumed=True
     return response
@@ -113,6 +175,7 @@ def request(session,method,url,**kwargs):
 def install():
     import requests
     requests.sessions.Session.request=request
+    install_weather_skill()
 
 
 def main():

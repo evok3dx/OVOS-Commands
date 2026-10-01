@@ -95,6 +95,9 @@ jobs:
           python3 scripts/test-boot-readiness.py "$RUNNER_TEMP/jarvis-boot-wheel/ovos_skill_boot_finished-0.7.0a2-py3-none-any.whl"
           python3 -m pip download --no-deps --only-binary=:all: --dest "$RUNNER_TEMP/jarvis-boot-wheel" 'padacioso==2.4.2a1'
           python3 scripts/test-intent-cleanup.py "$RUNNER_TEMP/jarvis-boot-wheel/padacioso-2.4.2a1-py3-none-any.whl"
+          python3 -m pip download --no-deps --only-binary=:all: --dest "$RUNNER_TEMP/jarvis-boot-wheel" 'ovos-skill-weather==1.4.8a1' 'ovos-core==3.7.0a1'
+          python3 scripts/test-weather-location.py "$RUNNER_TEMP/jarvis-boot-wheel/ovos_skill_weather-1.4.8a1-py3-none-any.whl"
+          python3 scripts/test-isolated-media-routing.py "$RUNNER_TEMP/jarvis-boot-wheel/ovos_core-3.7.0a1-py3-none-any.whl"
       - name: Build and inspect release
         run: bash scripts/build-release.sh
       - name: Verify clean release copy and full policy benchmark

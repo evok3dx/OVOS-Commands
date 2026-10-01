@@ -284,7 +284,8 @@ for status,length,chunks in ((302,None,[]),(200,str(weather.MAX_BYTES+1),[]),(20
     try:weather.fetch(Mock(return_value=reply),session,weather.FORECAST,forecast,'en')
     except requests.RequestException:assert reply.close.called
     else:raise AssertionError('Unsafe weather reply accepted')
-with patch.object(weather.subprocess,'run',side_effect=subprocess.TimeoutExpired(['fixed'],14)) as process:
+with patch.dict(sys.modules,{'ovos_utils.log':types.SimpleNamespace(LOG=Mock())}), \
+        patch.object(weather.subprocess,'run',side_effect=subprocess.TimeoutExpired(['fixed'],14)) as process:
     try:weather.request(session,'GET',weather.FORECAST,params=forecast)
     except requests.RequestException:pass
     else:raise AssertionError('Unbounded weather child')

@@ -41,7 +41,10 @@ class JarvisMediaPipeline(PipelinePlugin):
                 return None
         return IntentHandlerMatch(
             match_type=EVENT_PLAY,
-            match_data={"query": query},
+            # The core dispatcher needs the remote owner's identity to match
+            # its framework completion. Keep match.skill_id unset remotely so
+            # the automatically unloaded local skill is never activated.
+            match_data={"query": query, "skill_id": SKILL_ID},
             # Remote delivery is a fixed pipeline-owned helper event, not an
             # activation of a skill deliberately unloaded from this core.
             skill_id=skill.skill_id if skill is not None else None,
