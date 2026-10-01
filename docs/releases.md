@@ -9,6 +9,14 @@ than repeating release narratives.
 
 ## 4.0.0rc1 (published laptop test; stable release pending)
 
+**VERIFIED owner laptop lifecycle retry, 30 September 2026:** after the guarded
+patch, the owner reports the ready announcement working, all voice services
+starting with green status and the tray returning to grey on Stop. This closes
+the exercised announcement/start/stop UI regression. It does not prove repeated
+fresh-login cycles, every recovery path or a uniquely identified old lingering
+thread. Music/browser latency improvements and the remaining stable release
+gates remain unconfirmed.
+
 **Owner-requested lifecycle and latency correction, source candidate:** the
 boot announcement uses enabled local service/skill readiness replies instead
 of waiting for default blacklisted skill IDs. Explicit ready_settings,
@@ -17,8 +25,8 @@ cancels pending checks between bounded bus waits; duplicate checks coalesce and
 the announcement is single-use after confirmed readiness. The in-memory adapter
 requires the exact reviewed upstream source hash. The supplied journal shows
 main cleanup completes before a residual-process stop timeout; callback
-cancellation addresses a supported candidate cause, with laptop Stop acceptance
-still required. Stop errors never restart voice through recovery and failed
+cancellation addresses a supported candidate cause; the owner subsequently
+confirms the exercised laptop Stop returns the tray to grey. Stop errors never restart voice through recovery and failed
 shutdowns remain visible. The web-dependent wallpaper skill joins the core
 blacklist; Weather/Media retain separate online workers.
 
@@ -33,7 +41,8 @@ models are unchanged; the independently versioned Media plugin changes.
 run 36807773926, passes Python 3.10–3.13, GTK, security/source/history/archive
 scans, full deployment/recovery and 350/350 clean-copy policy cases. The exact
 hash-locked upstream boot class passes readiness and real executor-cancellation
-integration. Laptop lifecycle/announcement/music timing acceptance remains open.
+integration. Owner announcement/start/stop UI retry passes above; live
+music/browser timing and broader lifecycle acceptance remain open.
 A bounded owner-terminal patch checks exact installed/source hashes with stopped
 workers, backs up privately in Downloads and registers only first-party Media
 locally with no index/dependency resolution; native policy/settings/models stay.
@@ -53,8 +62,9 @@ microphone preference, native unit or dependency changes are made.
 **VERIFIED:** source commit `0aad146972e2494655755ae5d819c807c41165e6`,
 run `36805354003`, passes delayed/never-ready/failed-worker regressions,
 Python 3.10-3.13, GTK, security scans and the complete clean-copy deployment/
-recovery suite. Owner retry, core shutdown timeout and the absent boot
-announcement remain open; this change does not claim to fix the latter two.
+recovery suite. The later lifecycle patch and owner retry above close the
+exercised start/announcement/stop regression; this earlier wait-only change
+does not independently fix the latter two.
 
 **Isolation desktop regression, source correction:** systemd 255 treats enclosing
 quotes in `EnvironmentFile=` as literal filename characters and ignores the
