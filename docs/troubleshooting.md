@@ -37,6 +37,14 @@ system**. If it says `failed`, inspect the recent logs before changing files.
 
 ## Service controls
 
+If the Control Centre reports a readiness timeout but Commands subsequently
+works and the microphone remains paused, inspect the current invocation's load
+times. The corrected V4 control wait allows up to three minutes, with continued
+loading feedback every 15 seconds and an immediate exit for a failed worker.
+It still requires the reviewed ready markers, never declares an active process
+ready by state alone and never auto-restarts a deliberately paused listener.
+This is a startup wait; it does not extend systemd's separate shutdown deadline.
+
 Restart command handling after a Jarvis code or vocabulary change:
 
 ```bash

@@ -128,3 +128,38 @@ with tempfile.TemporaryDirectory() as directory:
         assert len(mutations)==(1 if mode in {'stopped','voice-only','failed-request'} else 0)
 
 print('PASS: quiet login, one-shot/off/mute guards, unknown-field preservation and failure recovery')
+
+# A recorded laptop startup reaches the dispatcher after more than 74 seconds.
+# Model that delay without real services/sleeps; retain exact invocation markers.
+import control_runtime as runtime
+clock=[0.0]
+messages=[]
+states={u:{'ActiveState':'active','InvocationID':'fixture-'+u} for u in runtime.UNITS}
+def readiness_run(args,**kwargs):
+    unit=runtime.CORE if any(runtime.CORE in arg for arg in args) else runtime.LISTENER
+    assert '_SYSTEMD_INVOCATION_ID='+states[unit]['InvocationID'] in args
+    ready=unit==runtime.LISTENER or clock[0]>=80
+    return subprocess.CompletedProcess(args,0,runtime.MARKERS[unit][0] if ready else 'Loading skill fixture','')
+def advance(seconds):clock[0]+=seconds
+with patch.object(runtime,'snapshot',return_value=states),patch.object(runtime,'run',readiness_run),\
+     patch.object(runtime.time,'monotonic',side_effect=lambda:clock[0]),patch.object(runtime.time,'sleep',advance):
+    runtime.wait_ready(runtime.UNITS,messages.append)
+    assert clock[0]==80 and len(messages)>=5
+    clock[0]=0
+    try:runtime.wait_ready(runtime.UNITS,timeout=60)
+    except RuntimeError:pass
+    else:raise AssertionError('Early deadline incorrectly accepted missing ready marker')
+    assert clock[0]==60
+    clock[0]=0
+    with patch.object(runtime,'run',return_value=subprocess.CompletedProcess([],0,'Loading skill fixture','')):
+        try:runtime.wait_ready(runtime.UNITS)
+        except RuntimeError:pass
+        else:raise AssertionError('Never-ready services incorrectly accepted')
+    assert clock[0]==180
+    clock[0]=0
+    with patch.object(runtime,'snapshot',return_value={**states,runtime.CORE:{'ActiveState':'failed'}}):
+        try:runtime.wait_ready(runtime.UNITS)
+        except RuntimeError as error:assert 'failed during startup' in str(error)
+        else:raise AssertionError('Failed worker incorrectly accepted')
+    assert clock[0]==0
+print('PASS: startup beyond 60 seconds, bounded progress, exact readiness, never-ready timeout and immediate failed-worker rejection')

@@ -9,6 +9,17 @@ than repeating release narratives.
 
 ## 4.0.0rc1 (published laptop test; stable release pending)
 
+**Slow-start readiness correction, source candidate:** the supplied core log
+shows more than 74 seconds of skill loading before the dispatcher's ready
+marker, exceeding the Control Centre's former 60-second wait. That timeout can
+enter recovery and leave the microphone paused even though Commands finishes
+loading later. Allow a bounded 180-second default wait, report continued loading
+every 15 seconds and retain current-invocation readiness markers. An actually
+failed worker fails immediately; never-ready workers still time out. No setting,
+microphone preference, native unit or dependency changes are made. Ordinary-user
+CI and owner retry remain pending. The separate core shutdown timeout and absent
+boot announcement are still open; this change does not claim to fix them.
+
 **Isolation desktop regression, source correction:** systemd 255 treats enclosing
 quotes in `EnvironmentFile=` as literal filename characters and ignores the
 resulting non-absolute path. The saved session could therefore be correct while

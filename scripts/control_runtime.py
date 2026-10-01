@@ -130,11 +130,14 @@ def restore_active(before):
         raise RuntimeError('Could not restore services: ' + '; '.join(failures + missing))
 
 
-def wait_ready(units, report=lambda text: None, timeout=60):
+def wait_ready(units, report=lambda text: None, timeout=180):
     deadline = time.monotonic() + timeout
+    next_report = time.monotonic() + 15
     report('Waiting for voice services to report ready…')
     while time.monotonic() < deadline:
         states = snapshot()
+        if any(states[u].get('ActiveState') == 'failed' for u in units):
+            raise RuntimeError('A voice service failed during startup. See Maintenance → Recent logs.')
         ready = all(states[u].get('ActiveState') == 'active' for u in units)
         for unit in units:
             if unit not in MARKERS:
@@ -147,6 +150,9 @@ def wait_ready(units, report=lambda text: None, timeout=60):
             ready = ready and any(marker in logs for marker in MARKERS[unit])
         if ready:
             return
+        if time.monotonic() >= next_report:
+            report('Voice services are still loading; waiting for readiness…')
+            next_report = time.monotonic() + 15
         time.sleep(0.5)
     raise RuntimeError('Services have not reported ready. See Maintenance → Recent logs.')
 
