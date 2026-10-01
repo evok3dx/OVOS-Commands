@@ -1,0 +1,173 @@
+name: Publish owner-authorised Jarvis 4.0.1
+
+on:
+  push:
+    branches: [work/v4]
+    paths:
+      - .github/workflows/publish-v4-0-1.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-v4-0-1
+  cancel-in-progress: false
+
+jobs:
+  validate-assets:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.11.16'
+      - name: Check ordinary-user boundary
+        run: test "$(id -u)" -ne 0
+      - name: Download the exact retained runtime and tested plugin wheels
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          artifact-ids: '11123863124'
+          run-id: '36772541316'
+          merge-multiple: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: ${{ runner.temp }}/retained
+      - name: Reverify the complete runtime closure
+        run: |
+          python3 scripts/runtime_bundle.py stage \
+            --bundle "$RUNNER_TEMP/retained/candidate/jarvis-runtime-linux-x86_64-py311.zip" \
+            --policy voice/runtime-bundle.json \
+            --output "$RUNNER_TEMP/rechecked-wheels"
+      - name: Build only current first-party wheels with reviewed local tooling
+        run: |
+          python3 -m pip install --no-index --no-deps --force-reinstall "$RUNNER_TEMP/rechecked-wheels/setuptools-79.0.1-py3-none-any.whl"
+          mkdir -m 700 "$RUNNER_TEMP/current-plugins"
+          for project in . plugins/ovos-skill-jarvis-media plugins/jarvis-file-search; do
+            python3 -m pip wheel --no-index --no-deps --no-build-isolation --wheel-dir "$RUNNER_TEMP/current-plugins" "$project"
+          done
+      - name: Verify previously passed unchanged behaviour source
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: evok3dx/OVOS-Commands
+        run: |
+          set -euo pipefail
+          gh api repos/evok3dx/OVOS-Commands/actions/runs/36934036944 \
+            --jq '[.head_sha, .conclusion] | @tsv' | \
+            grep -Fx $'b536f0a895b1afdbd45d6d1457a4a72a91ed3bc9\tsuccess'
+          git diff --exit-code b536f0a895b1afdbd45d6d1457a4a72a91ed3bc9 HEAD -- \
+            ovos_skill_jarvis_dispatcher system_helpers tray mic command_editor extras \
+            plugins/ovos-skill-jarvis-media/ovos_skill_jarvis_media plugins/jarvis-file-search \
+            scripts voice profiles systemd pyproject.toml compatibility.json deployment-manifest.json
+      - name: Fetch checksum-pinned review tools
+        run: |
+          set -euo pipefail
+          tools_dir="$RUNNER_TEMP/security-tools"
+          mkdir -m 700 "$tools_dir"
+          curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' \
+            https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz \
+            -o "$tools_dir/gitleaks.tar.gz"
+          printf '%s  %s\n' 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb "$tools_dir/gitleaks.tar.gz" | sha256sum -c -
+          tar -xzf "$tools_dir/gitleaks.tar.gz" -C "$tools_dir" gitleaks
+          curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' \
+            https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellcheck-v0.11.0.linux.x86_64.tar.gz \
+            -o "$tools_dir/shellcheck.tar.gz"
+          printf '%s  %s\n' b7af85e41cc99489dcc21d66c6d5f3685138f06d34651e6d34b42ec6d54fe6f6 "$tools_dir/shellcheck.tar.gz" | sha256sum -c -
+          tar -xzf "$tools_dir/shellcheck.tar.gz" -C "$tools_dir" shellcheck-v0.11.0/shellcheck
+          printf '%s\n' "$tools_dir" "$tools_dir/shellcheck-v0.11.0" >> "$GITHUB_PATH"
+      - name: Source and history privacy checks
+        run: |
+          bash scripts/security-audit.sh --quick
+          bash scripts/security-audit.sh --history
+          shellcheck --severity=warning scripts/install.sh scripts/build-release.sh \
+            scripts/security-audit.sh system_helpers/jarvis-app-window \
+            system_helpers/jarvis-focused-navigation system_helpers/jarvis-read-visible-text \
+            system_helpers/jarvis-speechnote-setup system_helpers/jarvis-restart
+      - name: Build final code archive and scan actual contents
+        run: |
+          bash scripts/build-release.sh
+          bash scripts/security-audit.sh release dist/ovos-commands-4.0.1.tar.gz
+      - name: Verify the complete suite from the final clean archive
+        run: |
+          set -euo pipefail
+          (cd dist && sha256sum --check ovos-commands-4.0.1.tar.gz.sha256)
+          mkdir -m 700 "$RUNNER_TEMP/clean-release"
+          tar -xzf dist/ovos-commands-4.0.1.tar.gz -C "$RUNNER_TEMP/clean-release"
+          cd "$RUNNER_TEMP/clean-release/ovos-commands-4.0.1"
+          python3 scripts/validate_refactor.py
+          python3 scripts/test-v3-routing.py
+          python3 scripts/test-qwen-safe-workflows.py
+          python3 scripts/test-update-security.py
+          python3 scripts/test-release-privacy.py
+          bash scripts/test-deployment.sh
+          python3 scripts/routing-benchmark.py --policy-only --output "$RUNNER_TEMP/final-routing.md"
+      - name: Prepare only byte-verified release assets
+        run: |
+          python3 scripts/prepare-test-release.py --retained "$RUNNER_TEMP/retained" --plugins "$RUNNER_TEMP/current-plugins" --output "$RUNNER_TEMP/public-assets"
+          gitleaks dir "$RUNNER_TEMP/public-assets" --redact --no-banner
+          mkdir -m 700 "$RUNNER_TEMP/public-notes"
+          cp docs/release-v4.0.1.md "$RUNNER_TEMP/public-notes/release-notes.md"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: validated-v4-0-1-assets
+          path: ${{ runner.temp }}/public-assets/
+          compression-level: 0
+          retention-days: 90
+          if-no-files-found: error
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: validated-v4-0-1-notes
+          path: ${{ runner.temp }}/public-notes/
+          retention-days: 90
+          if-no-files-found: error
+
+  publish:
+    needs: validate-assets
+    if: github.ref == 'refs/heads/work/v4'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: validated-v4-0-1-assets
+          path: ${{ runner.temp }}/assets
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: validated-v4-0-1-notes
+          path: ${{ runner.temp }}/notes
+      - name: Publish fixed stable assets and verify public bytes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: evok3dx/OVOS-Commands
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/assets"
+          sha256sum --check SHA256SUMS
+          test "$(find . -maxdepth 1 -type f | wc -l)" -eq 11
+          gh release create v4.0.1 --target "$GITHUB_SHA" \
+            --title 'Jarvis 4.0.1' --draft \
+            --notes-file "$RUNNER_TEMP/notes/release-notes.md"
+          gh release upload v4.0.1 \
+            ovos-commands-4.0.1.tar.gz ovos-commands-4.0.1.tar.gz.sha256 \
+            ovos_skill_jarvis_dispatcher-4.0.1-py3-none-any.whl \
+            ovos_skill_jarvis_media-0.3.5-py3-none-any.whl \
+            jarvis_file_search_skill-0.3.0-py3-none-any.whl \
+            jarvis-runtime-linux-x86_64-py311.zip jarvis-runtime-linux-x86_64-py311.zip.sha256 \
+            third-party-licenses.json espeak-ng-COPYING RUNTIME-NOTICES.md SHA256SUMS
+          gh release edit v4.0.1 --draft=false --prerelease=false --latest
+          mkdir -m 700 "$RUNNER_TEMP/public-download"
+          gh release download v4.0.1 --dir "$RUNNER_TEMP/public-download"
+          cd "$RUNNER_TEMP/public-download"
+          sha256sum --check SHA256SUMS
+          gh api repos/evok3dx/OVOS-Commands/git/ref/tags/v4.0.1 \
+            --jq '.object.sha' | grep -Fx "$GITHUB_SHA"
+          gh release view v4.0.1 --json url,isPrerelease,isDraft

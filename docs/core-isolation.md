@@ -39,7 +39,7 @@ and bounds each request with connect/read limits and a 14-second child timeout.
 Only public weather/location requests leave that helper. This adapter is not
 a sandbox against malicious same-user plugin code.
 
-## Guided installer candidate (4.0.1, not yet published)
+## Guided installer (4.0.1)
 
 New installations offer **Enable network isolation (recommended)** selected
 by default. The short explanation says administrator approval is needed to block
@@ -65,8 +65,10 @@ First enablement or a native-data migration needs bounded administrator approval
 Repeated upgrades with unchanged native data do not. Worker/model execution remains
 ordinary-user; the grant covers six exact units and three control verbs only.
 
-The automated candidate suite passes; actual dedicated-daemon activation,
-egress, migration and native recovery still need laptop acceptance. See the
+The automated suite passes. Supplied laptop output confirms interrupted
+recovery, legacy migration, private-model availability and voice readiness.
+Actual dedicated-daemon generation/IPv4/IPv6 egress and fresh-install coverage
+remain unverified; the owner approved publication with those checks deferred. See the
 [release evidence](releases.md). Separate
 instances protect the selected daemon's direct networking, not every same-user
 program, mediated request or filesystem path. Reusing an installed executable
@@ -77,9 +79,8 @@ verified new source's `scripts/isolation_install.py -- --recover` as the desktop
 user to restore the recorded previous deployment. Do not delete the journal or
 run recovery with sudo. Unknown or changed native files stop recovery for review.
 
-The development workflow retains the validated archive and checksum together.
-After downloading its ZIP artifact and unpacking it into Downloads, run these
-as your ordinary desktop user from the unpacked artifact directory:
+Download the archive and matching checksum from the stable release. Run these
+as your ordinary desktop user from the download directory:
 
 ```bash
 sha256sum --check ovos-commands-4.0.1.tar.gz.sha256
@@ -92,10 +93,10 @@ Existing isolation is preserved. First native-model migration asks for bounded
 administrator approval; do not sudo the installer. An existing general-Ollama
 restriction is left in place. Check the dedicated unit and local inference on
 port 11435, then run the actual-worker collector before calling protection live
-verified. The published updater continues to offer stable 4.0.0 until a new
-release is approved.
+verified. The stable updater offers the published release; an older installed
+updater may still require the reviewed full-installer upgrade procedure.
 
-## Stable 4.0.0: prepare and review before native changes
+## Manual native review and older 4.0.0 deployments
 
 First install the verified full runtime and release code through the reviewed
 staged path. Isolation preparation requires complete version parity and the

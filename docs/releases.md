@@ -7,70 +7,33 @@ acceptance work. Durable design choices belong in
 under [`history/`](history/README.md). Other current documents link here rather
 than repeating release narratives.
 
-## 4.0.1 (implementation candidate, not published)
+## 4.0.1 (owner-approved stable release, 1 October 2026)
 
-Guided optional isolation is recommended by default only for new installations.
-Upgrades preserve the existing choice. Selected isolation uses a dedicated
-ordinary-user Ollama on a fixed loopback endpoint, with private model data and
-no general-instance fallback. General Ollama is unchanged. Existing local Qwen
-files are copied and hash-checked before activation; other models are excluded.
+Guided optional isolation is recommended for new installs and preserves existing
+choices. It uses a dedicated ordinary-user Ollama with a private, hash-checked
+Qwen copy and no fallback to general Ollama. Weather/Media remain separately
+online. General Ollama is unchanged. Native changes need bounded administrator
+approval; normal upgrades retain existing policy and settings.
 
-The installer coordinates stopped workers, retained native policies, a private
-process-bound transaction and readiness/recovery rather than requiring manual
-policy removal. Native changes require administrator approval for service data;
-normal upgrades with unchanged native data do not. Existing microphone, startup,
-applications and unknown settings are retained.
+The process-bound installer now recovers isolated upgrades, handles actual
+Python `-I` worker startup and restores exact source after package rebuilds.
+Saved isolation choices are exported privately; explicit model removal targets
+only the verified private copy. Media remains 0.3.5 and File Search 0.3.0.
 
-Private settings export includes the saved isolation choice, excluding native
-data and transaction journals. Explicit model removal uses the verified private
-copy when selected and leaves general Ollama's model intact.
+**VERIFIED:** all six CI jobs at `b536f0a895b1afdbd45d6d1457a4a72a91ed3bc9`
+([36934036944](https://github.com/evok3dx/OVOS-Commands/actions/runs/36934036944))
+pass Python 3.10–3.13, GTK, source/history/archive scans, clean-copy deployment
+and recovery, 350/350 policy cases and all 296 dependencies with zero exemptions.
+Supplied live output confirms interrupted recovery, legacy migration, private
+model inventory, voice readiness and a health check with zero failures/warnings.
 
-**VERIFIED automated:** ordinary-user run
-[36926814093](https://github.com/evok3dx/OVOS-Commands/actions/runs/36926814093)
-passes all six jobs at `cbb0238f0fb3b1ac9eefebd26f194c3ccd5a2842`:
-Python 3.10–3.13, real GTK recommendation/opt-out/cancel, source/history/archive
-scans, clean-copy deployment/recovery/uninstall and 350/350 policy cases.
-All 296 reviewed dependency records pass with zero exemptions. The development
-branch retains a checksum-bearing candidate archive after validation.
-
-**VERIFIED supplied live output:** interrupted recovery restored the previous
-deployment and isolation choice, then the corrected 4.0.1 installer completed
-legacy native-isolation migration to the dedicated model. Health reports zero
-failures/warnings; existing audio, wake, microphone and model settings were
-retained. The owner explicitly reviewed application selection. Private model
-inventory and Qwen readiness passed; voice readiness and final activation passed.
-The installer reports general Ollama unchanged. Fresh setup and actual private
-daemon generation/IPv4/IPv6 egress checks remain pending; successful installation
-and model inventory do not prove network enforcement.
-Stable V4.0.0 assets and tag are unchanged. See
-[isolation guide](core-isolation.md) and [approved decisions](12-decisions.md).
-
-**Historical trial failure, resolved in supplied live output:** the dedicated model became available, but a guard import
-before the worker's script-path setup failed under Python `-I`. Recovery then
-rejected stopped failed workers. The corrected candidate moves the import after
-identity/path setup and requires zero worker/control PIDs before recovery;
-normal GUI Stop remains strict. Regression checks execute the actual isolated
-Python bootstrap and retain the real transaction guard. **VERIFIED correction:**
-run [36930863713](https://github.com/evok3dx/OVOS-Commands/actions/runs/36930863713)
-passes all six jobs at `5dd0a9069a22dff51bb3614aa8824a3e75adb8ba`, including
-the actual `-I` bootstrap and stopped-failed checks in the clean archive,
-350/350 policy cases and all 296 dependencies. The earlier automated pass did not cover this
-startup path. Published V4.0.0 is unchanged.
-
-**Second live recovery gate:** rollback rebuilt local packages and added only
-their metadata/build copies; the original backup and original source files
-matched. Recovery now stages the exact verified backup after accepting only
-new files in the five fixed packaging-output directories, retains those outputs
-in retirement, and checks the complete original fingerprint again. Changed
-original files, changed backups, unknown additions and symlinks remain blocked.
-Native retries stop only still-present exact reviewed units, allowing recovery
-to resume after removal of the new private-model unit. **VERIFIED correction:**
-run [36933078765](https://github.com/evok3dx/OVOS-Commands/actions/runs/36933078765)
-passes all six jobs at `24dec6a8e412fe55a14461e0e57bb36f5374af62`, including
-exact source recovery and native retry regressions in the clean archive,
-350/350 policy cases and the unchanged 296-package closure. Supplied live output
-now confirms exact-source recovery and successful installation; this does not
-alter stable V4.0.0.
+**VERIFIED owner release decision:** publish the working update for the controlled
+small-client deployment with dedicated-daemon generation/IPv4/IPv6 egress and
+fresh-install coverage explicitly unverified and accepted for later testing.
+No new production behaviour was added after the exercised build. Existing V4
+limits, signing and complete fresh-machine offline setup remain unchanged.
+See [installation](07-installer-updates.md), [security](security-and-updates.md)
+and the [resolved trial history](history/v4.0.1-recovery.md).
 
 ## 4.0.0 (published stable, 1 October 2026)
 

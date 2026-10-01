@@ -3,11 +3,12 @@
 This page describes the current V4 deployment contract. Historical release
 trials and their failures are retained under [`docs/history/`](history/README.md).
 
-The unpublished 4.0.1 [guided-isolation candidate](core-isolation.md#guided-installer-candidate-401-not-yet-published)
+The 4.0.1 [guided isolation installer](core-isolation.md#guided-installer-401)
 offers recommended protection on first installation, preserves existing choices,
 and coordinates isolated upgrades without manual policy removal. It uses a
 dedicated local Ollama and bounded administrator approval for native data only.
-The stable 4.0.0 procedure below remains the published installation path.
+Older 4.0.0 updaters may still refuse active isolation; use the verified new
+archive's installer as the desktop user for that first migration.
 
 ## Supported target
 
@@ -38,8 +39,9 @@ A fresh setup performs these bounded steps:
 6. Install the combined tray, Control Centre, menu entry and user services.
 7. Start the services and run the health check.
 
-Missing operating-system tools and any system preparation explicitly requested
-by the official OVOS installer are the only one-time administrator boundary.
+Missing operating-system tools, system preparation explicitly requested by the
+official OVOS installer, and selected native isolation service data are the
+bounded administrator operations.
 Jarvis downloads and extracts the pinned upstream installer in private
 user-owned state and launches it as the desktop user; only the upstream system
 step may elevate. Normal installation, updates and daily use remain user-space.
@@ -64,49 +66,34 @@ General has independent **Start app minimised at login** and **Start voice
 services at login** choices. Dashboard Run/Stop affects the current session.
 Updates preserve both choices; opening the tray alone does not start voice.
 
-Native isolation is separately prepared and activated. A normal install,
-update, rollback or uninstall refuses active or remaining native isolation data.
-Stop voice and follow the reviewed deactivation and exact owned-data removal
-instructions in [core isolation](core-isolation.md) before a full transaction.
-Never bypass that guard or reset unrelated firewall/service policy. A laptop
-already using the final guarded patches has current behaviour code; publication
-alone does not require another runtime reinstall.
+Selected isolation is prepared and activated by the guided installer. A private
+transaction permits only that installation/recovery while keeping native IP
+policy in place. Rollback and uninstall outside that coordinator retain their
+native-data guard; use reviewed removal first. Never bypass a remaining journal
+or policy check.
 
 ## Upgrading an isolated installation
 
-**VERIFIED guard:** the normal updater stops before deployment when native
-isolation data remains. This is expected even when the installed version is an
-RC or has received individual source fixes. Those fixes do not change its
-installed version label.
+1. Download the new stable archive and checksum and verify SHA-256.
+2. Extract into a new user-owned directory and run its `scripts/install.sh`
+   as the desktop user. Keep the existing application selection unless you
+   explicitly want to review it.
+3. Existing isolation and microphone/startup preferences are preserved. A first
+   migration from the older five-worker policy to the dedicated model asks for
+   bounded administrator approval. Unchanged native data needs no new approval.
+4. Wait for the private model and voice readiness and the final confirmation.
+   An interrupted transaction must recover before another installation.
 
-An isolated upgrade currently needs a reviewed owner-terminal transaction:
+For recovery, use the verified new source outside the managed deployment:
 
-1. Stop Jarvis and close its tray and Control Centre.
-2. Verify the old candidate against the exact five installed worker units and
-   polkit rule, and back up the verified native data privately in Downloads.
-   A previously reviewed `EnvironmentFile` quoting repair requires an exact
-   comparison; never accept arbitrary unit differences.
-3. Deactivate the old mapping as the desktop user. Remove only the verified
-   Jarvis units, rule and owned Ollama drop-in using bounded native commands.
-   Preserve unrelated policy and arrange restoration of the Ollama policy on
-   both success and failure.
-4. Verify the stable archive, then use its new helpers when validating an
-   upgrade from older helper APIs. Run the installer as the desktop user.
-   `--no-restart --no-speechnote` leaves voice stopped and preserves Speech Note;
-   the no-restart path requires the already verified runtime to match. If it
-   refuses, review the staging requirement rather than starting unrestricted
-   workers as a workaround.
-5. Restore Ollama's reviewed policy, prepare a new core candidate against the
-   installed source, install its reviewed native data, activate as the desktop
-   user and start Jarvis through its readiness-aware controls.
+```bash
+python3 scripts/isolation_install.py -- --recover
+```
 
-Do not assume `reset-failed` is needed: a stopped unit may already be unloaded.
-Any unexpected file, source mismatch or failed check stops this procedure for
-review. Installation success is separate from restored isolation and worker
-readiness. See [core isolation](core-isolation.md) for these boundaries.
-
-**PLANNED:** a guided GUI transaction for this optional native boundary. V4
-retains the guard; the ordinary updater does not automate this manual procedure.
+Run without sudo. Changed source/native data blocks recovery for review. Do not
+remove the journal, reset unrelated policy or assume installation proves actual
+network denial. The [manual review guide](core-isolation.md) retains the older
+4.0.0 removal procedure for rollback/uninstall and separately reviewed repairs.
 
 ## What an update owns
 

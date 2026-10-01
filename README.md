@@ -24,7 +24,7 @@ Download the archive and matching `.sha256` from
 [Releases](https://github.com/evok3dx/OVOS-Commands/releases/latest):
 
 ```bash
-version=4.0.0
+version=4.0.1
 sha256sum --check "ovos-commands-$version.tar.gz.sha256"
 tar -xzf "ovos-commands-$version.tar.gz"
 cd "ovos-commands-$version"
@@ -35,7 +35,8 @@ bash scripts/install.sh
 `--check` is read-only. A fresh setup may request administrator access once
 for the official OVOS installer and missing system tools. Jarvis itself,
 normal updates and daily use run as your desktop user.
-An isolated installation needs the reviewed
+Selected network isolation needs bounded administrator approval for service
+data and a dedicated local model. Existing choices are preserved; see the
 [upgrade procedure](docs/07-installer-updates.md#upgrading-an-isolated-installation)
 before using the full installer or updater.
 
@@ -116,11 +117,11 @@ automatic cross-machine import.
 - Tool-capable private-agent messages require readback and single-use confirmation.
 - All 296 runtime packages have exact versions and enforced wheel hashes.
 - Updates require reviewed HTTPS hosts, checksums and bounded archive extraction.
-- Optional native isolation restricts core/listener/audio and Ollama; weather
-  and browser music retain separate online paths. Activation is an explicit step.
-- Stable V4 uses the existing local Ollama endpoint. The unpublished
-  [guided-isolation candidate](docs/core-isolation.md#guided-installer-candidate-401-not-yet-published)
-  adds a dedicated loopback model instance while preserving general Ollama.
+- Optional native isolation restricts core/listener/audio and a dedicated local
+  model; weather and browser music retain separate online paths.
+- The [guided isolation installer](docs/core-isolation.md#guided-installer-401)
+  offers isolation recommended for new installs and preserves existing choices.
+  Its dedicated loopback model instance leaves general Ollama unchanged.
 
 X11 applications in the same desktop session can observe or inject input, so
 X11 itself is not treated as a security boundary. See
@@ -137,7 +138,7 @@ are separate. Checksums verify bytes; production signing remains future work.
 - [Media and filename search](docs/10-media-files.md)
 - [Troubleshooting](docs/troubleshooting.md) and [maintenance](docs/maintenance.md)
 - [Security](docs/security-and-updates.md), [decisions](docs/12-decisions.md) and [release record](docs/releases.md)
-- [V4 release notes](docs/release-v4.0.0.md) and [service isolation](docs/core-isolation.md)
+- [V4 release notes](docs/release-v4.0.1.md) and [service isolation](docs/core-isolation.md)
 - [Contributor and AI-agent rules](AGENTS.md)
 
 ## Licence and thanks

@@ -134,12 +134,12 @@ native policy, stop the actual workers and follow that candidate's reviewed
 deactivation/native removal instructions first. Do not delete only the receipt
 or disable the guard: rules must not continue referencing replaced code.
 
-The unpublished guided installer handles isolated upgrades through its own
+The 4.0.1 guided installer handles isolated upgrades through its own
 process-bound transaction instead. A remaining interrupted journal blocks
 another installation; use the verified candidate's `scripts/isolation_install.py
 -- --recover` as your desktop user. Do not delete the journal or run recovery
 with sudo. Unknown native changes still require review. See
-[guided isolation](core-isolation.md#guided-installer-candidate-401-not-yet-published).
+[guided isolation](core-isolation.md#guided-installer-401).
 
 The first guided-isolation trial could fail at worker startup with
 `ModuleNotFoundError: No module named 'isolation_install'`: Python `-I` excludes

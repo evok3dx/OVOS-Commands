@@ -20,4 +20,5 @@ For current operation use the repository [README](../../README.md), the
 
 The [V4 development record](v4-development.md) preserves RC trials, weather
 and media investigations, exact evidence and the original expanded stable
-notes. Stable V4 scope and unresolved checks live in the current release ledger.
+notes. The [4.0.1 recovery record](v4.0.1-recovery.md) preserves the resolved
+guided-isolation startup and package-build incidents. Stable V4 scope and unresolved checks live in the current release ledger.

@@ -185,7 +185,7 @@ this desktop-control release until there is an actual integration requirement.
 
 ## Guided isolation and dedicated model, 1 October 2026
 
-- **VERIFIED owner direction and automated candidate tests; live pending:** new installs
+- **VERIFIED owner direction, automated tests and supplied live migration/recovery:** new installs
   offer network isolation selected by default, briefly explaining administrator
   approval. Existing installs keep their actual isolation choice and unknown
   settings. Declining isolation retains the existing ordinary-user model path.
@@ -210,3 +210,15 @@ this desktop-control release until there is an actual integration requirement.
   recovery journals. After reviewed native removal, explicit model deletion
   targets only the verified private copy when selected; general Ollama stays
   intact. Unreviewed private data blocks deletion. See the [release evidence](releases.md).
+
+## Stable 4.0.1 release scope, 1 October 2026
+
+- **VERIFIED explicit owner approval:** finalise and release 4.0.1 after supplied
+  successful interrupted recovery, legacy migration and voice/model readiness.
+  The owner accepts the dedicated daemon's actual generation and IPv4/IPv6
+  egress checks after release. Keep these unverified; never present inventory
+  or service properties as live network enforcement. Fresh-install coverage
+  and the existing scoped V4 limitations remain unverified.
+- Preserve the tested production code and dependency closure. Finalise short
+  public release notes, exact archive/wheel payload and checksum verification,
+  with resolved investigations retained in history.

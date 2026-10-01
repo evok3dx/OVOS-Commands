@@ -17,7 +17,7 @@ models, installed applications and source changes. Restoration is manual: unpack
 to a separate folder, inspect the manifest and copy selected settings after
 review. No automatic cross-machine import is implemented.
 
-The unpublished guided-isolation candidate also exports the saved isolation
+The 4.0.1 guided isolation installer also exports the saved isolation
 choice. Native units, session receipts, recovery journals and model files are
 excluded; copying a preference does not activate protection on another machine.
 
@@ -35,7 +35,7 @@ desktop applications are never removed. This is deliberately separate from
 rollback: rollback restores the previous Jarvis deployment; uninstall removes
 the current one.
 
-For the guided-isolation candidate, remove reviewed native data before uninstall.
+For guided isolation, remove reviewed native data before uninstall.
 The explicit model-removal option removes only the verified private Jarvis copy
 when that backend was selected, preserving general Ollama. Extra or changed
 private model files require review; they are never silently deleted.

@@ -1,8 +1,8 @@
 # Local Qwen routing
 
 **VERIFIED in code:** the reviewed `qwen3:4b-instruct-2507-q4_K_M`
-model in stable V4 runs through the existing Ollama service on `127.0.0.1:11434`.
-The unpublished [guided-isolation candidate](core-isolation.md#guided-installer-candidate-401-not-yet-published)
+model uses general Ollama on `127.0.0.1:11434` when isolation is declined.
+The 4.0.1 [guided isolation installer](core-isolation.md#guided-installer-401)
 selects a dedicated instance on `127.0.0.1:11435` for isolated installations;
 there is no fallback between these two fixed endpoints. The model
 can select only actions allowed for the current request and enabled profile.
@@ -30,7 +30,8 @@ isolation disables unreviewed online skills in core; Weather and Media have
 separate helpers, while Wikipedia/WikiHow and named-city time support remain
 future work. Setup then checks the
 model and private router settings. It refuses to overwrite a different selected
-model. No cloud account or extra listening port is needed. The managed V4
+model. No cloud account is needed. Selected isolation uses only the fixed dedicated
+loopback port described above. The managed V4
 runtime remains hash-verified. A missing Ollama service stops setup with a clear
 message.
 
