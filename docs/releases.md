@@ -7,7 +7,7 @@ acceptance work. Durable design choices belong in
 under [`history/`](history/README.md). Other current documents link here rather
 than repeating release narratives.
 
-## 4.0.1 (owner-approved stable release, 1 October 2026)
+## 4.0.1 (published stable, 1 October 2026)
 
 Guided optional isolation is recommended for new installs and preserves existing
 choices. It uses a dedicated ordinary-user Ollama with a private, hash-checked
@@ -34,6 +34,15 @@ No new production behaviour was added after the exercised build. Existing V4
 limits, signing and complete fresh-machine offline setup remain unchanged.
 See [installation](07-installer-updates.md), [security](security-and-updates.md)
 and the [resolved trial history](history/v4.0.1-recovery.md).
+
+**VERIFIED publication:** [run 36934709323](https://github.com/evok3dx/OVOS-Commands/actions/runs/36934709323)
+passed packaging and publication. All 11 public assets were downloaded again
+and verified against SHA256SUMS; the stable `v4.0.1` tag points to
+`26d634c2c7b0812609f76a7016ce6d83d6b3ca1f`. Final source validation
+[36934709441](https://github.com/evok3dx/OVOS-Commands/actions/runs/36934709441)
+passed all six jobs. Code archive SHA-256:
+`f36c92a9a7491b34b23902a1d115157ec11b8618892589b184410a3d9b54fdf8`.
+The retained runtime and production behaviour are unchanged.
 
 ## 4.0.0 (published stable, 1 October 2026)
 
