@@ -8,9 +8,10 @@ is retained there as historical context; it is not part of this directory.
 The skill accepts a bounded `play {title}` request, finds one YouTube video ID
 through `yt-dlp`, and opens a fixed watch URL in enabled Brave. If Brave is
 unavailable or cannot be launched, enabled Firefox is the bounded fallback.
-After accepting a real title, it says “Let me spin that track.” once, waits for
-that short acknowledgement, then starts the bounded lookup without an added
-pre-search pause. A validated result waits 1.5 seconds before Brave opens.
+After accepting a real title, it starts the bounded lookup immediately and says
+“Let me spin that track.” once without waiting for speech to finish. A validated
+result uses a 0.35-second transition before Brave opens. Provider/network
+response time remains variable; no playback-time guarantee is made.
 Empty input does not enter this path. A generic “play music” request is handled
 by the dispatcher as a bounded two-turn interaction: Jarvis asks what to play,
 then passes only that one reply to this plugin as title data. Jarvis does not

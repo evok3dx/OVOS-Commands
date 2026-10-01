@@ -505,7 +505,7 @@ class BrowserActionsMixin:
             pace_search("browser")
             for action in (
                 ("key", "--clearmodifiers", "ctrl+a"),
-                ("type", "--clearmodifiers", "--delay", "55", "--", query),
+                ("type", "--clearmodifiers", "--delay", "10", "--", query),
             ):
                 if self._active_window_id() != window_id or self._active_browser() != browser:
                     self.speak("The focused window changed, so I cancelled.")
@@ -514,7 +514,7 @@ class BrowserActionsMixin:
                     ["/usr/bin/xdotool", *action], check=True, timeout=15,
                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                 )
-            time.sleep(0.45)
+            time.sleep(0.2)
             if self._active_window_id() != window_id or self._active_browser() != browser:
                 self.speak("The focused window changed, so I cancelled.")
                 return
@@ -652,7 +652,7 @@ class BrowserActionsMixin:
             subprocess.run(
                 [
                     "/usr/bin/xdotool", "type",
-                    "--clearmodifiers", "--delay", "55",
+                    "--clearmodifiers", "--delay", "10",
                     "--", query
                 ],
                 check=True,
@@ -660,7 +660,7 @@ class BrowserActionsMixin:
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL
             )
-            time.sleep(0.45)
+            time.sleep(0.2)
             subprocess.run(
                 [
                     "/usr/bin/xdotool", "key",

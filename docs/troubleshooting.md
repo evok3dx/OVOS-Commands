@@ -37,6 +37,15 @@ system**. If it says `failed`, inspect the recent logs before changing files.
 
 ## Service controls
 
+The isolation boot-readiness adapter checks enabled local services and skills.
+It excludes blacklisted IDs only from the default inventory, preserves explicit
+owner readiness/announcement settings and cancels its callback on skill
+shutdown. If a journal logs normal main cleanup followed by a systemd stop
+kill, that proves incomplete process exit, not slow skill unloading. Keep the
+failure visible and verify the corrected callback on the laptop; do not clear
+failure metadata or relax network filtering to turn the icon grey.
+
+
 If the Control Centre reports a readiness timeout but Commands subsequently
 works and the microphone remains paused, inspect the current invocation's load
 times. The corrected V4 control wait allows up to three minutes, with continued

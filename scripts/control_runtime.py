@@ -175,6 +175,8 @@ def service_action(action, report=lambda text: None):
             current = snapshot()
             if any(current[u].get('ActiveState') not in {'inactive', 'failed'} for u in UNITS):
                 raise RuntimeError('Some voice services are still running')
+            if any(current[u].get('ActiveState') == 'failed' for u in UNITS):
+                raise RuntimeError('Voice services stopped with a shutdown failure. See Maintenance → Recent logs.')
             return 'Jarvis is stopped.'
         if action in {'restart', 'commands'}:
             report('Stopping voice services…' if action == 'restart' else 'Restarting commands…')
@@ -193,6 +195,9 @@ def service_action(action, report=lambda text: None):
             raise RuntimeError('A voice service stopped during startup')
         return 'Jarvis is ready.' if LISTENER in desired else 'Jarvis is ready. Microphone remains paused.'
     except Exception as original:
+        if action == 'stop':
+            # A Stop request must never recover by starting voice again.
+            raise RuntimeError(str(original)) from original
         report('Recovering previously running services…')
         try:
             restore_active(before)

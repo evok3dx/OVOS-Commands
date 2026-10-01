@@ -1,18 +1,102 @@
 """Ordinary-user entry points for reviewed V4 system-manager service data."""
 import argparse
 from copy import deepcopy
+import hashlib
 import importlib.metadata as metadata
 import json
 import os
 from pathlib import Path
 import re
 import sys
+import threading
+import time
 
 COMPONENTS=('core','listener','audio','weather','media')
 ONLINE_SKILLS=tuple('ovos-skill-'+name+'.openvoiceos' for name in
-                    ('weather','jarvis-media','ddg','wolfie','wikipedia','wikihow','ip','speedtest'))
+                    ('weather','jarvis-media','ddg','wolfie','wikipedia','wikihow','ip','speedtest')) + ('skill-ovos-wallpapers.openvoiceos',)
 ONLINE_STAGES={'ovos-common-query-pipeline-plugin','ovos-persona-pipeline-plugin','ovos-ocp-pipeline-plugin',
                'common_qa','ocp_high','ocp_medium','ocp_low','ocp_legacy'}
+BOOT_SOURCE_SHA256='1bc356474e0d970fdd7955b5e2592a4c053178c1c1f2e8c2aa075e7b8e0d1a5b'
+
+
+def install_boot_readiness():
+    """Adapt the exact reviewed boot skill in memory, without editing settings.
+
+    Readiness still comes from each service's bus response. Cancel the running
+    callback on shutdown so the emitter executor cannot wait for absent skills.
+    """
+    import ovos_skill_boot_finished as boot
+    if hashlib.sha256(Path(boot.__file__).read_bytes()).hexdigest()!=BOOT_SOURCE_SHA256:
+        raise RuntimeError('Boot readiness source differs from the reviewed runtime')
+    cls=boot.BootFinishedSkill
+    if getattr(cls,'_jarvis_readiness_installed',False):return
+    initialize,shutdown,announce=cls.initialize,cls.shutdown,cls.handle_ready
+    check=cls.check_services_ready
+
+    def initialise(self):
+        self._jarvis_ready_stop=threading.Event()
+        self._jarvis_ready_check=threading.Lock()
+        self._jarvis_ready_announce=threading.Lock()
+        self._jarvis_ready_confirmed=False
+        self._jarvis_ready_announced=False
+        initialize(self)
+
+    def ready(self):
+        if 'ready_settings' in self.settings:
+            names=self.settings['ready_settings']  # Preserve explicit owner policy.
+        else:
+            blocked=self.config_core.get('skills',{}).get('blacklisted_skills',[])
+            names=['skills','voice','audio',*[name for name in
+                   boot.get_installed_skill_ids(self.config_core) if name not in blocked]]
+        services=dict.fromkeys(names,False)
+        deadline=time.monotonic()+60
+        while not self._jarvis_ready_stop.is_set():
+            for name,done in services.items():
+                if self._jarvis_ready_stop.is_set():return False
+                if not done:
+                    # Keep the upstream response semantics. Check cancellation
+                    # between individual bounded bus waits, not after the list.
+                    services[name]=check(self,{name:False})
+                if time.monotonic()>=deadline and not all(services.values()):return False
+            if self._jarvis_ready_stop.is_set():return False
+            if all(services.values()):return True
+            if self._jarvis_ready_stop.wait(min(3,max(0,deadline-time.monotonic()))):return False
+        return False
+
+    def check_readiness(self,message=None):
+        if self._jarvis_ready_stop.is_set() or not self._jarvis_ready_check.acquire(blocking=False):return
+        event=None
+        try:
+            if self._jarvis_ready_announced:return
+            if ready(self):
+                with self._jarvis_ready_announce:
+                    if self._jarvis_ready_stop.is_set():return
+                    self._jarvis_ready_confirmed=True
+                    event='mycroft.ready'
+            elif not self._jarvis_ready_stop.wait(5):
+                event='mycroft.ready.check'
+        finally:self._jarvis_ready_check.release()
+        # Release the coalescing lock before dispatching the next check; a fast
+        # emitter must not drop the retry because this callback still holds it.
+        if event and not self._jarvis_ready_stop.is_set():self.bus.emit(boot.Message(event))
+
+    def announce_ready(self,message):
+        with self._jarvis_ready_announce:
+            if (self._jarvis_ready_stop.is_set() or not self._jarvis_ready_confirmed
+                    or self._jarvis_ready_announced):return
+            self._jarvis_ready_announced=True
+        announce(self,message)  # Retains speak_ready / ready_sound choices.
+
+    def stop(self):
+        self._jarvis_ready_stop.set()
+        return shutdown(self)
+
+    cls.initialize=initialise
+    cls.is_device_ready=ready
+    cls.handle_check_device_readiness=check_readiness
+    cls.handle_ready=announce_ready
+    cls.shutdown=stop
+    cls._jarvis_readiness_installed=True
 
 
 def worker_identity(component,uid,gid):
@@ -80,6 +164,7 @@ def run_component(component):
         container.skill_directory=None
         container.run()
     elif component=='core':
+        install_boot_readiness()
         from ovos_core.__main__ import main
         main(enable_installer=False)
     elif component=='listener':

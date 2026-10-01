@@ -45,10 +45,11 @@ Browser searches and Media's YouTube title lookup use one shared local pacing
 guard: one reservation at a time and at least 12 seconds between submissions.
 Browser and visible YouTube searches retain their short pre-submit pacing. A
 Media title request says “Let me spin that track” immediately, starts its
-bounded lookup after the acknowledgement without an artificial pre-search
-pause, then waits 1.5 seconds after a valid result before the browser opens.
+bounded lookup before the nonblocking acknowledgement, then uses a 0.35-second
+transition after a valid result before the browser opens. Search pre-submit
+pacing is 0.5–1 second; provider/network response time remains variable.
 Enabled Brave is first and enabled Firefox is the bounded fallback. Visible Brave, Firefox and
-YouTube searches type the query at 55 ms per character, pause briefly, recheck
+YouTube searches type the query at 10 ms per character, pause briefly, recheck
 the focused window, and only then press Enter. Media title lookup remains a
 bounded background lookup before opening its first result in the selected
 browser. Jarvis does not automatically

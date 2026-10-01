@@ -87,6 +87,12 @@ jobs:
           done < <(find scripts system_helpers mic -type f -print0)
       - name: Test isolated install and rollback
         run: bash scripts/test-deployment.sh
+      - name: Test exact hash-locked upstream boot skill
+        if: matrix.python-version == '3.11'
+        run: |
+          mkdir -m 700 "$RUNNER_TEMP/jarvis-boot-wheel"
+          python3 -m pip download --no-deps --only-binary=:all: --dest "$RUNNER_TEMP/jarvis-boot-wheel" 'ovos-skill-boot-finished==0.7.0a2'
+          python3 scripts/test-boot-readiness.py "$RUNNER_TEMP/jarvis-boot-wheel/ovos_skill_boot_finished-0.7.0a2-py3-none-any.whl"
       - name: Build and inspect release
         run: bash scripts/build-release.sh
       - name: Verify clean release copy and full policy benchmark

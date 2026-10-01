@@ -9,6 +9,30 @@ than repeating release narratives.
 
 ## 4.0.0rc1 (published laptop test; stable release pending)
 
+**Owner-requested lifecycle and latency correction, source candidate:** the
+boot announcement uses enabled local service/skill readiness replies instead
+of waiting for default blacklisted skill IDs. Explicit ready_settings,
+speak_ready and ready_sound choices remain intact. A per-instance stop event
+cancels pending checks between bounded bus waits; duplicate checks coalesce and
+the announcement is single-use after confirmed readiness. The in-memory adapter
+requires the exact reviewed upstream source hash. The supplied journal shows
+main cleanup completes before a residual-process stop timeout; callback
+cancellation addresses a supported candidate cause, with laptop Stop acceptance
+still required. Stop errors never restart voice through recovery and failed
+shutdowns remain visible. The web-dependent wallpaper skill joins the core
+blacklist; Weather/Media retain separate online workers.
+
+Media 0.3.2 starts lookup before its nonblocking acknowledgement and shortens
+the post-result transition to 0.35 seconds. Browser/visible YouTube search pacing
+is 0.5–1 second, typing 10 ms per character and the final focus-checked pause
+0.2 seconds. The shared 12-second anti-burst reservation, one bounded result,
+cancellation, challenge reporting and browser allowlist remain. No bot-evasion
+or provider latency guarantee is claimed. Existing frozen runtime bytes and
+models are unchanged; the independently versioned Media plugin changes.
+**PLANNED verification:** ordinary-user source/clean-copy tests, exact hash-locked
+upstream boot-class integration and laptop lifecycle/music timing acceptance.
+This source candidate does not retag the original published test archive.
+
 **Slow-start readiness correction, source candidate:** the supplied core log
 shows more than 74 seconds of skill loading before the dispatcher's ready
 marker, exceeding the Control Centre's former 60-second wait. That timeout can

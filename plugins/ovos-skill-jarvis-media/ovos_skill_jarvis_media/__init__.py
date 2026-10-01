@@ -22,7 +22,7 @@ EVENT_CONTROL = "jarvis.media.control"
 EVENT_CANCEL = "jarvis.media.cancel"
 EVENT_STATUS = "jarvis.media.status"
 REVISION = "jarvis.media.plugin.2"
-RESULT_TRANSITION_SECONDS = 1.5
+RESULT_TRANSITION_SECONDS = 0.35
 
 
 class JarvisMediaSkill(OVOSSkill):
@@ -53,9 +53,9 @@ class JarvisMediaSkill(OVOSSkill):
             self._cancel_locked()
             self._media_generation += 1
             generation = self._media_generation
-        self.speak("Let me spin that track.", wait=True)
         threading.Thread(target=self._search_and_open, args=(query, generation),
                          name="jarvis-media-youtube", daemon=True).start()
+        self.speak("Let me spin that track.", wait=False)
 
     def _search_and_open(self, query, generation):
         process = None

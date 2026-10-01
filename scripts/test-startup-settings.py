@@ -163,3 +163,25 @@ with patch.object(runtime,'snapshot',return_value=states),patch.object(runtime,'
         else:raise AssertionError('Failed worker incorrectly accepted')
     assert clock[0]==0
 print('PASS: startup beyond 60 seconds, bounded progress, exact readiness, never-ready timeout and immediate failed-worker rejection')
+
+# Stop must remain off after a failed shutdown, never use startup recovery.
+for failure in ('command-timeout','worker-failed','still-running','clean'):
+    before={u:{'ActiveState':'active'} for u in runtime.UNITS}
+    after={u:{'ActiveState':'inactive'} for u in runtime.UNITS}
+    if failure=='worker-failed':after[runtime.CORE]['ActiveState']='failed'
+    if failure=='still-running':after[runtime.CORE]['ActiveState']='active'
+    calls=[]
+    def stop_run(args,**kwargs):
+        calls.append(args)
+        assert args[2]=='stop', 'Stop recovery restarted voice'
+        if failure=='command-timeout':raise subprocess.TimeoutExpired(args,45)
+        return subprocess.CompletedProcess(args,0,'','')
+    with patch.object(runtime,'operation_lock',runtime.contextlib.nullcontext),\
+         patch.object(runtime,'snapshot',side_effect=[before,after]),\
+         patch.object(runtime,'run',stop_run),\
+         patch.object(runtime,'restore_active',side_effect=AssertionError('Stop recovery restarted voice')):
+        try:result=runtime.service_action('stop')
+        except RuntimeError:assert failure!='clean'
+        else:assert failure=='clean' and result=='Jarvis is stopped.'
+    assert len(calls)==1
+print('PASS: Stop failures never restart services or report a failed shutdown as clean')

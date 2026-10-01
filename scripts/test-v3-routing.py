@@ -265,6 +265,7 @@ handle_play = next(node for node in skill_class.body if isinstance(node, ast.Fun
                    and node.name == "_handle_play")
 spoken = []
 started = []
+media_order = []
 
 class FakeThread:
     def __init__(self, *, target, args, name, daemon):
@@ -274,22 +275,24 @@ class FakeThread:
 
     def start(self):
         started.append(self.args)
+        media_order.append("search")
 
 fake_skill = SimpleNamespace(
     _media_lock=threading.RLock(),
     _media_generation=0,
     _cancel_locked=lambda: None,
     _search_and_open=lambda *_args: None,
-    speak=lambda text, **kwargs: spoken.append((text, kwargs)),
+    speak=lambda text, **kwargs: (media_order.append("acknowledgement"), spoken.append((text, kwargs))),
 )
 handle_scope = {"normalise_query": media.normalise_query,
                 "threading": SimpleNamespace(Thread=FakeThread)}
 exec(compile(ast.Module(body=[handle_play], type_ignores=[]),
              "ovos_skill_jarvis_media/__init__.py", "exec"), handle_scope)
 handle_scope["_handle_play"](fake_skill, SimpleNamespace(data={"query": "Get Lucky"}))
-assert spoken == [("Let me spin that track.", {"wait": True})]
+assert spoken == [("Let me spin that track.", {"wait": False})]
 assert started == [("Get Lucky", 1)]
-assert "RESULT_TRANSITION_SECONDS = 1.5" in skill_source
+assert media_order == ["search", "acknowledgement"]
+assert "RESULT_TRANSITION_SECONDS = 0.35" in skill_source
 assert 'pace_search("media", jitter=0.0)' in skill_source
 
 # A discarded Brave tab withdraws its MPRIS player. Resume must give one short

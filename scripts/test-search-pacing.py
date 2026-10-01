@@ -23,11 +23,11 @@ with tempfile.TemporaryDirectory() as temporary:
     slept = []
     delay = pace_search(
         "youtube", state_root=state_root, clock=lambda: 100.0,
-        sleeper=slept.append, jitter=3.0,
+        sleeper=slept.append, jitter=1.0,
     )
-    assert delay == 3.0 and slept == [3.0]
+    assert delay == 1.0 and slept == [1.0]
     state = json.loads((state_root / "search-pacing.json").read_text())
-    assert state == {"last_reserved": 103.0, "provider": "youtube"}
+    assert state == {"last_reserved": 101.0, "provider": "youtube"}
     assert state_root.stat().st_mode & 0o777 == 0o700
     assert (state_root / "search-pacing.json").stat().st_mode & 0o777 == 0o600
     assert (state_root / "search-pacing.lock").stat().st_mode & 0o777 == 0o600
@@ -50,7 +50,7 @@ with tempfile.TemporaryDirectory() as temporary:
             sleeper=slept.append, jitter=1.0,
         )
     except SearchCoolingDown as error:
-        assert 9.9 < error.remaining < 10.1
+        assert 7.9 < error.remaining < 8.1
     else:
         raise AssertionError("A burst search bypassed the shared cooldown")
 
@@ -58,9 +58,9 @@ with tempfile.TemporaryDirectory() as temporary:
     # request receives only the bounded local pacing delay.
     pace_search(
         "browser", state_root=state_root, clock=lambda: 116.0,
-        sleeper=slept.append, jitter=1.5,
+        sleeper=slept.append, jitter=0.5,
     )
-    assert slept == [3.0, 1.5]
+    assert slept == [1.0, 0.5]
 
     try:
         pace_search(

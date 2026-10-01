@@ -45,8 +45,8 @@ assert len(actions) == 3, actions
 assert actions[0][-1] == "ctrl+a" and actions[-1][-1] == "Return", actions
 assert "ctrl+t" not in str(actions) and "harvard%20jarvis" not in str(actions)
 assert actions[1][-2:] == ["--", "harvard jarvis"], actions
-assert actions[1][3:5] == ["--delay", "55"], actions
-sleep.assert_called_once_with(0.45)
+assert actions[1][3:5] == ["--delay", "10"], actions
+sleep.assert_called_once_with(0.2)
 
 browser = Browser()
 def lose_focus(command, **_kwargs):
