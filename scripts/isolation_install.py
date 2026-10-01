@@ -349,6 +349,137 @@ def record_backup(home, backup):
     atomic(state, journal)
 
 
+def recover_transaction(home, journal, native):
+    account = pwd.getpwuid(os.getuid())
+    deployment = home / '.local/src/ovos-skill-jarvis-dispatcher'
+    binary = journal['binary']
+    original_binary = journal.get('original_binary')
+    was_active = journal['was_active']
+    native_started = journal.get('native_started', False)
+    previous_desired = journal['previous_desired']
+    token = journal['token']
+    state = home / JOURNAL
+    environment = {**os.environ, 'JARVIS_ISOLATION_COORDINATED': '1',
+                   'JARVIS_ISOLATION_TRANSACTION': str(state),
+                   'JARVIS_ISOLATION_TOKEN': token}
+    old_router = home / '.config/jarvis/router.json'
+    old_router_text = journal['original_router']
+    backup = Path(journal['backup']) if journal.get('backup') else None
+    if backup is not None:
+        base = home / '.local/state/jarvis/backups'
+        if base not in backup.parents or any(p.is_symlink() for p in (backup, *backup.parents)):
+            raise RuntimeError('Recovery backup path needs review')
+    originals, old_rule, _ = render(account.pw_uid, account.pw_gid, account.pw_name,
+                                   home, deployment, original_binary)
+    if not was_active:
+        originals = {}
+    units, rule, _ = render(account.pw_uid, account.pw_gid, account.pw_name,
+                           home, deployment, binary)
+    journal['phase'] = 'recovering'
+    atomic(state, journal)
+    try:
+        from control_runtime import service_action
+        service_action('stop', print)
+        if native_started:
+            native.run('systemctl', 'stop', *units)
+            # Remove only unchanged new files; restore only exact reviewed originals.
+            recovery = state.parent / ('restore-' + secrets.token_hex(8))
+            recovery.mkdir(mode=0o700)
+            for name, body in units.items():
+                path = Path('/etc/systemd/system') / name
+                if not path.exists():
+                    continue
+                if regular(path, owner=0) not in {body, originals.get(name)}:
+                    raise RuntimeError('Native recovery found changed data; workers remain stopped')
+                if name in originals:
+                    private_file(recovery / name, originals[name])
+                    native.run('install', '-o', 'root', '-g', 'root', '-m', '0644', '--', recovery / name, path)
+                else:
+                    native.run('rm', '--', path)
+            rule_path = Path('/etc/polkit-1/rules.d') / f'90-jarvis-v4-{os.getuid()}.rules'
+            # A partial write may leave the old or new rule; neither permits arbitrary services.
+            result = native.run('sha256sum', '--', rule_path, capture=True, check=False)
+            digest = result.stdout.split()[:1]
+            accepted = [hashlib.sha256(text.encode()).hexdigest() for text in (rule, old_rule) if text]
+            if digest and digest[0] not in accepted:
+                raise RuntimeError('Native rule changed during recovery; review required')
+            if originals:
+                private_file(recovery / rule_path.name, old_rule)
+                native.run('install', '-o', 'root', '-g', 'root', '-m', '0644', '--', recovery / rule_path.name, rule_path)
+            elif digest:
+                native.run('rm', '--', rule_path)
+            native.run('systemctl', 'daemon-reload')
+        if not was_active and active(home):
+            # Mapping files were created only by this transaction and have not been changed.
+            _, _, dropins = render(account.pw_uid, account.pw_gid, account.pw_name, home, deployment, binary)
+            for path, body in zip(owned_paths(dropins), dropins.values()):
+                if regular(path, private=True) != body:
+                    raise RuntimeError('Isolation relay changed during recovery')
+                path.unlink()
+            for name in ('active.json', 'session.env'):
+                (home / '.local/state/jarvis/isolation' / name).unlink()
+            subprocess.run(['/usr/bin/systemctl', '--user', 'daemon-reload'], check=True)
+        if tree_identity(deployment) != journal['original_tree']:
+            if backup is None:
+                raise RuntimeError('Deployment changed without a complete backup; manual recovery required')
+            subprocess.run(['bash', str(ROOT / 'scripts/rollback.sh'), str(backup), '--no-restart'],
+                           env=environment, check=True)
+        if tree_identity(deployment) != journal['original_tree']:
+            raise RuntimeError('Previous source identity did not restore; workers remain stopped')
+        if old_router_text is None:
+            old_router.unlink(missing_ok=True)
+        else:
+            atomic(old_router, json.loads(old_router_text))
+        journal['phase'] = 'recovering-ready'
+        atomic(state, journal)
+        if original_binary and previous_desired:
+            subprocess.run(['/usr/bin/systemctl', '--system', '--no-ask-password', 'start', model.unit_name()], check=True)
+            model.wait_model()
+        restore_running(previous_desired)
+        previous_choice = journal.get('original_choice')
+        if previous_choice is None:
+            (home / CHOICE).unlink(missing_ok=True)
+        else:
+            atomic(home / CHOICE, previous_choice)
+        state.unlink()
+    except BaseException:
+        journal['phase'] = 'blocked'
+        atomic(state, journal)
+        print('Recovery could not finish. Workers stay stopped and the journal is retained for review.', file=sys.stderr)
+        raise
+
+
+def resume_recovery(home):
+    if os.getuid() <= 0 or home != Path.home():
+        raise RuntimeError('Recover as the normal desktop user, without sudo')
+    state = home / JOURNAL
+    journal = json.loads(regular(state, private=True, limit=200000))
+    if journal.get('schema_version') != 1 or journal.get('uid') != os.getuid():
+        raise RuntimeError('Recovery journal identity needs review')
+    old_pid = journal.get('pid')
+    try:
+        alive = process_start(old_pid) == journal.get('process_start')
+    except (FileNotFoundError, ProcessLookupError):
+        alive = False
+    if alive:
+        raise RuntimeError('The installation coordinator is still running. Wait or cancel it first.')
+    # The generated native templates are the only acceptable policy, even when
+    # the previous coordinator was killed and its source changed.
+    if type(journal.get('was_active')) is not bool or not isinstance(journal.get('previous_desired'), list):
+        raise ValueError('Recovery state needs review')
+    if any(unit not in LOGICAL for unit in journal['previous_desired']):
+        raise ValueError('Recovery cannot start an unreviewed service')
+    model.verify_executable(journal['binary'])
+    journal.update(pid=os.getpid(), process_start=process_start(os.getpid()),
+                   token=secrets.token_urlsafe(32), phase='recovering')
+    atomic(state, journal)
+    os.environ.update(JARVIS_ISOLATION_TRANSACTION=str(state), JARVIS_ISOLATION_TOKEN=journal['token'])
+    authorised_transaction('rollback', home)
+    recover_transaction(home, journal, Native())
+    print('Previous Jarvis deployment and isolation choice restored.')
+    return 0
+
+
 def run_install(arguments, home):
     if os.getuid() <= 0 or os.getuid() != os.geteuid():
         raise RuntimeError('Run the installer as the desktop user, never with sudo')
@@ -414,6 +545,8 @@ def run_install(arguments, home):
                    'original_tree': tree_identity(deployment)}
         desired = stop_workers(home, was_active)
         previous_desired = desired[:]
+        journal.update(original_router=old_router_text, original_choice=read_choice(home),
+                       previous_desired=previous_desired, native_started=False)
         if not existing and '--no-restart' not in forwarded:
             desired = list(LOGICAL)
         if '--no-restart' in forwarded:
@@ -429,15 +562,12 @@ def run_install(arguments, home):
             'JARVIS_ISOLATION_TRANSACTION', 'JARVIS_ISOLATION_TOKEN')}
         os.environ.update({key: environment[key] for key in previous_environment})
         native_started = False
-        inner_completed = False
-        activation_added = False
         backup = None
         try:
             print('Updating managed Jarvis files while network policies remain installed…')
             status = run_child(['bash', str(ROOT / 'scripts/install.sh'), *forwarded], environment)
             if status:
                 raise RuntimeError('Managed installation failed; previous deployment recovery is required')
-            inner_completed = True
             current = json.loads(regular(home / '.local/state/jarvis/current.json', private=True))
             backup = Path(current['rollback'])
             base = home / '.local/state/jarvis/backups'
@@ -447,6 +577,8 @@ def run_install(arguments, home):
             atomic(state, journal)
             # Mark before the first native write so partial writes also roll back.
             native_started = originals != units or old_rule != rule
+            journal['native_started'] = native_started
+            atomic(state, journal)
             apply_native(native, units, rule, originals, old_rule, state.parent / ('native-' + token[:12]))
             if not was_active:
                 from prepare_core_isolation import activate
@@ -456,7 +588,6 @@ def run_install(arguments, home):
                                 '--output', str(candidate), '--model-binary', binary], check=True)
                 verify_rule(native, rule)
                 activate(candidate,verify_rule=False)
-                activation_added = True
             # Select only the private instance; keep every other router setting.
             router = json.loads(regular(old_router, private=True)) if old_router.exists() else {}
             atomic(old_router, dict(router, backend='jarvis'))
@@ -485,70 +616,7 @@ def run_install(arguments, home):
             journal['phase'] = 'recovering'
             atomic(state, journal)
             try:
-                from control_runtime import service_action
-                service_action('stop', print)
-                if native_started:
-                    native.run('systemctl', 'stop', *units)
-                    # Remove only unchanged new files; restore only exact reviewed originals.
-                    recovery = state.parent / ('restore-' + token[:12])
-                    recovery.mkdir(mode=0o700)
-                    for name, body in units.items():
-                        path = Path('/etc/systemd/system') / name
-                        if not path.exists():
-                            continue
-                        if regular(path, owner=0) not in {body, originals.get(name)}:
-                            raise RuntimeError('Native recovery found changed data; workers remain stopped')
-                        if name in originals:
-                            private_file(recovery / name, originals[name])
-                            native.run('install', '-o', 'root', '-g', 'root', '-m', '0644', '--', recovery / name, path)
-                        else:
-                            native.run('rm', '--', path)
-                    rule_path = Path('/etc/polkit-1/rules.d') / f'90-jarvis-v4-{os.getuid()}.rules'
-                    # A partial write may leave the old or new rule; neither permits arbitrary services.
-                    result = native.run('sha256sum', '--', rule_path, capture=True, check=False)
-                    digest = result.stdout.split()[:1]
-                    accepted = [hashlib.sha256(text.encode()).hexdigest() for text in (rule, old_rule) if text]
-                    if digest and digest[0] not in accepted:
-                        raise RuntimeError('Native rule changed during recovery; review required')
-                    if originals:
-                        private_file(recovery / rule_path.name, old_rule)
-                        native.run('install', '-o', 'root', '-g', 'root', '-m', '0644', '--', recovery / rule_path.name, rule_path)
-                    elif digest:
-                        native.run('rm', '--', rule_path)
-                    native.run('systemctl', 'daemon-reload')
-                if activation_added:
-                    # Mapping files were created only by this transaction and have not been changed.
-                    _, _, dropins = render(account.pw_uid, account.pw_gid, account.pw_name, home, deployment, binary)
-                    for path, body in zip(owned_paths(dropins), dropins.values()):
-                        if regular(path, private=True) != body:
-                            raise RuntimeError('Isolation relay changed during recovery')
-                        path.unlink()
-                    for name in ('active.json', 'session.env'):
-                        (home / '.local/state/jarvis/isolation' / name).unlink()
-                    subprocess.run(['/usr/bin/systemctl', '--user', 'daemon-reload'], check=True)
-                if inner_completed or tree_identity(deployment) != journal['original_tree']:
-                    if backup is None:
-                        raise RuntimeError('Deployment changed without a complete backup; manual recovery required')
-                    subprocess.run(['bash', str(ROOT / 'scripts/rollback.sh'), str(backup), '--no-restart'],
-                                   env=environment, check=True)
-                if tree_identity(deployment) != journal['original_tree']:
-                    raise RuntimeError('Previous source identity did not restore; workers remain stopped')
-                if old_router_text is None:
-                    old_router.unlink(missing_ok=True)
-                else:
-                    atomic(old_router, json.loads(old_router_text))
-                journal['phase'] = 'recovering-ready'
-                atomic(state, journal)
-                if original_binary and desired:
-                    subprocess.run(['/usr/bin/systemctl', '--system', '--no-ask-password', 'start', model.unit_name()], check=True)
-                    model.wait_model()
-                restore_running(previous_desired)
-                state.unlink()
-            except BaseException:
-                journal['phase'] = 'blocked'
-                atomic(state, journal)
-                print('Recovery could not finish. Workers stay stopped and the journal is retained for review.', file=sys.stderr)
-                raise
+                recover_transaction(home, journal, native)
             finally:
                 signal.signal(signal.SIGTERM, previous_signal)
             raise
@@ -574,6 +642,8 @@ def main():
         return 0
     signal.signal(signal.SIGTERM, lambda *_: (_ for _ in ()).throw(InterruptedError('Installation cancelled')))
     try:
+        if arguments == ['--recover']:
+            return resume_recovery(Path(os.environ.get('JARVIS_HOME', Path.home())))
         return run_install(arguments, Path(os.environ.get('JARVIS_HOME', Path.home())))
     except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
         print('Jarvis installation stopped: ' + str(error), file=sys.stderr)

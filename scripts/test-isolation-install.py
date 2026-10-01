@@ -83,7 +83,7 @@ with tempfile.TemporaryDirectory() as folder:
     assert 'OLLAMA_HOST=127.0.0.1:11435' in private and 'OLLAMA_NO_CLOUD=1' in private
     assert 'IPAddressDeny=any' in private and 'IPAddressAllow=127.0.0.1 ::1' in private
     assert 'NoNewPrivileges=yes' in private and f'User={os.getuid()}' in private
-    assert '11434' not in private and 'ollama.service"' not in rule
+    assert '11434' not in private and '"ollama.service"' not in rule
     assert model.unit_name() in rule and 'set-property' not in rule
 
     # Missing, stale, cross-operation and forged transaction tickets fail.

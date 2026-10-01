@@ -105,6 +105,10 @@ def model_files(store, expected=None):
     if expected and hashlib.sha256(raw).hexdigest() != expected:
         raise ValueError('Model manifest does not match Ollama inventory')
     data = json.loads(raw)
+    if (not isinstance(data, dict) or not isinstance(data.get('config'), dict)
+            or not isinstance(data.get('layers'), list)
+            or any(not isinstance(record, dict) for record in data['layers'])):
+        raise ValueError('Invalid model manifest structure')
     records = [data['config'], *data['layers']]
     if not 1 <= len(records) <= 32:
         raise ValueError('Model layer count needs review')
@@ -172,6 +176,10 @@ def prepare_models(home, report=print):
     if shutil.disk_usage(parent).free < total + 100_000_000:
         raise RuntimeError('Not enough space for the private Jarvis model copy')
     report('Preparing the private Jarvis model from existing local files…')
+    from installer_progress import Progress
+    progress = Progress('Preparing private model')
+    copied_bytes = 0
+    progress.__enter__()
     with tempfile.TemporaryDirectory(prefix='.models-', dir=parent) as temporary:
         stage = Path(temporary) / 'models'
         stage.mkdir(mode=0o700)
@@ -186,6 +194,8 @@ def prepare_models(home, report=print):
                 for chunk in iter(lambda: read.read(1024 * 1024), b''):
                     digest.update(chunk)
                     write.write(chunk)
+                    copied_bytes += len(chunk)
+                    progress.fraction(copied_bytes, total)
                 write.flush()
                 os.fsync(write.fileno())
             if new.stat().st_size != size or digest.hexdigest() != expected_digest:
@@ -194,6 +204,7 @@ def prepare_models(home, report=print):
         if destination.exists():
             raise RuntimeError('Private model destination changed during preparation')
         stage.rename(destination)
+    progress.__exit__(None, None, None)
 
 
 def render_unit(uid, gid, home, binary):

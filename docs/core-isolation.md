@@ -70,6 +70,11 @@ instances protect the selected daemon's direct networking, not every same-user
 program, mediated request or filesystem path. Reusing an installed executable
 does not bundle/authenticate upstream Ollama or provide complete offline setup.
 
+After a killed or interrupted coordinator, workers remain guarded. Use the
+verified new source's `scripts/isolation_install.py -- --recover` as the desktop
+user to restore the recorded previous deployment. Do not delete the journal or
+run recovery with sudo. Unknown or changed native files stop recovery for review.
+
 ## Stable 4.0.0: prepare and review before native changes
 
 First install the verified full runtime and release code through the reviewed
