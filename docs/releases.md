@@ -37,6 +37,9 @@ integration. Laptop lifecycle/announcement/music timing acceptance remains open.
 A bounded owner-terminal patch checks exact installed/source hashes with stopped
 workers, backs up privately in Downloads and registers only first-party Media
 locally with no index/dependency resolution; native policy/settings/models stay.
+The guarded handover commit 5e3451773fef0d756b3b45eaaa6a834aee8ed004
+also passes run 36808258392, including complete source/registration rollback,
+unknown-source/stopped-worker guards and the repeated clean-copy suite.
 This source candidate does not retag the original published test archive.
 
 **Slow-start readiness correction, source candidate:** the supplied core log
