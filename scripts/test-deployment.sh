@@ -1339,4 +1339,27 @@ test ! -e "$uninstall_home/.venvs/ovos"
 test -f "$uninstall_home/.var/app/net.mkiol.SpeechNote/marker"
 grep -Fxq 'rm qwen3:4b-instruct-2507-q4_K_M' "$test_root/uninstall-model.log"
 
+# A selected private model must never send rm to the general Ollama instance.
+private_home="$test_root/private-model-uninstall"
+mkdir -p "$private_home/.config/jarvis" "$private_home/.ollama/models"
+printf '%s\n' '{"backend":"jarvis"}' > "$private_home/.config/jarvis/router.json"
+printf '%s\n' keep > "$private_home/.ollama/models/general-marker"
+python3 - "$repo_root/scripts" "$private_home" <<'PY'
+import hashlib,json,sys
+from pathlib import Path
+sys.path.insert(0,sys.argv[1])
+from private_ollama import private_root,MANIFEST
+store=private_root(Path(sys.argv[2]))/'models'
+data=b'private model fixture';digest=hashlib.sha256(data).hexdigest()
+blob=store/'blobs'/('sha256-'+digest);blob.parent.mkdir(parents=True);blob.write_bytes(data)
+manifest=store/MANIFEST;manifest.parent.mkdir(parents=True)
+manifest.write_text(json.dumps({'config':{'digest':'sha256:'+digest,'size':len(data)},'layers':[]}))
+PY
+JARVIS_HOME="$private_home" JARVIS_TEST_MODE=1 \
+  JARVIS_UNINSTALL_MODEL_LOG="$test_root/private-uninstall-model.log" \
+  PATH="$uninstall_bin:$PATH" bash "$repo_root/scripts/uninstall.sh" --yes --remove-model
+test ! -e "$private_home/.local/share/jarvis/ollama/models"
+test -f "$private_home/.ollama/models/general-marker"
+test ! -e "$test_root/private-uninstall-model.log"
+
 echo "PASS: fresh install, reports, failure recovery, upgrade, staged stack and rollback"

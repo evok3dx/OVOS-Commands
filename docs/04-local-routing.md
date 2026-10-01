@@ -1,7 +1,10 @@
 # Local Qwen routing
 
 **VERIFIED in code:** the reviewed `qwen3:4b-instruct-2507-q4_K_M`
-model runs through the existing Ollama service on `127.0.0.1:11434`. The model
+model in stable V4 runs through the existing Ollama service on `127.0.0.1:11434`.
+The unpublished [guided-isolation candidate](core-isolation.md#guided-installer-candidate-401-not-yet-published)
+selects a dedicated instance on `127.0.0.1:11435` for isolated installations;
+there is no fallback between these two fixed endpoints. The model
 can select only actions allowed for the current request and enabled profile.
 Jarvis checks the focused window, expiry, cancellation and single-use dispatch
 before a desktop action. Text returned by the model is never run as shell or

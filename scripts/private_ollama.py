@@ -221,6 +221,36 @@ def render_unit(uid, gid, home, binary):
             'IPAddressDeny=any\nIPAddressAllow=127.0.0.1 ::1\nIPAccounting=yes\n')
 
 
+def remove_private_model(home):
+    """Remove only the verified private copy, never the general model store."""
+    if os.getuid() <= 0:
+        raise RuntimeError('Remove private model data as the desktop user, without sudo')
+    destination = private_root(home) / 'models'
+    if not destination.exists() and not destination.is_symlink():
+        return
+    if any(p.is_symlink() for p in (destination, *destination.parents)):
+        raise ValueError('Private model path needs review')
+    if not destination.is_dir() or destination.stat().st_uid != os.getuid():
+        raise ValueError('Private model directory must belong to this user')
+    files = model_files(destination)
+    expected = set(files)
+    observed = set()
+    for path in destination.rglob('*'):
+        if path.is_symlink() or path.stat().st_uid != os.getuid():
+            raise ValueError('Private model data ownership needs review')
+        if path.is_file():
+            observed.add(path.relative_to(destination))
+        elif not path.is_dir():
+            raise ValueError('Unexpected private model data')
+    if observed != expected:
+        raise ValueError('Extra private model data must be reviewed before removal')
+    for name, (digest, size) in files.items():
+        path = destination / name
+        if path.stat().st_size != size or digest_file(path) != digest:
+            raise ValueError('Private model data changed; removal stopped')
+    shutil.rmtree(destination)
+
+
 def wait_model(report=print, timeout=60):
     deadline = time.monotonic() + timeout
     last_report = 0

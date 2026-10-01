@@ -145,3 +145,11 @@ jobs:
           assert len(records) == 296
           print('PASS: real packaging 24.2 reproduces the former false conflict; all 296 exact reviewed dependencies pass with zero exemptions.')
           PY
+      - name: Retain the validated development archive
+        if: matrix.python-version == '3.11' && github.ref == 'refs/heads/work/isolation-installer'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: jarvis-isolation-installer-candidate
+          path: dist/ovos-commands-*.tar.gz*
+          if-no-files-found: error
+          retention-days: 14

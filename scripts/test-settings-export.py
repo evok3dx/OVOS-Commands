@@ -25,6 +25,7 @@ with tempfile.TemporaryDirectory() as temporary:
         ".config/jarvis/custom-commands.json": '{"version":1,"phrases":{}}\n',
         ".config/jarvis/listen-shortcut.json": '{"listen_shortcut":"<Super>l"}\n',
         ".config/jarvis/router.json": '{"enabled":true}\n',
+        ".config/jarvis/network-isolation.json": '{"schema_version":1,"enabled":true}\n',
         ".config/jarvis/update.json": '{"repository":null}\n',
         ".config/jarvis/reading-normal-speed": "13\n",
         ".config/mycroft/mycroft.conf": '{"listener":{"fake_barge_in_volume":20}}\n',

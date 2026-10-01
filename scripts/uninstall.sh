@@ -23,7 +23,7 @@ Speech Note and other desktop applications are never removed.
 
 Options:
   --yes              Confirm the uninstall
-  --remove-model     Also remove qwen3:4b-instruct-2507-q4_K_M from Ollama
+  --remove-model     Also remove Jarvis's selected reviewed model copy
   --remove-settings  Also remove Jarvis settings, custom commands and history
   --remove-ovos      Also remove ~/.venvs/ovos and per-user OVOS configuration
   -h, --help         Show this help
@@ -51,6 +51,18 @@ if ! "$yes"; then
   fi
   read -r -p "Remove Jarvis from this user account? [y/N] " answer
   [[ "${answer,,}" == y || "${answer,,}" == yes ]] || exit 0
+fi
+
+private_model=no
+if "$remove_model"; then
+  private_model="$(python3 - "$repo_root/scripts" "$jarvis_home" <<'PY'
+import sys
+from pathlib import Path
+sys.path.insert(0, sys.argv[1])
+from model_endpoint import model_port, PRIVATE_PORT
+print('yes' if model_port(Path(sys.argv[2])) == PRIVATE_PORT else 'no')
+PY
+)"
 fi
 
 mapfile -t helpers < <(python3 - "$repo_root/deployment-manifest.json" <<'PY'
@@ -91,6 +103,25 @@ if [[ "${JARVIS_TEST_MODE:-0}" != 1 ]]; then
   fi
 fi
 
+if "$remove_model"; then
+  if [[ "$private_model" == yes ]]; then
+    python3 - "$repo_root/scripts" "$jarvis_home" <<'PY'
+import os
+import sys
+from pathlib import Path
+sys.path.insert(0, sys.argv[1])
+from private_ollama import remove_private_model, unit_name
+from prepare_core_isolation import properties
+if os.environ.get('JARVIS_TEST_MODE') != '1':
+    if properties('--system', unit_name(), 'ActiveState').get('ActiveState') not in {'inactive', 'failed'}:
+        raise SystemExit('Stop the dedicated model service before removing its files.')
+remove_private_model(Path(sys.argv[2]))
+PY
+  elif command -v ollama >/dev/null 2>&1; then
+    ollama rm qwen3:4b-instruct-2507-q4_K_M >/dev/null 2>&1 || true
+  fi
+fi
+
 for helper in "${helpers[@]}"; do
   rm -f -- "$target_bin/$helper"
 done
@@ -104,10 +135,6 @@ for unit in "${unit_files[@]}"; do
   rm -f -- "$systemd_root/$unit"
 done
 rm -rf -- "$jarvis_home/.local/share/icons/ovos-tray"
-
-if "$remove_model" && command -v ollama >/dev/null 2>&1; then
-  ollama rm qwen3:4b-instruct-2507-q4_K_M >/dev/null 2>&1 || true
-fi
 
 if "$remove_settings"; then
   rm -rf -- "$config_root" "$state_root" "$jarvis_home/.local/state/jarvis-ui"

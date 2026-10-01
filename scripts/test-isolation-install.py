@@ -84,6 +84,13 @@ with tempfile.TemporaryDirectory() as folder:
             model.prepare_models(home, lambda _: None)
         (copied / blob_name).write_bytes(b'corrupt')
         rejects(model.prepare_models, home, lambda _: None)
+        rejects(model.remove_private_model, home)
+        (copied / blob_name).write_bytes(blob)
+        (copied / 'unreviewed').write_bytes(b'keep')
+        rejects(model.remove_private_model, home)
+        (copied / 'unreviewed').unlink()
+        model.remove_private_model(home)
+        assert not copied.exists() and (source / blob_name).read_bytes() == blob
     units, rule, _ = prepare.render(os.getuid(), os.getgid(), 'fixture', home,
                                     home / 'deployment', '/usr/bin/ollama')
     assert len(units) == 6
