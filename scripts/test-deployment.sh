@@ -31,6 +31,7 @@ python3 "$repo_root/scripts/test-isolated-media-routing.py"
 python3 "$repo_root/scripts/test-intent-cleanup.py"
 python3 "$repo_root/scripts/test-weather-location.py"
 python3 "$repo_root/scripts/test-lifecycle-hotfix.py" apply-v4-weather-fix.py
+python3 "$repo_root/scripts/test-lifecycle-hotfix.py" apply-v4-media-timing-fix.py
 python3 "$repo_root/scripts/test-installer-progress.py"
 python3 - "$repo_root/scripts/verify-wake-model.py" <<'PY'
 import os
