@@ -29,8 +29,14 @@ is 0.5–1 second, typing 10 ms per character and the final focus-checked pause
 cancellation, challenge reporting and browser allowlist remain. No bot-evasion
 or provider latency guarantee is claimed. Existing frozen runtime bytes and
 models are unchanged; the independently versioned Media plugin changes.
-**PLANNED verification:** ordinary-user source/clean-copy tests, exact hash-locked
-upstream boot-class integration and laptop lifecycle/music timing acceptance.
+**VERIFIED:** source commit 36e9fc7a9abd8be10992d1a8b3466f51761c4129,
+run 36807773926, passes Python 3.10–3.13, GTK, security/source/history/archive
+scans, full deployment/recovery and 350/350 clean-copy policy cases. The exact
+hash-locked upstream boot class passes readiness and real executor-cancellation
+integration. Laptop lifecycle/announcement/music timing acceptance remains open.
+A bounded owner-terminal patch checks exact installed/source hashes with stopped
+workers, backs up privately in Downloads and registers only first-party Media
+locally with no index/dependency resolution; native policy/settings/models stay.
 This source candidate does not retag the original published test archive.
 
 **Slow-start readiness correction, source candidate:** the supplied core log
