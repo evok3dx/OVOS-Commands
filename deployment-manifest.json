@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "release_version": "4.0.0",
+  "release_version": "4.0.1",
   "package_modules": [
     "__init__.py",
     "agents.py",
@@ -27,7 +27,8 @@
     "search_pacing.py",
     "_ovos_launcher.py",
     "launcher.py",
-    "discovery.py"
+    "discovery.py",
+    "model_endpoint.py"
   ],
   "integration_modules": [
     "__init__.py",
@@ -109,7 +110,11 @@
       "extras/ovos-ww-plugin-openwakeword-onnx/ovos_ww_plugin_openwakeword/utils/__init__.py",
       "extras/ovos-ww-plugin-openwakeword-onnx/ovos_ww_plugin_openwakeword/version.py",
       "extras/ovos-ww-plugin-openwakeword-onnx/pyproject.toml",
-      "extras/ovos-ww-plugin-openwakeword-onnx/readme.md"
+      "extras/ovos-ww-plugin-openwakeword-onnx/readme.md",
+      "scripts/model_endpoint.py",
+      "scripts/private_ollama.py",
+      "scripts/isolation_install.py",
+      "scripts/test-isolation-install.py"
     ],
     "plugin_rollback_preflight": [
       "scripts/check-plugin-rollback.py"

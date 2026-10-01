@@ -11,6 +11,7 @@ import sys
 import tempfile
 from urllib.error import URLError
 from urllib.request import urlopen
+from model_endpoint import model_port
 
 MODEL = "qwen3:4b-instruct-2507-q4_K_M"
 STAGES = ("jarvis-qwen-pipeline", "jarvis-unmatched-pipeline",
@@ -31,7 +32,7 @@ def inspect(home: Path):
     stages_ready = (isinstance(pipeline, list) and all(stage in pipeline for stage in STAGES)
                     and isinstance(persona, dict) and persona.get("handle_fallback") is False)
     try:
-        with urlopen("http://127.0.0.1:11434/api/tags", timeout=2) as response:
+        with urlopen(f"http://127.0.0.1:{model_port(home)}/api/tags", timeout=2) as response:
             models = json.load(response).get("models", [])
         model_ready = any(isinstance(model, dict) and model.get("name") == MODEL
                           for model in models)
@@ -89,6 +90,8 @@ def main():
     print(f"Reviewed {MODEL}: {'installed' if model else 'missing'}")
     print(f"Jarvis fallback: {'enabled' if isinstance(saved, dict) and saved.get('mode') == 'on' else 'off'}")
     if args.prepare and not model:
+        if model_port(Path.home()) != 11434:
+            parser.error('The private model must be prepared by Jarvis setup; no general-instance fallback or private daemon pull')
         if not ollama or shutil.which("ollama") is None:
             parser.error("Install and start Ollama on this computer, then rerun setup; no Jarvis files changed")
         if not args.yes:

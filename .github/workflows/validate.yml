@@ -105,11 +105,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          (cd dist && sha256sum --check ovos-commands-4.0.0.tar.gz.sha256)
+          version="$(python3 -c 'import json; print(json.load(open("compatibility.json"))["release_version"])')"
+          (cd dist && sha256sum --check "ovos-commands-$version.tar.gz.sha256")
           clean_dir="$RUNNER_TEMP/jarvis-clean-release"
           mkdir -m 700 "$clean_dir"
-          tar -xzf dist/ovos-commands-4.0.0.tar.gz -C "$clean_dir"
-          cd "$clean_dir/ovos-commands-4.0.0"
+          tar -xzf "dist/ovos-commands-$version.tar.gz" -C "$clean_dir"
+          cd "$clean_dir/ovos-commands-$version"
           python3 scripts/validate_refactor.py
           python3 scripts/test-v3-routing.py
           python3 scripts/test-qwen-safe-workflows.py

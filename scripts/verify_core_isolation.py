@@ -20,6 +20,7 @@ import sys
 sys.path.insert(0,str(Path(__file__).resolve().parent))
 from isolation_services import active,regular
 from isolation_worker import worker_identity
+from model_endpoint import model_port
 
 EVENT='jarvis.v4.isolation.probe'
 COMPONENTS=('core','listener','audio')
@@ -54,7 +55,7 @@ def tests():
             'ipv4_dns_udp':network_test(socket.AF_INET,'1.1.1.1',53,True),
             'ipv6_dns_udp':network_test(socket.AF_INET6,'2606:4700:4700::1111',53,True),
             'messagebus_loopback':network_test(socket.AF_INET,'127.0.0.1',8181),
-            'ollama_loopback':network_test(socket.AF_INET,'127.0.0.1',11434)}
+            'ollama_loopback':network_test(socket.AF_INET,'127.0.0.1',model_port())}
 
 
 def assessment(before,worker,after):

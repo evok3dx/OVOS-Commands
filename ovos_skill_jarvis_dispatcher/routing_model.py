@@ -393,10 +393,13 @@ class RequestCancelled(Exception):
     """The user started a new request or stopped the current one."""
 
 
-def local_json(payload, timeout, *, port=11434, cancel=None):
+def local_json(payload, timeout, *, port=None, cancel=None):
     """Loopback only, no proxies/redirects/retries, bounded body and wall time."""
     if type(timeout) not in (float, int) or not 0 < timeout <= 120:
         raise ValueError('Invalid timeout')
+    if port is None:
+        from .model_endpoint import model_port
+        port = model_port()
     deadline = time.monotonic() + timeout
     connection = http.client.HTTPConnection('127.0.0.1', port, timeout=timeout)
     watchdog = None

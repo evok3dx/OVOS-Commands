@@ -146,6 +146,10 @@ def native_policy_present(path,protected_rule=None):
 
 def guard_deployment(operation,home):
     if operation not in {'install','rollback','uninstall'}:raise ValueError('Unknown deployment operation')
+    if os.environ.get('JARVIS_ISOLATION_TRANSACTION'):
+        from isolation_install import authorised_transaction
+        authorised_transaction(operation,Path(home))
+        return
     if active(home):
         raise RuntimeError('Stop Jarvis and deactivate isolation before install, rollback or uninstall.')
     if operation in {'install','rollback','uninstall'}:
@@ -162,6 +166,7 @@ def guard_deployment(operation,home):
         rule=native/'polkit-1/rules.d'/f'90-jarvis-v4-{os.getuid()}.rules'
         paths.append(rule)
         paths.append(native/'systemd/system/ollama.service.d/90-jarvis-isolation.conf')
+        paths.append(native/'systemd/system'/f'jarvis-v4-{os.getuid()}-ollama.service')
         protected_rule=rule if native==Path('/etc') else None
         remaining=any(native_policy_present(path,protected_rule) for path in paths)
         if remaining:

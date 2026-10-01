@@ -161,6 +161,10 @@ def wait_ready(units, report=lambda text: None, timeout=180):
 def service_action(action, report=lambda text: None):
     if action not in {'start', 'stop', 'restart', 'commands'}:
         raise ValueError('Unknown service action')
+    if action != 'stop':
+        from isolation_install import installation_blocked
+        if installation_blocked():
+            raise RuntimeError('An installation needs recovery. Jarvis remains stopped; protection was not disabled.')
     if action!='stop':refresh_session()
     before = snapshot()  # Includes dependency relations before any mutation.
     active = [u for u in UNITS if before[u].get('ActiveState') == 'active']

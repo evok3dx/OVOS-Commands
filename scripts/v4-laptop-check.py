@@ -77,7 +77,8 @@ def model_identity(home):
              'upstream_authenticity_verified':False}
     try:
         opener = urllib.request.build_opener(urllib.request.ProxyHandler({}),NoRedirect())
-        with opener.open('http://127.0.0.1:11434/api/tags',timeout=2) as response:
+        from model_endpoint import model_port
+        with opener.open(f'http://127.0.0.1:{model_port(home)}/api/tags',timeout=2) as response:
             raw = response.read(1024*1024+1)
         if len(raw)>1024*1024:
             return value

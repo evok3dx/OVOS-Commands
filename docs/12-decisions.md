@@ -181,3 +181,27 @@ this desktop-control release until there is an actual integration requirement.
 - **PLANNED:** guided upgrades across the optional native isolation boundary.
   The current updater must retain its refusal while native data remains;
   manual owner-terminal removal and restoration must be exact and reviewed.
+
+## Guided isolation and dedicated model, 1 October 2026
+
+- **VERIFIED owner direction; implementation validation pending:** new installs
+  offer network isolation selected by default, briefly explaining administrator
+  approval. Existing installs keep their actual isolation choice and unknown
+  settings. Declining isolation retains the existing ordinary-user model path.
+- The selected isolated path uses a dedicated ordinary-user Ollama service,
+  fixed to `127.0.0.1:11435`, a private model directory and disabled cloud features.
+  Kernel IP restrictions apply to it and the voice workers. This explicitly
+  supersedes the earlier no-additional-local-port constraint for this one endpoint.
+  General Ollama, including any previously applied policy, is left unchanged.
+  There is no fallback from the dedicated instance to general Ollama.
+- Prepare the reviewed Qwen model before restricting it; verify local manifest
+  and blob digests and copy only that model without hardlinks or source deletion.
+  Reuse the trusted installed Ollama executable; do not install another platform.
+- Upgrades keep native policy and compatibility relays installed while replacing
+  managed code. An exact process-bound journal authorises only installation and
+  recovery. Preserve running/muted state, restore previous source/policy on failure
+  and keep workers blocked when recovery cannot finish. Never quietly downgrade.
+- Administrator operations remain bounded native file/service commands. The
+  exact account grant expands to its five workers and dedicated model unit,
+  start/stop/restart only. Routine upgrades require no new authentication when
+  native data is unchanged. Same-user and loopback mediation remain trusted.

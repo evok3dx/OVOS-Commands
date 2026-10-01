@@ -227,6 +227,9 @@ def run_component(component):
 
 
 def main():
+    from isolation_install import installation_blocked
+    if installation_blocked():
+        raise RuntimeError('Managed installation is incomplete; isolated workers remain stopped for recovery')
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('component',choices=COMPONENTS)
     parser.add_argument('--uid',type=int,required=True)

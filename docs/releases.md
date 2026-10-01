@@ -7,6 +7,25 @@ acceptance work. Durable design choices belong in
 under [`history/`](history/README.md). Other current documents link here rather
 than repeating release narratives.
 
+## 4.0.1 (implementation candidate, not published)
+
+Guided optional isolation is recommended by default only for new installations.
+Upgrades preserve the existing choice. Selected isolation uses a dedicated
+ordinary-user Ollama on a fixed loopback endpoint, with private model data and
+no general-instance fallback. General Ollama is unchanged. Existing local Qwen
+files are copied and hash-checked before activation; other models are excluded.
+
+The installer coordinates stopped workers, retained native policies, a private
+process-bound transaction and readiness/recovery rather than requiring manual
+policy removal. Native changes require administrator approval for service data;
+normal upgrades with unchanged native data do not. Existing microphone, startup,
+applications and unknown settings are retained.
+
+**Validation pending:** source/failure tests, clean deployment suite and live
+dedicated-model setup/egress have not yet been recorded for this candidate.
+Stable V4.0.0 assets and tag are unchanged. See
+[isolation guide](core-isolation.md) and [approved decisions](12-decisions.md).
+
 ## 4.0.0 (published stable, 1 October 2026)
 
 V4 includes the complete reviewed, hash-verified 296-package runtime with zero

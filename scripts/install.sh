@@ -44,6 +44,7 @@ bootstrap=false
 runtime_wheelhouse=""
 runtime_bundle=""
 runtime_source_build=false
+original_arguments=("$@")
 
 usage() {
   cat >&2 <<'EOF'
@@ -55,6 +56,8 @@ Options:
   --profile NAME       Migrate a legacy bundled profile
   --ovos-python PATH   OVOS virtualenv Python (default: ~/.venvs/ovos/bin/python)
   --bootstrap          Prepare missing OVOS and minimal desktop prerequisites
+  --isolation          Enable recommended isolation on a new installation (administrator approval)
+  --no-isolation       Install a new system without native network restrictions
   --runtime-wheelhouse PATH  Use the verified V4 wheels offline in the staging environment
   --runtime-bundle PATH  Use the separate code-pinned V4 wheel archive locally
   --runtime-source-build  Explicit reviewed source-build experiment; does not satisfy the V4 hash release gate
@@ -91,6 +94,9 @@ while (($#)); do
       ;;
     --bootstrap)
       bootstrap=true
+      shift
+      ;;
+    --isolation|--no-isolation)
       shift
       ;;
     --runtime-wheelhouse)
@@ -137,6 +143,12 @@ while (($#)); do
       ;;
   esac
 done
+
+# The coordinator runs as the desktop user and owns the isolated transaction.
+# Fixture installs never invoke administrator operations or real services.
+if ! "$check_only" && [[ "${JARVIS_TEST_MODE:-0}" != 1 && "${JARVIS_ISOLATION_COORDINATED:-0}" != 1 ]]; then
+  exec "$desktop_python" "$repo_root/scripts/isolation_install.py" -- "${original_arguments[@]}"
+fi
 
 if [[ -n "$runtime_wheelhouse" && -n "$runtime_bundle" ]] || \
    { "$runtime_source_build" && [[ -n "$runtime_wheelhouse" || -n "$runtime_bundle" ]]; }; then
@@ -856,7 +868,7 @@ fi
 
 # The reviewed local model is required for V3. The prompt and download happen
 # before any Jarvis files or configuration change. Existing models are reused.
-if [[ "${JARVIS_TEST_MODE:-0}" != 1 ]]; then
+if [[ "${JARVIS_TEST_MODE:-0}" != 1 && -z "${JARVIS_ISOLATION_TRANSACTION:-}" ]]; then
   "$desktop_python" "$repo_root/scripts/qwen-setup.py" --prepare
 fi
 
@@ -891,9 +903,13 @@ restore_failed_transaction() {
       rollback_script="$stage_release/scripts/rollback.sh"
     fi
     if [[ -f "$rollback_script" ]]; then
+      rollback_arguments=("$backup_root")
+      if [[ -n "${JARVIS_ISOLATION_TRANSACTION:-}" ]]; then
+        rollback_arguments+=(--no-restart)
+      fi
       JARVIS_HOME="$jarvis_home" OVOS_PYTHON="$ovos_python" \
         JARVIS_TEST_MODE="${JARVIS_TEST_MODE:-0}" \
-        bash "$rollback_script" "$backup_root" || true
+        bash "$rollback_script" "${rollback_arguments[@]}" || true
     elif [[ -d "$backup_root/target-root" && ! -d "$target_root" ]]; then
       cp -a "$backup_root/target-root" "$target_root" || true
     fi
@@ -1172,6 +1188,9 @@ else
   fi
 fi
 
+if [[ -n "${JARVIS_ISOLATION_TRANSACTION:-}" ]]; then
+  "$desktop_python" "$repo_root/scripts/isolation_install.py" -- --record-backup "$backup_root"
+fi
 transaction_active=true
 if [[ -d "$target_root" ]]; then
   mv -- "$target_root" "$backup_root/target-root"
@@ -1323,7 +1342,7 @@ fi
 "$desktop_python" "$target_root/scripts/configure-microphone.py" \
   --config "$ovos_config"
 
-if [[ "${JARVIS_TEST_MODE:-0}" != 1 ]]; then
+if [[ "${JARVIS_TEST_MODE:-0}" != 1 && -z "${JARVIS_ISOLATION_TRANSACTION:-}" ]]; then
   "$desktop_python" "$target_root/scripts/qwen-setup.py" --enable
 fi
 
@@ -1575,7 +1594,7 @@ PY
     systemctl --user disable --now jarvis-update-check.timer >/dev/null 2>&1 || true
   fi
 
-  if "$restart"; then
+  if "$restart" && [[ -z "${JARVIS_ISOLATION_TRANSACTION:-}" ]]; then
     "$target_bin/jarvis-restart" --full
     # systemctl may briefly report active while ExecStart immediately fails.
     # Keep the automatic rollback armed until both services report ready.
@@ -1591,7 +1610,7 @@ PY
 
   # Start the new tray only after final validation. A failed transaction must
   # not leave a process whose helpers have just been rolled back or removed.
-  if "$tray_installed"; then
+  if "$tray_installed" && [[ -z "${JARVIS_ISOLATION_TRANSACTION:-}" ]]; then
     pkill -f "$target_bin/ovos-tray" 2>/dev/null || true
     nohup "$target_bin/ovos-tray" > "$state_root/ovos-tray.log" 2>&1 &
   fi

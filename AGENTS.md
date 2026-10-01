@@ -73,7 +73,9 @@ If any one of these layers is missing, the command change is incomplete.
   may gain only the reviewed application operations.
 - Keep strict matching for destructive, privacy-sensitive and power actions.
 - Recheck focused-window identity before typing or submitting text.
-- Introduce no listening port. Preserve the existing local Ollama boundary.
+- Introduce no public listener. The owner-approved dedicated Jarvis Ollama may
+  bind only 127.0.0.1:11435; existing general Ollama remains unchanged. All Jarvis
+  model calls use the selected fixed endpoint, with no fallback between instances.
 - Keep Media and File Search as separate plugins; do not fold them into the
   dispatcher merely for convenience.
 - Preserve user configuration, models, enabled apps, spoken names, personal
@@ -108,7 +110,8 @@ If any one of these layers is missing, the command change is incomplete.
   failure recovery first. Owner-terminal native commands install/remove data;
   never execute generated review text as a root script. Worker Python remains
   the ordinary user with no effective capabilities and NoNewPrivileges. Only
-  the exact account, five static unit names and start/stop/restart verbs may
+  the exact account, five static worker names plus its dedicated Ollama unit,
+  and start/stop/restart verbs may
   receive a polkit grant. Activation verifies only its exact public native rule
   with fixed native stat/checksum commands using cached owner authorisation;
   it must never request/read a password or other root file. A temporary-policy

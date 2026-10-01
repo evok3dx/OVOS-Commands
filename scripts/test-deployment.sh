@@ -161,6 +161,7 @@ python3 "$repo_root/scripts/test-dependency-lock.py"
 python3 "$repo_root/scripts/test-v4-handover.py"
 python3 "$repo_root/scripts/test-startup-settings.py"
 python3 "$repo_root/scripts/test-core-isolation-candidate.py"
+python3 "$repo_root/scripts/test-isolation-install.py"
 python3 "$repo_root/scripts/test-boot-readiness.py"
 python3 "$repo_root/scripts/test-lifecycle-hotfix.py"
 python3 "$repo_root/scripts/test-lifecycle-hotfix.py" apply-v4-final-fix.py

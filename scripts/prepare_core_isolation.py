@@ -20,6 +20,8 @@ from isolation_worker import verify_pins
 DROPIN='90-jarvis-isolation.conf'
 SOURCES=('scripts/isolation_worker.py','scripts/isolation_services.py','scripts/weather_boundary.py',
          'scripts/verify_core_isolation.py','scripts/prepare_core_isolation.py','scripts/runtime_provenance.py',
+         'scripts/isolation_install.py','scripts/private_ollama.py','scripts/model_endpoint.py',
+         'ovos_skill_jarvis_dispatcher/model_endpoint.py',
          'voice/runtime-linux-x86_64-py311.json','voice/runtime-wheels-linux-x86_64-py311.txt')
 
 
@@ -55,7 +57,7 @@ def environment_file_path(value):
     return value.replace('%','%%')
 
 
-def render(uid,gid,username,home,deployment):
+def render(uid,gid,username,home,deployment,model_binary=None):
     if type(uid) is not int or type(gid) is not int or uid<=0 or gid<=0:
         raise ValueError('Workers must use an ordinary user/group')
     if not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_-]{0,63}',username):raise ValueError('Account name needs review')
@@ -66,6 +68,8 @@ def render(uid,gid,username,home,deployment):
         dependencies=''
         if name=='core':
             helpers=' '.join(f'jarvis-v4-{uid}-{part}.service' for part in ('weather','media'))
+            if model_binary:
+                helpers += f' jarvis-v4-{uid}-ollama.service'
             dependencies=f'Wants={helpers}\nBindsTo=jarvis-v4-{uid}-audio.service\nAfter=jarvis-v4-{uid}-audio.service\n'
         elif name in {'weather','media'}:
             dependencies=f'PartOf=jarvis-v4-{uid}-core.service\nBindsTo=jarvis-v4-{uid}-core.service\nAfter=jarvis-v4-{uid}-core.service\n'
@@ -87,6 +91,10 @@ def render(uid,gid,username,home,deployment):
         if name in LOGICAL.values():
             text+='IPAddressDeny=any\nIPAddressAllow=127.0.0.1 ::1\nIPAccounting=yes\n'
         units[f'jarvis-v4-{uid}-{name}.service']=text
+    if model_binary:
+        from private_ollama import render_unit, unit_name
+        if not Path(model_binary).is_absolute():raise ValueError('Absolute model executable required')
+        units[unit_name(uid)] = render_unit(uid,gid,home,model_binary)
     rule=('polkit.addRule(function(action, subject) {\n'
           '  if (action.id !== "org.freedesktop.systemd1.manage-units" || '
           f'subject.user !== {json.dumps(username)}) return;\n'
@@ -101,7 +109,7 @@ def render(uid,gid,username,home,deployment):
     return units,rule,dropins
 
 
-def prepare(output,deployment):
+def prepare(output,deployment,model_binary=None):
     account=pwd.getpwuid(os.getuid())
     if account.pw_gid!=os.getgid():raise ValueError('Account group needs review')
     verify_pins()
@@ -117,7 +125,7 @@ def prepare(output,deployment):
         raise ValueError('Candidate directory must be private and user-owned')
     output.parent.mkdir(parents=True,exist_ok=True,mode=0o700);output.mkdir(mode=0o700)
     try:
-        units,rule,dropins=render(account.pw_uid,account.pw_gid,account.pw_name,account.pw_dir,deployment)
+        units,rule,dropins=render(account.pw_uid,account.pw_gid,account.pw_name,account.pw_dir,deployment,model_binary)
         files={**units,f'90-jarvis-v4-{account.pw_uid}.rules':rule,
                **{name+'.dropin':body for name,body in dropins.items()}}
         for name,body in files.items():private_file(output/name,body)
@@ -125,6 +133,7 @@ def prepare(output,deployment):
               'home':account.pw_dir,'deployment':str(deployment),
               'source_sha256':source_hashes(deployment),
               'sha256':{name:hashlib.sha256(body.encode()).hexdigest() for name,body in files.items()}}
+        if model_binary:info['model_binary']=model_binary
         private_file(output/'candidate.json',json.dumps(info,indent=2)+'\n')
         installs=[];removal=['sudo /usr/bin/systemctl stop '+' '.join(units)]
         for name in [*units,f'90-jarvis-v4-{account.pw_uid}.rules']:
@@ -160,7 +169,7 @@ def read_candidate(path,validate_source=True):
     if (info.get('schema_version')!=1 or info.get('uid')!=os.getuid() or info.get('gid')!=os.getgid()
             or info.get('username')!=account.pw_name or info.get('home')!=account.pw_dir):
         raise ValueError('Candidate account does not match')
-    units,rule,dropins=render(info['uid'],info['gid'],info['username'],info['home'],info['deployment'])
+    units,rule,dropins=render(info['uid'],info['gid'],info['username'],info['home'],info['deployment'],info.get('model_binary'))
     if validate_source and info.get('source_sha256')!=source_hashes(Path(info['deployment'])):
         raise ValueError('Candidate source changed. Prepare/review a new candidate before activation')
     files={**units,f'90-jarvis-v4-{info["uid"]}.rules':rule,**{name+'.dropin':body for name,body in dropins.items()}}
@@ -235,10 +244,11 @@ def owned_paths(dropins):
     return [Path.home()/'.config/systemd/user'/(unit+'.d')/DROPIN for unit in dropins]
 
 
-def activate(candidate):
+def activate(candidate,verify_rule=True):
     info,units,rule,dropins=read_candidate(candidate)
     if active():raise ValueError('Isolation already activated')
-    stopped();verify_native_units(info,units);verify_native_rule(info['uid'],rule)
+    stopped();verify_native_units(info,units)
+    if verify_rule:verify_native_rule(info['uid'],rule)
     root=Path.home()/'.local/state/jarvis/isolation'
     if any(p.is_symlink() for p in (root,*root.parents)):raise ValueError('Isolation staging must be regular')
     root.mkdir(parents=True,exist_ok=True,mode=0o700)
@@ -293,12 +303,16 @@ def main():
     parser.add_argument('action',choices=('prepare','activate','deactivate'))
     parser.add_argument('--output',type=Path);parser.add_argument('--candidate',type=Path)
     parser.add_argument('--deployment',type=Path,default=Path.home()/'.local/src/ovos-skill-jarvis-dispatcher')
+    parser.add_argument('--model-binary',type=str,help='include the dedicated Jarvis model service in a new candidate')
     args=parser.parse_args()
     if os.getuid()<=0 or os.getuid()!=os.geteuid() or os.getgid()!=os.getegid():parser.error('Never sudo Python; use the ordinary desktop account')
     if args.action=='prepare':
         if args.candidate:parser.error('prepare needs a new output, not --candidate')
         output=args.output or Path.home()/'Downloads/jarvis-v4-isolation-candidates'/secrets.token_hex(8)
-        print(prepare(output,args.deployment));return
+        if args.model_binary:
+            from private_ollama import verify_executable
+            verify_executable(args.model_binary)
+        print(prepare(output,args.deployment,args.model_binary));return
     if not args.candidate or args.output:parser.error('Use the exact reviewed --candidate directory')
     from control_runtime import operation_lock
     with operation_lock():

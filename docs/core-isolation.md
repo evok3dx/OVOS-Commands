@@ -39,7 +39,38 @@ and bounds each request with connect/read limits and a 14-second child timeout.
 Only public weather/location requests leave that helper. This adapter is not
 a sandbox against malicious same-user plugin code.
 
-## Prepare and review before native changes
+## Guided installer candidate (4.0.1, not yet published)
+
+New installations offer **Enable network isolation (recommended)** selected
+by default. The short explanation says administrator approval is needed to block
+internet access for Jarvis voice processing and its local model; Weather and
+Media retain their separate online workers. Declining keeps the ordinary model
+path. Unattended first installs must explicitly choose `--isolation` or
+`--no-isolation`; they never silently request a password. Upgrades preserve the
+existing choice without presenting the first-install question again.
+
+Selected isolation adds only an account-specific private Ollama service on
+`127.0.0.1:11435`, with its model files under user-owned Jarvis data and cloud
+features disabled. The normal Ollama executable is reused. Only the reviewed
+Qwen model is copied, with every manifest/blob hash verified; the general model
+store and service are not modified. Jarvis never falls back to port 11434 when
+its private service is unavailable. A previously installed restriction on general
+Ollama remains unchanged and needs its own separately reviewed removal if wanted.
+
+During upgrades the native IP policy and relays remain installed. A private,
+process-bound journal permits only the managed install/recovery while workers
+are stopped. Previous source identity and native data are restored on failure;
+an incomplete recovery blocks startup instead of starting unrestricted workers.
+First enablement or a native-data migration needs bounded administrator approval.
+Repeated upgrades with unchanged native data do not. Worker/model execution remains
+ordinary-user; the grant covers six exact units and three control verbs only.
+
+The implementation candidate still needs automated and live acceptance. Separate
+instances protect the selected daemon's direct networking, not every same-user
+program, mediated request or filesystem path. Reusing an installed executable
+does not bundle/authenticate upstream Ollama or provide complete offline setup.
+
+## Stable 4.0.0: prepare and review before native changes
 
 First install the verified full runtime and release code through the reviewed
 staged path. Isolation preparation requires complete version parity and the
