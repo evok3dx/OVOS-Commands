@@ -285,7 +285,9 @@ fake_skill = SimpleNamespace(
     speak=lambda text, **kwargs: (media_order.append("acknowledgement"), spoken.append((text, kwargs))),
     log=SimpleNamespace(info=lambda *_args: None),
 )
-from ovos_skill_jarvis_dispatcher.search_pacing import SearchCoolingDown
+pacing_spec=importlib.util.spec_from_file_location('jarvis_pacing_regression',ROOT/'ovos_skill_jarvis_dispatcher/search_pacing.py')
+pacing_module=importlib.util.module_from_spec(pacing_spec);pacing_spec.loader.exec_module(pacing_module)
+SearchCoolingDown=pacing_module.SearchCoolingDown
 handle_scope = {"normalise_query": media.normalise_query,
                 "threading": SimpleNamespace(Thread=FakeThread,Event=threading.Event),
                 "SearchCoolingDown": SearchCoolingDown}
