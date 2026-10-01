@@ -33,12 +33,19 @@ scans, clean-copy deployment/recovery/uninstall and 350/350 policy cases.
 All 296 reviewed dependency records pass with zero exemptions. The development
 branch retains a checksum-bearing candidate archive after validation.
 
-**Live acceptance pending:** actual dedicated-model setup/egress, fresh setup,
-legacy-isolation migration and native recovery still need the owner's laptop.
+**VERIFIED supplied live output:** interrupted recovery restored the previous
+deployment and isolation choice, then the corrected 4.0.1 installer completed
+legacy native-isolation migration to the dedicated model. Health reports zero
+failures/warnings; existing audio, wake, microphone and model settings were
+retained. The owner explicitly reviewed application selection. Private model
+inventory and Qwen readiness passed; voice readiness and final activation passed.
+The installer reports general Ollama unchanged. Fresh setup and actual private
+daemon generation/IPv4/IPv6 egress checks remain pending; successful installation
+and model inventory do not prove network enforcement.
 Stable V4.0.0 assets and tag are unchanged. See
 [isolation guide](core-isolation.md) and [approved decisions](12-decisions.md).
 
-**Live trial blocked:** the dedicated model became available, but a guard import
+**Historical trial failure, resolved in supplied live output:** the dedicated model became available, but a guard import
 before the worker's script-path setup failed under Python `-I`. Recovery then
 rejected stopped failed workers. The corrected candidate moves the import after
 identity/path setup and requires zero worker/control PIDs before recovery;
@@ -47,8 +54,7 @@ Python bootstrap and retain the real transaction guard. **VERIFIED correction:**
 run [36930863713](https://github.com/evok3dx/OVOS-Commands/actions/runs/36930863713)
 passes all six jobs at `5dd0a9069a22dff51bb3614aa8824a3e75adb8ba`, including
 the actual `-I` bootstrap and stopped-failed checks in the clean archive,
-350/350 policy cases and all 296 dependencies. Owner recovery and corrected
-live acceptance remain pending; the earlier automated pass did not cover this
+350/350 policy cases and all 296 dependencies. The earlier automated pass did not cover this
 startup path. Published V4.0.0 is unchanged.
 
 **Second live recovery gate:** rollback rebuilt local packages and added only
@@ -62,8 +68,9 @@ to resume after removal of the new private-model unit. **VERIFIED correction:**
 run [36933078765](https://github.com/evok3dx/OVOS-Commands/actions/runs/36933078765)
 passes all six jobs at `24dec6a8e412fe55a14461e0e57bb36f5374af62`, including
 exact source recovery and native retry regressions in the clean archive,
-350/350 policy cases and the unchanged 296-package closure. Owner recovery
-remains pending; this does not alter stable V4.0.0.
+350/350 policy cases and the unchanged 296-package closure. Supplied live output
+now confirms exact-source recovery and successful installation; this does not
+alter stable V4.0.0.
 
 ## 4.0.0 (published stable, 1 October 2026)
 
