@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "release_version": "4.0.0rc2",
+  "release_version": "4.0.0",
   "validated_on": "2026-09-28",
   "support": {
     "operating_system": "Linux",
@@ -155,7 +155,7 @@
       "wheel_manifest": "voice/runtime-wheels-linux-x86_64-py311.artifacts.json",
       "evidence": "voice/runtime-candidate-evidence.json",
       "build_lock": "voice/runtime-build-tools.txt",
-      "production_approved": false,
+      "production_approved": true,
       "wake_plugin_source": "extras/ovos-ww-plugin-openwakeword-onnx"
     }
   },

@@ -142,3 +142,24 @@ Contradictions stay visible in the [historical audit](history/v2.4-audit.md).
 previously reviewed baseline. They do not describe the reference system's upgraded media
 and alpha voice stack. The broader five-reviewer model design belongs outside
 this desktop-control release until there is an actual integration requirement.
+
+## Stable V4 scope decision, 1 October 2026
+
+- **VERIFIED owner direction:** publish the working V4 implementation as 4.0.0
+  for the controlled small-client deployment. Reuse existing passing behaviour
+  checks, scan/verify the final release assets and request no further laptop
+  tests. See [release record](releases.md) for the exact accepted limits.
+- **VERIFIED exercised music acceptance:** retain immediate acknowledgement and
+  a cancellable three-second post-result transition. Existing tabs are not
+  forcibly stopped; overlapping playback is an accepted follow-up. No timing
+  value guarantees avoiding provider challenges. Longer `Put on {title}` wording
+  remains available without changing recognition policy.
+- **VERIFIED weather observation:** new-city search/reverse takes roughly 13
+  seconds, forecast roughly two; repeated locations skip the city lookup.
+  These durations include wrapper/network/provider work. Leave the provider,
+  deadlines and isolation policy unchanged for V4.
+- **PLANNED broader assurance:** real-model/acoustic coverage, all desktop/login
+  variants, mediated/inherited socket and native recovery checks, effective
+  Hermes permissions and maintainer account protections retain their unverified
+  status. Stable publication is not a claim those checks passed. Production
+  signatures and fresh-OS/model offline packaging remain deferred.

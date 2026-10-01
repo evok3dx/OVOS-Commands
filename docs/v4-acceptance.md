@@ -1,7 +1,27 @@
 # V4 laptop acceptance and dependency handover
 
-Status: **PLANNED live acceptance.** Implementation and isolated evidence are
-recorded once in [releases](releases.md). The source candidate is published; the stable V4 release remains gated.
+Status: **owner-authorised stable V4 publication** using existing passed source,
+recovery and clean-copy checks plus exercised laptop results. See
+[release record](releases.md) for the current evidence and explicit limits.
+No additional laptop tests are requested for this release.
+
+Completed evidence includes full 296-package pins/hash installation with zero
+exemptions, scoped actual core/listener/audio/Ollama IPv4/IPv6 controls, exercised
+reading/writing/clipboard/window/weather actions, startup/lifecycle controls and
+the accepted three-second post-result music transition.
+
+Full acoustic/real-model 350-case coverage, all GUI/Zoom/login/focus variants,
+weather interruption, mediated/inherited socket/native recovery acceptance,
+Hermes permissions and owner account/repository protections remain unverified.
+Production signing, city-time/web-answer restoration, Flatpak and full fresh-OS
+model offline installation are deferred. These are limits, not passing tests.
+
+## Historical acceptance procedure
+
+The sections below preserve earlier candidate collection and prototype steps.
+Their old blocking statements describe those historical checkpoints; the stable
+scope decision above supersedes their publication instruction. They are not
+new requests to rerun successful probes or rebuild the working runtime.
 
 ## First checkpoint: read-only laptop evidence
 

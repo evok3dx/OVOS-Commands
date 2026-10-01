@@ -7,7 +7,46 @@ acceptance work. Durable design choices belong in
 under [`history/`](history/README.md). Other current documents link here rather
 than repeating release narratives.
 
-## V4 music opening minimum (source candidate; automated and live retry pending)
+## 4.0.0 (owner-authorised stable release; publication in progress)
+
+V4 includes the complete reviewed, hash-verified 296-package runtime with zero
+dependency exemptions, retained NumPy 2 and the ONNX-only wake plugin. Local
+voice/Qwen remain on the reviewed stack. Native service isolation, separate
+Weather/Media workers, guarded desktop handoffs, terminal-input blocking,
+private-agent confirmation, report privacy, HTTPS/archive guards and scoped
+rollback are included. General separates quiet tray startup from voice startup;
+Dashboard controls the current session. Readiness uses actual worker replies.
+
+Media 0.3.5 acknowledges before lookup and waits three seconds after a valid
+result before opening it. The exercised laptop retry is accepted. Qwen and the
+shared 11-second search gap remain. Named-city weather uses that city's
+coordinates/timezone without changing saved preferences. Newly resolved cities
+can take about 15 seconds; repeated locations avoid the lookup. Multiple music
+tabs may play concurrently; selecting another song does not claim to stop the
+previous tab. These two limitations are accepted for this release.
+
+**Scope decision:** publish the current working implementation for the controlled
+small-client deployment using existing passed checks and exercised laptop
+results. No additional laptop tests are requested. Full acoustic/real-model
+350-case coverage, every Zoom/fresh-login/focus variant, weather interruption,
+mediated/inherited socket and native recovery acceptance, Hermes permissions and
+owner account/repository protection remain explicitly unverified. Production
+signatures, full fresh-OS/model offline installation and Flatpak are deferred.
+World-time city routing and online Wikipedia/WikiHow answers are deferred; those
+web skills stay disabled in restricted core. Same-user/X11 access remains trusted.
+
+**VERIFIED behaviour source:** run 36819754595 at
+884259cf18c4df25819d630e78dcbee921fb700f passes all six jobs, complete deployment
+and rollback, source/history/archive scans, exact upstream regressions, 350/350
+clean-copy policy cases and the complete closure. Stable packaging verifies
+those behaviour files are unchanged, rebuilds only the three first-party wheels,
+rechecks the retained runtime, scans the exact archive/assets and verifies public
+checksums/tag. Runtime SHA-256 remains
+03cbba7effa9046d9ce7a63b26d9a0b886eebf4f58f445dda2ae37af07e8c288.
+Final publication evidence will be recorded after the public assets are verified.
+See [V4 release notes](release-v4.0.0.md). Original rc1/rc2 assets remain intact.
+
+## Post-rc2 music correction (verified source and exercised laptop retry)
 
 Media 0.3.5 queues its acknowledgement immediately, then waits three seconds
 after finding a valid result before opening it, regardless of lookup duration. Stop and title replacement cancel the remaining wait. The shared
@@ -30,11 +69,12 @@ private Downloads backup, registers only Media locally without dependency
 resolution, and restores source/prior registration on failure. Its automated
 validation passes all six jobs in run 36819754595, including source guards,
 source/registration rollback, three-second transition cancellation and
-350/350 clean-copy policy cases. The laptop retry is pending.
+350/350 clean-copy policy cases. The exercised laptop music retry passes;
+Stop/replacement interruption remains automated evidence only.
 See [music timing handover](v4-media-timing.md). The published rc2 archive/tag
 is unchanged.
 
-## V4 source correction after rc2 (verified source; laptop retry pending)
+## Post-rc2 weather and handler correction (verified source; exercised laptop weather)
 
 **VERIFIED owner music timing:** the owner reports the final patch works and
 the song timing is satisfactory. The acknowledgement is queued before the

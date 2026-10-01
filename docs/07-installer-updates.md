@@ -1,6 +1,6 @@
 # Installer, updates and rollback
 
-This page describes the current deployment contract and unpublished V4 candidate. Historical release
+This page describes the current V4 deployment contract. Historical release
 trials and their failures are retained under [`docs/history/`](history/README.md).
 
 ## Supported target
@@ -44,17 +44,27 @@ source commits and hashes are in [`compatibility.json`](../compatibility.json).
 Conflicting legacy YouTube providers are deliberately excluded; Jarvis Media
 uses a bounded YouTube lookup and an enabled browser instead.
 
-V4 keeps the complete captured inventory separate from the derived candidate.
-Its optional `--runtime-wheelhouse PATH` install path verifies the complete
-wheel lock, installs offline with enforced hashes only into the unpublished
-OVOS stage, and checks package parity before any switch. Bad/missing wheels
-fail without index fallback. The normal source path uses explicit hash-pinned
-build tools and no implicit build isolation. Automatic verified-wheel
-distribution and laptop acceptance are still pending release gates.
+V4 uses the separately distributed, code-pinned runtime bundle. It verifies the
+complete archive and all 296 wheel hashes, checks dependency closure, installs
+into a private stage with `--no-index --no-deps --require-hashes`, and verifies
+parity before switching. Bad or missing bytes stop without index fallback.
+`--runtime-bundle PATH` accepts a saved verified ZIP; `--runtime-wheelhouse PATH`
+accepts the complete reviewed wheels. `--runtime-source-build` is an explicit
+investigation mode, not the normal hash-enforced release path. Python, OS tools
+and uncached voice/Qwen models remain separate requirements; this is not a
+complete offline fresh-machine installer.
 
-Overview separates **Auto-start at login** from **Run Jarvis / Stop Jarvis**.
-The saved startup preference survives updates. Login opens the tray quietly;
-turning auto-start off leaves the current running session alone.
+General has independent **Start app minimised at login** and **Start voice
+services at login** choices. Dashboard Run/Stop affects the current session.
+Updates preserve both choices; opening the tray alone does not start voice.
+
+Native isolation is separately prepared and activated. A normal install,
+update, rollback or uninstall refuses active or remaining native isolation data.
+Stop voice and follow the reviewed deactivation and exact owned-data removal
+instructions in [core isolation](core-isolation.md) before a full transaction.
+Never bypass that guard or reset unrelated firewall/service policy. A laptop
+already using the final guarded patches has current behaviour code; publication
+alone does not require another runtime reinstall.
 
 ## What an update owns
 

@@ -63,14 +63,14 @@ created or silently managed by this repository.
 Before installing a downloaded archive:
 
 ```bash
-version=3.9.0
+version=4.0.0
 sha256sum --check "ovos-commands-$version.tar.gz.sha256"
 tar -tzf "ovos-commands-$version.tar.gz"
 ```
 
-## V4 candidate safeguards
+## V4 safeguards
 
-**VERIFIED in isolated tests; V4 test candidate:** generic writing and submission
+**VERIFIED in source and isolated tests:** generic writing and submission
 refuse terminal windows and recheck the focused target. Prompts to the
 tool-capable private agent require readback and an exact, single-use `send it`.
 Reading clears its temporary clipboard text after a bounded handoff and never
@@ -84,28 +84,27 @@ hosts, alongside checksum and extraction checks. Source/history and candidate
 artifact scans are part of release validation, not a guarantee that reports
 contain no sensitive content.
 
-The complete V4 runtime has a version inventory plus source and wheel hash
-locks. Offline candidate installation enforces every wheel hash and rejects
-dependency conflicts. Production installation, live voice acceptance and core
-egress enforcement are still release gates. Local processing does not mean
-internet access is blocked; see [V4 acceptance](v4-acceptance.md) for the precise
-boundary. Signed updates are a prototype, not an enabled production feature.
+The complete V4 runtime has exact versions and wheel/source hash identities.
+Default staged installation enforces all wheel hashes and rejects dependency
+conflicts with zero exemptions. The reviewed laptop installation and scoped
+voice/desktop functions are exercised. Installation receipts record provenance;
+they do not rehash every installed file on each run. Model identities retain
+explicit verification limits; a mutable tag is not a frozen digest.
 
-The restored V4 installer requires full wheel hashes and private installation
-provenance before a staged runtime can be reused. Its separate bundle builder
-and failure checks pass on real fixture wheels. The recovered complete runtime
-has passed ordinary-user offline hash installation and byte verification; its
-exact retained archive is used for the owner-authorised laptop test. Actual
-laptop acceptance remains open. Installation receipts
-record provenance; they do not rehash installed files on every run.
+Optional [native service isolation](core-isolation.md) keeps workers as the
+ordinary desktop user and separates Weather/Media and desktop launches from
+restricted core/listener/audio. Scoped actual IPv4/IPv6 TCP/DNS probes and
+Ollama denial/local inference pass. Broader mediated/inherited sockets and native
+recovery remain unverified. The same-user bus, plugins and X11 session remain
+trusted; no defence against a compromised desktop user is claimed. Installation
+alone does not activate isolation. Existing native data blocks a full normal
+update until its reviewed deactivation/removal path is completed.
 
-The [service isolation candidate](core-isolation.md) prepares reviewed native
-service data while all workers remain the ordinary desktop user. Weather and
-Media stay separate, and the existing desktop launcher stays outside the
-restricted workers. Narrow control authorisation and transactional removal are
-tested in isolation. Live enforcement, Ollama and mediated/inherited sockets
-remain unverified; neither a receipt nor the earlier temporary probe enables
-an isolation claim. The same-user bus and desktop session remain trusted.
+Production signatures remain deferred for the controlled small-client deployment.
+Hermes sandbox/tool permissions and maintainer-account protections require their
+separate review. The stable release uses existing passed behaviour checks and
+scans/verifies its exact public assets; it does not certify every outstanding
+laptop acceptance path. See [release record](releases.md).
 
 ## Updating Jarvis and OVOS
 

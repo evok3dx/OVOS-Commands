@@ -50,7 +50,7 @@ are enabled in isolation. They are blacklisted in the core and have no reviewed
 standalone helper yet. General questions can consequently reach local Qwen.
 Preserve network isolation while investigating those compatibility gaps.
 
-The final V4 music candidate restores direct title routing to the separate
+V4 restores direct title routing to the separate
 Media worker; Qwen still handles semantic fallbacks. A new music request during
 the owner-selected 11-second shared search gap waits locally and says only
 "Let me spin that track". Stop cancels the pending request, and another title
@@ -227,3 +227,21 @@ The archive is saved in `~/Downloads`. It includes versions, validation,
 service state and integrity information. It excludes raw logs, audio,
 transcripts, clipboard contents and messages by default, and is never uploaded
 automatically. Review it before sharing.
+
+## V4 release follow-ups
+
+Choosing another song can open a new tab while the earlier tab keeps playing.
+Stop/pause existing playback explicitly or close the earlier tab; automatic
+previous-tab replacement is deferred. `Put on {title}` is an existing longer
+alternative when recognition mishears `Play`.
+
+New weather locations can spend roughly 13 seconds in search/reverse lookup
+before the forecast request. Repeated locations reuse the lookup. The durations
+include wrapper/network/provider work, so do not assume a CPU or provider fault.
+Collect the three fixed worker units with `journalctl -u ...` without forcing
+`--system`; accessible per-user journal output may otherwise be omitted.
+
+For a full upgrade with native isolation already installed, the guarded normal
+installer refuses the native state. Use the exact reviewed deactivation/removal
+path before the transaction and reprepare against the new source afterward.
+Do not remove policies broadly or bypass source identity checks.

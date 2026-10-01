@@ -24,7 +24,7 @@ Download the archive and matching `.sha256` from
 [Releases](https://github.com/evok3dx/OVOS-Commands/releases/latest):
 
 ```bash
-version=3.9.0
+version=4.0.0
 sha256sum --check "ovos-commands-$version.tar.gz.sha256"
 tar -xzf "ovos-commands-$version.tar.gz"
 cd "ovos-commands-$version"
@@ -76,16 +76,17 @@ replace full desktop and voice acceptance testing.
 | Media | “Play {title}”, “Play music”, “Pause music” | Media plugin |
 | Files | “Find {filename}”, “Search my documents” | File Search plugin |
 | Voice | Wake phrase, hotkeys and background-audio level | Voice |
-| Startup (V4 candidate) | Auto-start quietly at login, or Run/Stop for this session | Overview |
+| Startup | Start the app minimised and/or voice services at login; Run/Stop this session | General / Dashboard |
 | Updates | Installed version, release date, check and install | Updates |
 
-The unpublished V4 candidate adds terminal-input protection, confirmation for
-tool-capable agent messages, short-lived reading clipboard text and stronger
-private-report/update checks. Earlier complete-runtime hash tests passed;
-the restored candidate requires its full runtime artifact to be revalidated.
-Live acceptance and core network isolation remain open;
-see [security details](docs/security-and-updates.md) and the
-[release record](docs/releases.md).
+V4 adds terminal-input protection, confirmation for tool-capable private-agent
+messages, short-lived reading clipboard text and private-report/update guards.
+The full 296-package runtime is version-pinned and hash-verified. Optional native
+service isolation restricts core/listener/audio and Ollama while weather and
+browser music use separate online paths. Installing Jarvis alone does not
+activate that boundary. Same-user desktop access remains trusted.
+See [security details](docs/security-and-updates.md),
+[V4 release notes](docs/release-v4.0.0.md) and the [release record](docs/releases.md).
 
 Fresh setup offers **Recommended**, **All** and **Custom** application modes.
 Only detected and enabled applications enter the voice catalogue, Whisper

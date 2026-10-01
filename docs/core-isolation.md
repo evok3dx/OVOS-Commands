@@ -1,31 +1,27 @@
-# V4 service isolation candidate
+# V4 service isolation
 
-**Status: implemented and tested as a source candidate; live enforcement and
-full V4 acceptance remain open. No laptop migration has been performed.**
+**Status: optional native isolation is implemented; scoped actual-worker and
+Ollama network probes and exercised local voice/desktop functions pass. Broader
+mediated/inherited socket, every desktop/login variant and native recovery
+acceptance remain unverified. Stable publication does not close those checks.**
 
-The owner-supplied v2 experiment passed temporary system-manager filtering.
-External IPv4/IPv6 TCP timed out and direct DNS/UDP was denied only in the
-restricted round. Controls before/after and existing bus/Ollama TCP worked.
-Every temporary worker verified ordinary-user identity, empty effective
-capabilities, NoNewPrivileges and its expected cgroup; cleanup completed.
-The ineffective user-manager v1 method is rejected. Do not repeat that
-experiment instead of implementing and testing actual services.
-
-The supplied v2 report is immutable historical feasibility evidence. Its
-collector hash is `471b0acfcca5a67097065fd7648cd5355d1ca9de688c65e314d9f07c20af15ea`.
-The later workspace reset removed that collector's source/archive and later
-commits. They must not be reconstructed under the same fingerprint. The new
-actual-worker collector identifies itself separately as version 3.
+System-manager filtering is used because the earlier user-manager experiment
+was not enforced on the reviewed host. Actual core/listener/audio probes cover
+external IPv4/IPv6 TCP and direct DNS/UDP with unrestricted controls and working
+local TCP. Separate actual Ollama evidence preserves loopback inference and
+rejects external IPv4 and IPv6 traffic. Temporary feasibility alone is not proof
+of actual-service enforcement. The version-3 collector remains available for
+future diagnostics; no repeat is requested for this release.
 
 ## Process boundaries
 
-| Component | Candidate ownership | Remaining evidence |
+| Component | Ownership | Remaining evidence |
 |---|---|---|
-| Core, listener, audio | Three static system-manager units, ordinary desktop UID/GID, no capabilities, NoNewPrivileges; deny any IP except `127.0.0.1` and `::1` | Actual cgroup IPv4/IPv6/UDP and application/voice acceptance |
-| Weather | Reviewed standalone Weather plugin; fixed Open-Meteo forecast and Nominatim city/reverse/details operations | Actual plugin/cache/city/failure compatibility |
-| Media | Existing separate plugin, standalone ordinary-user worker with network access | Search/play/MPRIS and browser handoff acceptance |
+| Core, listener, audio | Three static system-manager units, ordinary desktop UID/GID, no capabilities, NoNewPrivileges; deny any IP except `127.0.0.1` and `::1` | Scoped actual IPv4/IPv6 TCP/DNS and exercised voice pass; broader paths remain |
+| Weather | Reviewed standalone Weather plugin; fixed Open-Meteo forecast and Nominatim city/reverse/details operations | Named-city/cached lookup exercised; interruption/failure variants remain |
+| Media | Existing separate plugin, standalone ordinary-user worker with network access | Title search/open exercised; full queue/Stop/browser variants remain |
 | Desktop apps | Existing fixed GIO/Flatpak launcher through the user session manager | Cold/warm Brave, Zoom, reading, writing and File Search |
-| Ollama | Separate network-only drop-in candidate for the existing ordinary-user system daemon | Actual daemon policy, cgroup denial, local inference and recovery |
+| Ollama | Separate network-only drop-in candidate for the existing ordinary-user system daemon | Actual IPv4/IPv6 denial and local inference pass; recovery remains |
 | Updater | Existing manually approved user-space HTTPS path outside restricted workers | Exact full runtime artifact, live stage/update/rollback |
 
 The core's process-local configuration overlay blacklists the known hosted or
@@ -45,11 +41,11 @@ a sandbox against malicious same-user plugin code.
 
 ## Prepare and review before native changes
 
-First install the verified full runtime and candidate code through the reviewed
+First install the verified full runtime and release code through the reviewed
 staged path. Isolation preparation requires complete version parity and the
 private installation receipt, including the ONNX-only wake plugin and NumPy 2.
-The complete rebuilt runtime and adopted policies pass ordinary-user CI; actual
-laptop installation and activation remain unverified. Do not install a guessed
+The complete rebuilt runtime and adopted policies pass ordinary-user CI;
+installation and activation have been exercised on the reviewed laptop. Do not install a guessed
 wheelhouse or use the source-build experiment as release proof.
 
 After stopping Jarvis, prepare private candidate data as the ordinary user:
@@ -121,7 +117,8 @@ New model candidates go directly to private directories under
 `~/Downloads/jarvis-v4-model-isolation-candidates`. Existing private-state core
 and model candidates remain supported; do not move a candidate without updating
 the reviewed native source paths. Model pulls will be blocked while that network policy is enforced. No extra
-Ollama control privilege is granted. Actual daemon evidence remains required.
+Ollama control privilege is granted. Scoped actual-daemon denial/local-inference evidence is recorded in the release
+ledger; removal/recovery remains separate acceptance.
 
 Stop workers, then normal-user deactivate the exact reviewed core candidate.
 Deactivation verifies only owned data, clears stopped compatibility relays,

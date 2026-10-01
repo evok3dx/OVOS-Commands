@@ -1,6 +1,6 @@
 # Jarvis Media skill 0.3.5
 
-This source package accompanies the post-rc2 V4 correction. Use the main
+This source package is included in Jarvis 4.0.0. Use the main
 [`scripts/install.sh`](../../scripts/install.sh) for a managed install, upgrade
 or rollback. The separate installer described in the original package history
 is retained there as historical context; it is not part of this directory.
@@ -40,3 +40,7 @@ guarantee avoidance of provider alerts.
 Remote matches carry the fixed Media owner in match data while leaving the
 unloaded local skill inactive. The framework completion carries the fixed
 intent name so accepted requests do not leave a false five-minute watchdog.
+
+Opening a new result does not close or stop an earlier music tab. Concurrent
+playback is a known follow-up; pause/close the earlier tab explicitly. Longer
+`Put on {title}` wording uses the existing deliberate-title route.
