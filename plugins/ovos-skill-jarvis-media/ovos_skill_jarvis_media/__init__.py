@@ -22,7 +22,7 @@ EVENT_CONTROL = "jarvis.media.control"
 EVENT_CANCEL = "jarvis.media.cancel"
 EVENT_STATUS = "jarvis.media.status"
 REVISION = "jarvis.media.plugin.2"
-RESULT_TRANSITION_SECONDS = 0.35
+RESULT_TRANSITION_SECONDS = 3.0
 
 
 class JarvisMediaSkill(OVOSSkill):
@@ -103,7 +103,9 @@ class JarvisMediaSkill(OVOSSkill):
                 if generation != self._media_generation:
                     return
                 self._media_process = None
-            time.sleep(RESULT_TRANSITION_SECONDS)
+            # Let the validated result settle before opening; Stop interrupts it.
+            if cancel.wait(RESULT_TRANSITION_SECONDS):
+                return
             with self._media_lock:
                 if generation != self._media_generation:
                     return

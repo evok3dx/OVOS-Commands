@@ -54,7 +54,8 @@ The final V4 music candidate restores direct title routing to the separate
 Media worker; Qwen still handles semantic fallbacks. A new music request during
 the owner-selected 11-second shared search gap waits locally and says only
 "Let me spin that track". Stop cancels the pending request, and another title
-replaces it. This is pacing, not playback paused or search disabled. Actual
+replaces it. After finding a valid result, Media waits three seconds before
+opening the browser. Stop or a replacement title cancels this transition. This is pacing, not playback paused or search disabled. Actual
 YouTube/429 refusal is still reported without automatic retries.
 
 The reviewed Padacioso cleanup adapter serialises concurrent registration and

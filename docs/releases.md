@@ -7,6 +7,21 @@ acceptance work. Durable design choices belong in
 under [`history/`](history/README.md). Other current documents link here rather
 than repeating release narratives.
 
+## V4 music opening minimum (source candidate; automated and live retry pending)
+
+Media 0.3.5 queues its acknowledgement immediately, then waits three seconds
+after finding a valid result before opening it, regardless of lookup duration. Stop and title replacement cancel the remaining wait. The shared
+11-second gap, bounded single search, direct route and Qwen fallback remain.
+These timings provide a comfortable transition, not a provider-alert guarantee.
+
+Weather stage measurements identify roughly 12.5–13 seconds in a new location's
+search and reverse lookup, plus roughly two seconds in forecast retrieval.
+A repeated location skips those city lookups. These measurements do not isolate
+network transport from provider response time or prove that Stop interrupts a
+pending lookup. No network-policy, dependency or weather-provider change is
+included in this timing correction. Automated checks and guarded handover are
+pending; the published rc2 archive/tag is unchanged.
+
 ## V4 source correction after rc2 (verified source; laptop retry pending)
 
 **VERIFIED owner music timing:** the owner reports the final patch works and

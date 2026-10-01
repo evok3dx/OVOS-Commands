@@ -40,7 +40,7 @@ Ask for Sydney weather, then New York weather, and repeat one of those cities.
 Collect only the relevant fixed-worker logs:
 
 ```bash
-journalctl --system \
+journalctl \
   -u "jarvis-v4-$(id -u)-weather.service" \
   -u "jarvis-v4-$(id -u)-core.service" \
   -u "jarvis-v4-$(id -u)-audio.service" \
@@ -56,4 +56,5 @@ another city's conditions by chance; use the coordinate regression and stage
 logs, not an expectation that every answer must have different numbers.
 
 Test one song as well. The acknowledgement remains queued before lookup,
-without waiting for its full TTS playback. The accepted pacing is unchanged.
+without waiting for its full TTS playback. This handover preserves Media 0.3.4 pacing. The newer three-second opening
+minimum requires its separate reviewed timing patch.

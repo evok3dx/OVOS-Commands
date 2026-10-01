@@ -40,7 +40,9 @@ The owner-selected V4 pacing uses one shared local reservation and an
 accepted request wait 11 seconds. Brief pre-submit pacing remains 0.5–1 second.
 Media acknowledges once without waiting for speech to finish, queues only the
 latest explicit title and waits locally and cancellably for the remaining gap.
-Stop cancels it. One valid result opens after a 0.35-second transition, with
+Stop cancels it. After a valid result is found, Media waits three seconds
+before opening it, regardless of lookup duration. Stop or a replacement title
+cancels the transition, with
 Brave first and enabled Firefox as the reviewed fallback. Network/provider time
 remains variable. Clear title requests route directly across the existing local
 bus when the isolated Media helper is ready; Qwen remains the semantic fallback.

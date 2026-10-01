@@ -298,7 +298,7 @@ assert spoken == [("Let me spin that track.", {"wait": False})]
 assert len(started)==1 and started[0][:2] == ("Get Lucky", 1)
 assert isinstance(started[0][2],threading.Event)
 assert media_order == ["acknowledgement", "search"]
-assert "RESULT_TRANSITION_SECONDS = 0.35" in skill_source
+assert "RESULT_TRANSITION_SECONDS = 3.0" in skill_source
 assert skill_source.count('pace_search("media", sleeper=cancel.wait)') == 1
 wait_slot=next(node for node in skill_class.body if isinstance(node,ast.FunctionDef)
                and node.name=='_wait_search_slot')
@@ -331,6 +331,47 @@ handle_scope['_handle_play'](fake_skill,SimpleNamespace(data={'query':'New title
 assert prior_cancel.is_set() and not fake_skill._media_cancel.is_set()
 handle_scope['_handle_cancel'](fake_skill)
 assert fake_skill._media_cancel.is_set()
+
+# Actual worker timing: fast lookup, slow lookup and Stop during the final wait.
+# Fake time avoids real sleep and verifies the browser launch, not a constant.
+search_method=next(n for n in skill_class.body if isinstance(n,ast.FunctionDef)
+                   and n.name=='_search_and_open')
+for lookup_seconds in (0.2,6.0):
+    clock=[0.0];opened=[];final_waits=[]
+    class LookupProcess:
+        returncode=0
+        def communicate(self,timeout):
+            assert timeout==30
+            clock[0]+=lookup_seconds
+            return 'one bounded result',''
+        def terminate(self):raise AssertionError('Current search unexpectedly terminated')
+    def slot(_cancel):clock[0]+=0.75;return True
+    def wait(seconds):
+        final_waits.append(seconds);clock[0]+=seconds;return False
+    current_cancel=SimpleNamespace(is_set=lambda:False,wait=wait)
+    timing_skill=SimpleNamespace(_media_lock=threading.RLock(),_media_generation=1,
+        _media_process=None,_wait_search_slot=slot,log=SimpleNamespace(info=lambda *a:None),
+        _search_feedback=lambda *a:(_ for _ in ()).throw(AssertionError('Unexpected failure feedback')))
+    worker_scope={'time':SimpleNamespace(monotonic=lambda:clock[0]),
+        'subprocess':SimpleNamespace(Popen=lambda *a,**k:LookupProcess(),PIPE=-1,
+                                     TimeoutExpired=subprocess.TimeoutExpired),
+        'sys':SimpleNamespace(executable='reviewed-python'),
+        'search_command':lambda *a:['bounded-search'],
+        'first_result':lambda text:('https://www.youtube.com/watch?v=abcdefghijk','Track'),
+        'open_media_url':lambda url:opened.append(clock[0]) or 'brave',
+        'provider_search_blocked':lambda text:False,'ProviderSearchBlocked':media.ProviderSearchBlocked,
+        'SearchCoolingDown':SearchCoolingDown,'RESULT_TRANSITION_SECONDS':3.0}
+    exec(compile(ast.Module(body=[search_method],type_ignores=[]),'media-open-timing','exec'),worker_scope)
+    worker_scope['_search_and_open'](timing_skill,'Track',1,current_cancel)
+    expected=0.75+lookup_seconds+3.0
+    assert len(opened)==1 and abs(opened[0]-expected)<1e-9,(opened,expected)
+    assert final_waits==[3.0]
+    # Cancellation releases the delay immediately and opens no result.
+    opened.clear();final_waits.clear();clock[0]=0.0
+    current_cancel.wait=lambda seconds:final_waits.append(seconds) or True
+    worker_scope['_search_and_open'](timing_skill,'Track',1,current_cancel)
+    assert not opened and len(final_waits)==1 and timing_skill._media_process is None
+print('PASS: immediate music acknowledgement, three-second post-result transition and cancellable opening')
 
 # A discarded Brave tab withdraws its MPRIS player. Resume must give one short
 # actionable response rather than appearing to succeed silently.

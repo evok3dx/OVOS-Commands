@@ -1,4 +1,4 @@
-# Jarvis Media skill 0.3.4
+# Jarvis Media skill 0.3.5
 
 This source package accompanies the post-rc2 V4 correction. Use the main
 [`scripts/install.sh`](../../scripts/install.sh) for a managed install, upgrade
@@ -10,7 +10,8 @@ through `yt-dlp`, and opens a fixed watch URL in enabled Brave. If Brave is
 unavailable or cannot be launched, enabled Firefox is the bounded fallback.
 After accepting a real title, it queues “Let me spin that track.” once before
 starting the lookup worker, without waiting for speech to finish. A validated
-result uses a 0.35-second transition before Brave opens. Provider/network
+result waits three seconds before Brave opens, regardless of lookup duration.
+Stop or a replacement title cancels that wait. Provider/network
 response time remains variable; no playback-time guarantee is made.
 Empty input does not enter this path. A generic “play music” request is handled
 by the dispatcher as a bounded two-turn interaction: Jarvis asks what to play,
@@ -28,7 +29,7 @@ settings cannot guarantee that an idle media session stays resumable.
 See [Media and file search](../../docs/10-media-files.md) for commands and
 limits, and [history](HISTORY.md) for the failures that shaped this package.
 
-V4 Media 0.3.4 supports a separately isolated helper over the existing local
+V4 Media 0.3.5 supports a separately isolated helper over the existing local
 bus. Direct titles require actual helper readiness and respect the owner's
 original disabled-skill choice. Qwen remains available for semantic fallback.
 The shared 11-second gap and 0.5–1 second pre-delay limit bursts. A pending title
