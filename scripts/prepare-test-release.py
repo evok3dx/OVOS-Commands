@@ -14,7 +14,7 @@ import tomllib
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = '4.0.0rc1'
+VERSION = json.loads((ROOT / 'compatibility.json').read_text())['release_version']
 RUNTIME_SHA = '03cbba7effa9046d9ce7a63b26d9a0b886eebf4f58f445dda2ae37af07e8c288'
 
 
@@ -23,7 +23,7 @@ def digest(path):
         return hashlib.file_digest(stream, 'sha256').hexdigest()
 
 
-def prepare(retained, output):
+def prepare(retained, output, plugin_directory=None):
     if os.getuid() == 0:
         raise RuntimeError('Prepare releases as an ordinary user')
     output.mkdir(mode=0o700, parents=False, exist_ok=False)
@@ -42,17 +42,23 @@ def prepare(retained, output):
         raise ValueError('Exact verified runtime archive required')
     assets = [archive, ROOT / 'dist' / f'ovos-commands-{VERSION}.tar.gz',
               ROOT / 'dist' / f'ovos-commands-{VERSION}.tar.gz.sha256']
-    proof = json.loads((retained / 'proof/plugins.json').read_text())
+    proof = json.loads((retained / 'proof/plugins.json').read_text()) if plugin_directory is None else None
     projects = {
         'ovos-skill-jarvis-dispatcher': (ROOT, 'ovos_skill_jarvis_dispatcher'),
         'ovos-skill-jarvis-media': (ROOT / 'plugins/ovos-skill-jarvis-media', 'ovos_skill_jarvis_media'),
         'jarvis-file-search-skill': (ROOT / 'plugins/jarvis-file-search', 'jarvis_file_search'),
     }
-    if set(proof['packages']) != set(projects):
+    if proof is not None and set(proof['packages']) != set(projects):
         raise ValueError('Unexpected first-party plugin inventory')
     for name, (project, package) in projects.items():
-        record = proof['packages'][name]
-        wheel = candidate / 'plugins' / record['file']
+        metadata = tomllib.loads((project / 'pyproject.toml').read_text())['project']
+        if plugin_directory is None:
+            record = proof['packages'][name]
+            wheel = candidate / 'plugins' / record['file']
+        else:
+            filename = name.replace('-', '_') + '-' + metadata['version'] + '-py3-none-any.whl'
+            wheel = plugin_directory / filename
+            record = {'file': filename, 'version': metadata['version'], 'sha256': digest(wheel)}
         if wheel.name != record['file'] or digest(wheel) != record['sha256']:
             raise ValueError('Plugin hash differs: ' + name)
         metadata = tomllib.loads((project / 'pyproject.toml').read_text())['project']
@@ -77,6 +83,8 @@ def prepare(retained, output):
                 if source.is_symlink() or packaged.read(relative) != source.read_bytes():
                     raise ValueError('Plugin source bytes differ: ' + name)
         assets.append(wheel)
+    if plugin_directory is not None and {p.name for p in plugin_directory.iterdir()} != {p.name for p in assets if p.suffix == '.whl'}:
+        raise ValueError('Unexpected freshly built plugin file')
     assets.extend([
         retained / 'proof/third-party-licenses.json',
         ROOT / 'extras/runtime-notices/espeak-ng-COPYING',
@@ -97,5 +105,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--retained', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--plugins', type=Path)
     args = parser.parse_args()
-    prepare(args.retained, args.output)
+    prepare(args.retained, args.output, args.plugins)

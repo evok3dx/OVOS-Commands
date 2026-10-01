@@ -160,6 +160,7 @@ python3 "$repo_root/scripts/test-startup-settings.py"
 python3 "$repo_root/scripts/test-core-isolation-candidate.py"
 python3 "$repo_root/scripts/test-boot-readiness.py"
 python3 "$repo_root/scripts/test-lifecycle-hotfix.py"
+python3 "$repo_root/scripts/test-lifecycle-hotfix.py" apply-v4-final-fix.py
 python3 "$repo_root/scripts/test-runtime-provenance.py"
 python3 "$repo_root/scripts/test-runtime-bundle.py"
 python3 "$repo_root/scripts/test-wake-onnx-boundary.py"

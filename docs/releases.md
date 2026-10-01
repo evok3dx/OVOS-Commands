@@ -7,7 +7,7 @@ acceptance work. Durable design choices belong in
 under [`history/`](history/README.md). Other current documents link here rather
 than repeating release narratives.
 
-## 4.0.0rc1 (published laptop test; stable release pending)
+## 4.0.0rc2 (cumulative laptop candidate; publication pending)
 
 **Owner-directed final music/UI/installer correction, source candidate:**
 Media 0.3.3 restores the deliberate-title fast route across the existing local
@@ -34,6 +34,21 @@ percentages describe measured work, never readiness or elapsed-time guesses.
 Tests are added for these boundaries; final CI and laptop music timing are
 pending at this checkpoint. Frozen dependencies, models and native IP policy
 are unchanged.
+
+**VERIFIED source checks:** commit 2df1de58bdd09520606cbaa2ee2aa89ef839dc8f,
+run 36812008636 passes all six jobs: Python 3.10–3.13, GTK, source/history/archive
+security scans, full deployment/recovery and 350/350 clean-copy policy cases.
+The exact pinned Padacioso detach method reproduces the reported race without
+the adapter and passes concurrent/alias/language preservation checks with it.
+GTK checks the computed white label/icon colours. The immutable 13-file normal-
+user handover targets those passed bytes, checks stopped native workers and
+known source identities, backs up in Downloads, and registers only Media with
+no index/dependency resolution. Handover rollback and cumulative release
+packaging/public-byte verification remain to be checked before publication.
+See [cumulative handover](v4-final-candidate.md). Stable V4 remains subject to
+the retained live acceptance gates; this does not replace the original rc1 tag.
+
+## 4.0.0rc1 (published laptop test; stable release pending)
 
 **VERIFIED owner laptop lifecycle retry, 30 September 2026:** after the guarded
 patch, the owner reports the ready announcement working, all voice services
