@@ -202,6 +202,29 @@ records the version-26 change to default prerelease membership. The candidate
 verifier explicitly allows only prereleases already selected in the exact
 reviewed inventory, with every version constraint still checked.
 
+## Isolated GUI update lock conflict
+
+**VERIFIED in source:** the Control Centre's update wrapper holds the control
+lock while the isolated installer tries to acquire it to stop services. This
+can report "Another Jarvis control action is running" and block recovery too.
+A corrective release remains pending. Close the Control Centre after the
+failed operation finishes, then run as the desktop user, without sudo:
+
+```bash
+(
+  set -e
+  scripts="$HOME/.local/src/ovos-skill-jarvis-dispatcher/scripts"
+  if [ -f "$HOME/.local/state/jarvis/isolation-install/current.json" ]; then
+    "$HOME/.venvs/ovos/bin/python" "$scripts/isolation_install.py" -- --recover
+  fi
+  "$HOME/.local/bin/jarvis-update" install --yes
+)
+```
+
+The terminal path avoids the GUI's outer lock and retains isolation. If
+recovery fails, stop and review its reported reason; do not delete the journal
+or remove native policy to force deployment.
+
 ## Application focus
 
 The 4.2 Notes helper reads complete reviewed `WM_CLASS` pairs with `xprop`.

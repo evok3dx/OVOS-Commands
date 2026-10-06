@@ -45,6 +45,13 @@ above; main was advanced to that source before this documentation-only record.
 Code archive SHA-256:
 `3f164e8d74f1987105f9d6b9f46de58c6f684decd4bcf6170b4bb1c5f7136bf5`.
 
+**VERIFIED source limitation after publication:** an isolated update launched
+from the Control Centre holds the control lock while the installer needs that
+lock to stop services. The supplied update failure is consistent with this
+conflict. Use the [terminal recovery/update procedure](troubleshooting.md#isolated-gui-update-lock-conflict);
+a regression and corrective release remain pending. Do not disable isolation
+or delete the recovery journal to bypass the guard.
+
 ## 4.0.1 (published stable, 1 October 2026)
 
 Guided optional isolation is recommended for new installs and preserves existing
