@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+set -euo pipefail
+exec "$HOME/.venvs/ovos/bin/python" "$HOME/.local/src/ovos-skill-jarvis-dispatcher/scripts/isolation_check.py" "$@"

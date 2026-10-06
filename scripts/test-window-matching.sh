@@ -14,7 +14,7 @@ cat > "$tmp/bin/wmctrl" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 case "${1:-}" in
-  -lx)
+  -l|-lx)
     if [[ -z "${JARVIS_WINDOW_STATE:-}" || -e "$JARVIS_WINDOW_STATE" ]]; then
       printf '%s\n' "${JARVIS_WINDOW_LINE:-0x05c00004  0 standard-notes.Standard-notes testhost Standard Notes}"
     fi
@@ -26,6 +26,11 @@ case "${1:-}" in
     exit 0
     ;;
 esac
+EOF
+
+cat > "$tmp/bin/xprop" <<'EOF'
+#!/usr/bin/env bash
+printf '%s\n' "${JARVIS_WM_CLASS:-WM_CLASS(STRING) = \"standard-notes\", \"Standard-notes\"}"
 EOF
 
 cat > "$tmp/bin/xdotool" <<'EOF'
@@ -45,9 +50,28 @@ fi
 exit 0
 EOF
 
-chmod +x "$tmp/bin/wmctrl" "$tmp/bin/xdotool"
+chmod +x "$tmp/bin/wmctrl" "$tmp/bin/xdotool" "$tmp/bin/xprop"
 
 HOME="$tmp/home" PATH="$tmp/bin:$PATH" "$HELPER" focus standard_notes
+
+# Real Debian, hyphenated/AppImage and Flatpak signatures use the full property.
+for signature in \
+  'WM_CLASS(STRING) = "standard notes", "Standard Notes"' \
+  'WM_CLASS(STRING) = "standard-notes", "Standard-notes"' \
+  'WM_CLASS(STRING) = "standardnotes", "StandardNotes"' \
+  'WM_CLASS(STRING) = "org.standardnotes.standardnotes", "org.standardnotes.standardnotes"'; do
+  HOME="$tmp/home" PATH="$tmp/bin:$PATH" JARVIS_WM_CLASS="$signature" \
+    "$HELPER" focus standard_notes
+done
+for signature in \
+  'WM_CLASS(STRING) = "brave-browser", "Brave-browser"' \
+  'WM_CLASS(STRING) = "standard", "SomethingElse"' \
+  'WM_CLASS(STRING) = "fake-standard-notes", "NotNotes"'; do
+  if HOME="$tmp/home" PATH="$tmp/bin:$PATH" JARVIS_WM_CLASS="$signature" \
+    "$HELPER" minimize standard_notes 2>/dev/null; then
+    echo 'An unrelated class was mistaken for Standard Notes' >&2; exit 1
+  fi
+done
 
 # ONLYOFFICE uses its real desktop entry through the reviewed GIO launcher.
 # The helper then waits for one of the fixed native/Flatpak window classes.

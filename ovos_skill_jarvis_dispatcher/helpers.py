@@ -28,6 +28,7 @@ class DispatcherHelpersMixin:
                 stderr=subprocess.DEVNULL
             )
             if result.returncode != 0:
+                getattr(self, '_record_activity', lambda *args: None)('reading.' + mode, False)
                 self._restore_listener_after_speech_note()
                 self.log.warning("Reading request failed: mode=%s code=%s",
                                  mode, result.returncode)
@@ -41,8 +42,10 @@ class DispatcherHelpersMixin:
                     self.speak("I could not read content from that window.")
                 return
             self._speech_note_reading = True
+            getattr(self, '_record_activity', lambda *args: None)('reading.' + mode)
             self._watch_speech_note_reading()
         except Exception:
+            getattr(self, '_record_activity', lambda *args: None)('reading.' + mode, False)
             self._restore_listener_after_speech_note()
             self.log.exception(
                 f"Visible text reading failed: {mode}"

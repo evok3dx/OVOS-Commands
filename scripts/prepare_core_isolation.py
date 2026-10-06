@@ -7,7 +7,6 @@ import os
 from pathlib import Path
 import pwd
 import re
-import secrets
 import shlex
 import stat
 import subprocess
@@ -16,6 +15,7 @@ import sys
 sys.path.insert(0,str(Path(__file__).resolve().parent))
 from isolation_services import COMPONENTS,LOGICAL,active,regular,session_text
 from isolation_worker import verify_pins
+from private_reports import next_path
 
 DROPIN='90-jarvis-isolation.conf'
 SOURCES=('scripts/isolation_worker.py','scripts/isolation_services.py','scripts/weather_boundary.py',
@@ -309,7 +309,8 @@ def main():
     if os.getuid()<=0 or os.getuid()!=os.geteuid() or os.getgid()!=os.getegid():parser.error('Never sudo Python; use the ordinary desktop account')
     if args.action=='prepare':
         if args.candidate:parser.error('prepare needs a new output, not --candidate')
-        output=args.output or Path.home()/'Downloads/jarvis-v4-isolation-candidates'/secrets.token_hex(8)
+        output=args.output or next_path(Path.home()/'Downloads/jarvis-v4-isolation-candidates',
+                                       'Jarvis-Core-Isolation-Review')
         if args.model_binary:
             from private_ollama import verify_executable
             verify_executable(args.model_binary)

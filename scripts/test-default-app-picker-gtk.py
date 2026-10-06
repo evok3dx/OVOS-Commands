@@ -101,6 +101,50 @@ window.destroy()
 parent.destroy();centre.install_update.destroy();centre.update_health.destroy()
 print('PASS: General independent switches; GTK update button green/blue/neutral and disabled text/icon computed white')
 
+# Render the production Dashboard in both app-scoped themes, with real GTK
+# widgets, and preserve screenshots for review. No service operations run.
+window=Gtk.Window();window.set_default_size(950,700)
+window.get_style_context().add_class('jarvis-root')
+centre.dialog=window
+dashboard=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=18);dashboard.set_border_width(24)
+window.add(dashboard);centre.build_overview(dashboard)
+centre.status_label.set_text('System Online');centre.status_detail.set_text('Ready for your next command.')
+centre.start_stop.set_label('Stop Jarvis');centre.colour(centre.start_stop,'jarvis-danger')
+centre.mic.set_label('Pause microphone')
+centre.render_recent([('Opened Firefox','21:00',True),('Created a new note','21:01',True),('Started dictation','21:02',True)])
+for selected in ('light','dark'):
+    centre.apply_theme(selected)
+    window.show_all()
+    while Gtk.events_pending():Gtk.main_iteration()
+    context=centre.start_stop.get_child().get_style_context()
+    for child in descendants(centre.start_stop):
+        if isinstance(child,Gtk.Label):
+            colour=child.get_style_context().get_color(child.get_state_flags())
+            assert all(abs(value-1)<0.001 for value in (colour.red,colour.green,colour.blue)),colour
+    if os.environ.get('RUNNER_TEMP'):
+        pixbuf=Gdk.pixbuf_get_from_window(window.get_window(),0,0,*window.get_size())
+        assert pixbuf is not None
+        pixbuf.savev(str(Path(os.environ['RUNNER_TEMP'])/('Jarvis-Dashboard-'+selected+'.png')),'png',[],[])
+assert centre.start_stop.get_parent().get_parent() is centre.overview_summary
+assert centre.restart.get_parent() is centre.start_stop.get_parent()
+assert len(centre.recent_rows.get_children())==3
+window.destroy()
+print('PASS: real GTK Dashboard layout, scoped light/dark styling, white action labels and private activity rows')
+
+# Visual policy status is not a claim that live network tests passed.
+centre.check_only=False;centre.isolation_polling=False;centre.alive=True
+namespace['worker']=lambda work,finish: finish(work(),None)
+parent=Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+centre.build_maintenance(parent)
+for state,colour in (('active','jarvis-led-ready'),('off','jarvis-off'),('attention','jarvis-led-warn')):
+    namespace['isolation_policy_status']=lambda s=state: {'summary':s,'core':s=='active','model':s=='active',
+                                                        'verification':'Network tests have not been run in this view.'}
+    centre.refresh_isolation()
+    assert centre.isolation_led.get_style_context().has_class(colour)
+    assert 'not been run' in centre.isolation_note.get_text()
+parent.destroy()
+print('PASS: Maintenance isolation green/grey/amber policy states without a live-test claim')
+
 # Exercise the production first-install choice with a real dialog. Existing
 # choices are tested separately without a dialog or administrator prompt.
 import contextlib

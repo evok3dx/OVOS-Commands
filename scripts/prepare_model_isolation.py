@@ -8,7 +8,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
-import secrets
+from private_reports import next_path
 import shlex
 import subprocess
 import sys
@@ -89,5 +89,6 @@ def prepare(output):
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--output',type=Path)
     args=parser.parse_args()
-    output=args.output or Path.home()/'Downloads/jarvis-v4-model-isolation-candidates'/secrets.token_hex(8)
+    output=args.output or next_path(Path.home()/'Downloads/jarvis-v4-model-isolation-candidates',
+                                   'Jarvis-Model-Isolation-Review')
     print(prepare(output))

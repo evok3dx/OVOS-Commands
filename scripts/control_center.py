@@ -2,11 +2,15 @@
 import importlib.util
 from pathlib import Path
 import threading
+import json
+import subprocess
 import gi
 gi.require_version('Gtk','3.0')
 from gi.repository import Gtk, GLib, Gdk, Pango
 from settings_export import export_settings
 from startup_settings import inspect as startup_status, set_options as set_startup
+from appearance_settings import theme as appearance_theme, save as save_appearance
+from isolation_check import policy_status as isolation_policy_status
 from control_runtime import (service_action, microphone_action, speech_stop, status,
                              maintenance, voice_setting, read_json, update_status,
                              speech_note_status, speech_note_action, audio_settings,
@@ -56,6 +60,39 @@ CSS = b'''
 .jarvis-default-combo { padding: 6px 11px; border-radius: 7px; }
 .jarvis-default-choice { padding: 8px 10px; border-radius: 6px; }
 combobox menu menuitem { padding: 9px 14px; min-height: 24px; }
+.jarvis-brand { font-size: 18px; font-weight: 700; }
+.jarvis-credit { font-size: 11px; opacity: 0.55; }
+.jarvis-off { color: #8994A5; }
+.jarvis-privacy { font-size: 11px; opacity: 0.65; margin-top: 12px; }
+.jarvis-recent-row { padding: 8px 0; border-bottom: 1px solid alpha(@theme_fg_color, 0.08); }
+.jarvis-root.jarvis-light { background-color: #F5F7FB; color: #243247; }
+.jarvis-root.jarvis-dark { background-color: #101722; color: #EDF2FA; }
+.jarvis-light .jarvis-sidebar { background-color: #ECF0F6; }
+.jarvis-dark .jarvis-sidebar { background-color: #151F2E; }
+.jarvis-light .jarvis-card { background-color: #FFFFFF; border-color: #DFE5EE; }
+.jarvis-dark .jarvis-card { background-color: #192536; border-color: #2A3A50; }
+.jarvis-dark label { color: #EDF2FA; }
+.jarvis-light label { color: #243247; }
+.jarvis-dark .jarvis-subtitle, .jarvis-dark .jarvis-service-state { color: #AAB8CD; }
+.jarvis-light .jarvis-subtitle, .jarvis-light .jarvis-service-state { color: #66758B; }
+.jarvis-dark .jarvis-service-row { background-color: #1D2D41; border-color: #304158; }
+.jarvis-light .jarvis-service-row { background-color: #F7F9FC; border-color: #E7ECF3; }
+.jarvis-dark row:selected, .jarvis-light row:selected { background-color: #2F6FED; }
+.jarvis-dark row:selected label, .jarvis-light row:selected label { color: #FFFFFF; }
+.jarvis-dark button { background-image: none; background-color: #26364C; border-color: #3A4C65; color: #EDF2FA; }
+.jarvis-dark entry, .jarvis-dark textview text, .jarvis-dark treeview { background-color: #152031; color: #EDF2FA; }
+.jarvis-light entry, .jarvis-light textview text, .jarvis-light treeview { background-color: #FFFFFF; color: #243247; }
+.jarvis-dark button.jarvis-danger, .jarvis-dark button.jarvis-warning, .jarvis-dark button.jarvis-restart,
+.jarvis-dark button.jarvis-update-available { background-image: none; background-color: #2F6FED; border-color: #2459C2; color: #FFFFFF; }
+.jarvis-dark button.jarvis-update, .jarvis-dark button.jarvis-enable { background-image: none; background-color: #20A464; border-color: #16814C; color: #FFFFFF; }
+.jarvis-root button.jarvis-danger label, .jarvis-root button.jarvis-warning label,
+.jarvis-root button.jarvis-restart label, .jarvis-root button.jarvis-update label,
+.jarvis-root button.jarvis-update-available label, .jarvis-root button.jarvis-enable label,
+.jarvis-root button.suggested-action label { color: #FFFFFF; }
+.jarvis-root .jarvis-led-ready { color: #20C875; }
+.jarvis-root .jarvis-led-warn { color: #F2A12C; }
+.jarvis-root .jarvis-led-down { color: #E05260; }
+.jarvis-root .jarvis-off { color: #8994A5; }
 '''
 
 
@@ -89,6 +126,8 @@ class ControlCenter:
         self.refresh_config=refresh_config;self.check_only=check_only
         self.alive=True;self.polling=False;self.buttons=[];self.busy=False
         self.emergency_busy=False;self.latest=None
+        self.activity_polling=False
+        self.isolation_polling=False
         self.update_cancel=None;self.update_in_progress=False
         self.footer=footer;self.save=save;self.cancel=cancel;self.notebook=notebook
         self.saved_flags=None
@@ -96,9 +135,12 @@ class ControlCenter:
         Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(),self.provider,
                                                 Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
         dialog.set_title('Jarvis');dialog.get_style_context().add_class('jarvis-root')
+        try:self.selected_theme=appearance_theme()
+        except (OSError,ValueError,RuntimeError):self.selected_theme='light'
+        self.apply_theme(self.selected_theme)
         screen=Gdk.Screen.get_default()
         width,height=(screen.get_width(),screen.get_height()) if screen else (1024,768)
-        dialog.set_default_size(min(1080,width-48),min(760,height-80))
+        dialog.set_default_size(min(1140,width-48),min(800,height-80))
         dialog.set_size_request(min(760,width-48),min(520,height-80))
         dialog.set_icon_name('audio-input-microphone')
         outer.remove(notebook)
@@ -106,13 +148,20 @@ class ControlCenter:
         outer.pack_start(self.layout,True,True,0);outer.reorder_child(self.layout,0)
         self.nav=Gtk.ListBox();self.nav.set_selection_mode(Gtk.SelectionMode.SINGLE)
         self.nav.set_size_request(180,-1);self.nav.get_style_context().add_class('jarvis-sidebar')
-        self.layout.pack_start(self.nav,False,False,0)
+        sidebar=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8)
+        sidebar.get_style_context().add_class('jarvis-sidebar')
+        brand=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=3);brand.set_border_width(12)
+        brand.pack_start(label('Jarvis','jarvis-brand'),False,False,0)
+        brand.pack_start(label('Control Centre','jarvis-subtitle'),False,False,0)
+        brand.pack_start(label('by Unchained','jarvis-credit'),False,False,0)
+        sidebar.pack_start(brand,False,False,0);sidebar.pack_start(self.nav,True,True,0)
+        self.layout.pack_start(sidebar,False,False,0)
         self.stack=Gtk.Stack();self.stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
         self.stack.set_transition_duration(120);self.layout.pack_start(self.stack,True,True,0)
         self.pages={}
-        overview=self.page('overview','Dashboard','Your voice assistant, at a glance.','view-grid-symbolic')
+        overview=self.page('overview','Dashboard','Your local voice assistant, at a glance.','view-grid-symbolic')
         self.build_overview(overview)
-        general=self.page('general','General','Choose what starts when you sign in.','preferences-system-symbolic')
+        general=self.page('general','General','Appearance and what starts when you sign in.','preferences-system-symbolic')
         self.build_general(general)
         app_page=self.page('apps','Apps & Commands','Choose what Jarvis can open and what you say.','applications-other-symbolic',scroll=False)
         app_page.pack_start(notebook,True,True,0)
@@ -161,7 +210,7 @@ class ControlCenter:
     def card(self,parent,title,description=None):
         box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10)
         box.get_style_context().add_class('jarvis-card')
-        box.pack_start(label(title,'jarvis-heading'),False,False,0)
+        if title:box.pack_start(label(title,'jarvis-heading'),False,False,0)
         if description:
             detail=label(description,'jarvis-subtitle');detail.set_max_width_chars(38)
             box.pack_start(detail,False,False,0)
@@ -191,24 +240,25 @@ class ControlCenter:
         if style:context.add_class(style)
 
     def build_overview(self,parent):
-        summary=Gtk.Box(spacing=11);summary.get_style_context().add_class('jarvis-summary')
+        cards=self.card_grid(parent)
+        summary=self.card(cards,None);summary.get_style_context().add_class('jarvis-summary')
+        headline=Gtk.Box(spacing=10);summary.pack_start(headline,False,False,0)
         self.overview_icon=Gtk.Image.new_from_icon_name('emblem-default-symbolic',Gtk.IconSize.LARGE_TOOLBAR)
-        summary.pack_start(self.overview_icon,False,False,0)
+        headline.pack_start(self.overview_icon,False,False,0)
         summary_text=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=2)
-        self.overview_health=label('Checking Jarvis…','jarvis-summary-title')
-        self.overview_update=label('Reading service and update status.','jarvis-summary-detail')
+        self.overview_health=label('Checking Jarvis…','jarvis-status')
+        self.overview_update=label('Reading the local service state.','jarvis-subtitle')
         summary_text.pack_start(self.overview_health,False,False,0)
         summary_text.pack_start(self.overview_update,False,False,0)
-        summary.pack_start(summary_text,True,True,0);parent.pack_start(summary,False,False,0)
+        headline.pack_start(summary_text,True,True,0)
         self.overview_summary=summary
-        card=self.card(parent,'Voice system')
-        self.status_label=label('Checking Jarvis…','jarvis-status')
-        self.status_detail=label('Reading the local service state.','jarvis-subtitle')
-        card.pack_start(self.status_label,False,False,0);card.pack_start(self.status_detail,False,False,0)
-        controls=Gtk.Box(spacing=10);card.pack_start(controls,False,False,0)
+        self.status_label=self.overview_health;self.status_detail=self.overview_update
+        controls=Gtk.Box(spacing=8);summary.pack_start(controls,False,False,0)
         self.start_stop=self.action(controls,'Run Jarvis','media-playback-start-symbolic',self.power,True)
         self.restart=self.action(controls,'Restart commands','view-refresh-symbolic',lambda _:self.task('Restarting commands',lambda:self.services('commands')))
         self.colour(self.restart,'jarvis-restart')
+        summary.pack_start(label('Local AI · Private · Under Your Control','jarvis-privacy'),False,False,0)
+        card=self.card(cards,'Voice services')
         service_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6)
         card.pack_start(service_box,False,False,0)
         self.service_labels={}
@@ -220,7 +270,7 @@ class ControlCenter:
             state=Gtk.Label(label='Checking…',xalign=1);state.get_style_context().add_class('jarvis-service-state')
             row.pack_start(led,False,False,0);row.pack_start(name,True,True,0);row.pack_end(state,False,False,0)
             service_box.pack_start(row,False,False,0);self.service_labels[unit]=(led,state)
-        quick=Gtk.Box(spacing=12);parent.pack_start(quick,False,False,0)
+        quick=self.card_grid(parent)
         card=self.card(quick,'Microphone','Pause Jarvis listening. Other applications can still use your microphone.')
         card.set_hexpand(True)
         self.mic=self.action(card,'Checking microphone…','audio-input-microphone-symbolic',lambda _:self.task('Updating microphone',microphone_action))
@@ -232,6 +282,61 @@ class ControlCenter:
         card.pack_start(self.emergency,False,False,0)
         self.emergency_note=label('Available even while Jarvis is restarting.','jarvis-subtitle')
         card.pack_start(self.emergency_note,False,False,0)
+        recent=self.card(parent,'Recent Activity')
+        self.recent_rows=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=2)
+        recent.pack_start(self.recent_rows,False,False,0)
+        recent.pack_start(label('This session only. No dictated text or search queries.','jarvis-credit'),False,False,0)
+        self.render_recent([])
+
+    def apply_theme(self,selected):
+        context=self.dialog.get_style_context()
+        for value in ('light','dark'):context.remove_class('jarvis-'+value)
+        context.add_class('jarvis-'+selected)
+        self.selected_theme=selected
+
+    def change_theme(self,combo):
+        selected=combo.get_active_id()
+        if selected is None or selected==self.selected_theme:return
+        try:
+            from control_runtime import save_with_lock
+            save_with_lock(lambda:save_appearance(selected))
+        except Exception as error:
+            combo.set_active_id(self.selected_theme)
+            self.show_activity('Could not save appearance: '+str(error),False)
+            return
+        self.apply_theme(selected)
+
+    def render_recent(self,rows):
+        for child in self.recent_rows.get_children():child.destroy()
+        if not rows:
+            self.recent_rows.pack_start(label('Your next completed action will appear here.','jarvis-subtitle'),False,False,0)
+        for text,stamp,success in rows[:5]:
+            row=Gtk.Box(spacing=12);row.get_style_context().add_class('jarvis-recent-row')
+            row.pack_start(Gtk.Image.new_from_icon_name('emblem-default-symbolic' if success else 'dialog-warning-symbolic',Gtk.IconSize.MENU),False,False,0)
+            row.pack_start(label(text),True,True,0)
+            time_label=Gtk.Label(label=stamp,xalign=1);time_label.get_style_context().add_class('jarvis-subtitle')
+            row.pack_end(time_label,False,False,0);self.recent_rows.pack_start(row,False,False,0)
+        self.recent_rows.show_all()
+
+    def refresh_recent(self):
+        if self.activity_polling or self.check_only:return
+        if not self.running:
+            self.render_recent([]);return
+        self.activity_polling=True
+        def read():
+            result=subprocess.run([str(Path.home()/'.venvs/ovos/bin/python'),'-I',
+                                   str(Path(__file__).with_name('read_activity.py'))],
+                                  capture_output=True,text=True,timeout=6,check=True)
+            if len(result.stdout.encode())>16384:raise ValueError('Activity size is invalid')
+            spec=importlib.util.spec_from_file_location('jarvis_activity_view',Path(__file__).resolve().parents[1]/'ovos_skill_jarvis_dispatcher/activity.py')
+            module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+            return module.display_rows(json.loads(result.stdout))
+        def done(rows,error):
+            self.activity_polling=False
+            if not self.alive:return False
+            self.render_recent(rows if error is None and self.running else [])
+            return False
+        worker(read,done)
 
     def build_voice(self,parent):
         parent=self.card_grid(parent)
@@ -325,6 +430,17 @@ class ControlCenter:
         return value
 
     def build_maintenance(self,parent):
+        isolation=self.card(parent,'Isolation','Network restrictions for Jarvis only. Weather and music can stay online.')
+        row=Gtk.Box(spacing=10);isolation.pack_start(row,False,False,0)
+        self.isolation_led=label('●','jarvis-off');row.pack_start(self.isolation_led,False,False,0)
+        self.isolation_label=label('Not checked','jarvis-heading');row.pack_start(self.isolation_label,True,True,0)
+        self.isolation_core=label('Core network restriction: not checked','jarvis-subtitle')
+        self.isolation_model=label('Private model restriction: not checked','jarvis-subtitle')
+        self.isolation_note=label('Active policy is separate from a passed network test.','jarvis-subtitle')
+        for item in (self.isolation_core,self.isolation_model,self.isolation_note):isolation.pack_start(item,False,False,0)
+        row=Gtk.Box(spacing=8);isolation.pack_start(row,False,False,0)
+        self.action(row,'Refresh status','view-refresh-symbolic',lambda _:self.refresh_isolation())
+        self.action(row,'Check isolation','security-high-symbolic',lambda _:self.maintain('isolation'))
         cards=self.card_grid(parent)
         actions=self.card(cards,'Keep Jarvis running')
         grid=Gtk.Box(spacing=8);actions.pack_start(grid,False,False,0)
@@ -348,6 +464,23 @@ class ControlCenter:
         self.output=Gtk.TextView();self.output.set_editable(False);self.output.set_monospace(True)
         self.output.set_wrap_mode(Gtk.WrapMode.WORD_CHAR);scroll.add(self.output);self.details.add(scroll)
         self.output.get_buffer().set_text('Results will appear here.')
+
+    def refresh_isolation(self):
+        if self.check_only or self.isolation_polling:return
+        self.isolation_polling=True
+        def done(value,error):
+            self.isolation_polling=False
+            if not self.alive:return False
+            state='attention' if error else value['summary']
+            self.isolation_label.set_text({'active':'Isolation active','off':'Isolation off','attention':'Needs attention'}[state])
+            context=self.isolation_led.get_style_context()
+            for style in ('jarvis-led-ready','jarvis-led-warn','jarvis-off'):context.remove_class(style)
+            context.add_class({'active':'jarvis-led-ready','off':'jarvis-off','attention':'jarvis-led-warn'}[state])
+            self.isolation_core.set_text('Core network restriction: '+('unavailable' if error else 'configured' if value['core'] else 'not confirmed'))
+            self.isolation_model.set_text('Private model restriction: '+('unavailable' if error else 'configured' if value['model'] else 'not confirmed'))
+            self.isolation_note.set_text('Status unavailable. Use Check isolation for details.' if error else value['verification'])
+            return False
+        worker(isolation_policy_status,done)
 
     def build_updates(self,parent):
         current=self.card(parent,'Jarvis updates','Updates are checked only when requested. Your settings and downloaded models are preserved.')
@@ -452,6 +585,12 @@ class ControlCenter:
     def services(self,action):return service_action(action,self.report)
 
     def build_general(self,parent):
+        appearance=self.card(parent,'Appearance','Choose a look for Jarvis. Your desktop theme stays as it is.')
+        self.theme_picker=Gtk.ComboBoxText()
+        self.theme_picker.append('light','Light');self.theme_picker.append('dark','Dark')
+        self.theme_picker.set_active_id(getattr(self,'selected_theme','light'))
+        self.theme_picker.connect('changed',self.change_theme)
+        appearance.pack_start(self.theme_picker,False,False,0)
         card=self.card(parent,'Startup')
         self.startup_switches={}
         for component,title,detail in (
@@ -555,11 +694,22 @@ class ControlCenter:
             if not self.alive:return False
             if error:
                 self.status_label.set_text('Status unavailable');self.status_detail.set_text(error)
+                context=self.overview_summary.get_style_context()
+                for style in ('jarvis-summary-good','jarvis-summary-update','jarvis-summary-warn'):context.remove_class(style)
+                self.overview_icon.set_from_icon_name('dialog-warning-symbolic',Gtk.IconSize.LARGE_TOOLBAR)
+                icon_context=self.overview_icon.get_style_context()
+                for style in ('jarvis-led-ready','jarvis-led-warn','jarvis-off'):icon_context.remove_class(style)
+                icon_context.add_class('jarvis-led-warn')
+                for led,item in self.service_labels.values():
+                    item.set_text('Unknown')
+                    context=led.get_style_context()
+                    for style in ('jarvis-led-ready','jarvis-led-warn','jarvis-led-down','jarvis-off'):context.remove_class(style)
+                    context.add_class('jarvis-led-warn')
                 return False
-            names={'ready':'Ready','muted':'Microphone paused','stopped':'Stopped','starting':'Starting…','failed':'Needs attention'}
+            names={'ready':'System Online','muted':'Microphone paused','stopped':'System Offline','starting':'Starting…','failed':'Needs attention'}
             self.status_label.set_text(names[value['state']])
             self.running=value['services'].get('ovos-core.service')=='active'
-            self.status_detail.set_text('Voice services report ready.' if value['state']=='ready' else
+            self.status_detail.set_text('Ready for your next command.' if value['state']=='ready' else
                                        'Use the controls below, or check Maintenance for details.')
             self.start_stop.set_label('Stop Jarvis' if self.running else 'Run Jarvis')
             self.start_stop.set_image(Gtk.Image.new_from_icon_name('media-playback-stop-symbolic' if self.running else 'media-playback-start-symbolic', Gtk.IconSize.BUTTON))
@@ -570,11 +720,13 @@ class ControlCenter:
             self.colour(self.mic,'jarvis-warning' if value['microphone'] else 'jarvis-enable')
             for unit,(led,item) in self.service_labels.items():
                 service_state=value['services'].get(unit,'unknown')
-                item.set_text(service_state.capitalize())
+                item.set_text('Ready' if service_state=='active' and value['state']=='ready' else service_state.capitalize())
                 context=led.get_style_context()
-                for style in ('jarvis-led-ready','jarvis-led-warn','jarvis-led-down'):context.remove_class(style)
-                context.add_class('jarvis-led-ready' if service_state=='active' else
-                                  'jarvis-led-warn' if service_state=='activating' else 'jarvis-led-down')
+                for style in ('jarvis-led-ready','jarvis-led-warn','jarvis-led-down','jarvis-off'):context.remove_class(style)
+                context.add_class('jarvis-led-ready' if service_state=='active' and value['state'] in {'ready','muted'} else
+                                  'jarvis-led-warn' if service_state=='active' else
+                                  'jarvis-led-warn' if service_state=='activating' else
+                                  'jarvis-off' if service_state=='inactive' else 'jarvis-led-down')
             if not self.state['busy']:
                 self.restart.set_sensitive(self.running)
                 information=update_status();self.latest=information['latest'] if information['available'] else None
@@ -582,24 +734,19 @@ class ControlCenter:
                 detail=('Your version: '+information['installed']+'\nLatest version: '+information['latest']+'\nRelease date: '+date)
                 self.update_label.set_text(('Update available\n' if information['available'] else '')+detail)
                 summary_context=self.overview_summary.get_style_context()
+                icon_context=self.overview_icon.get_style_context()
+                for style in ('jarvis-led-ready','jarvis-led-warn','jarvis-off'):icon_context.remove_class(style)
+                icon_context.add_class('jarvis-led-ready' if value['state']=='ready' else 'jarvis-off' if value['state']=='stopped' else 'jarvis-led-warn')
                 for style in ('jarvis-summary-good','jarvis-summary-update','jarvis-summary-warn'):summary_context.remove_class(style)
-                if information['available']:
-                    self.overview_health.set_text('Update available: '+information['latest'])
-                    self.overview_update.set_text('Your version: '+information['installed']+' · Released: '+date)
-                    self.overview_icon.set_from_icon_name('software-update-available-symbolic',Gtk.IconSize.LARGE_TOOLBAR)
-                    summary_context.add_class('jarvis-summary-update')
-                elif value['state']=='ready':
-                    self.overview_health.set_text('Everything is working')
-                    self.overview_update.set_text('Jarvis '+information['installed']+' is up to date' if information['checked'] else 'Jarvis is ready · Update check failed' if information['failed'] else 'Jarvis is ready · Update status has not been checked')
+                if value['state']=='ready':
                     self.overview_icon.set_from_icon_name('emblem-default-symbolic',Gtk.IconSize.LARGE_TOOLBAR)
                     summary_context.add_class('jarvis-summary-good')
                 else:
-                    self.overview_health.set_text('Jarvis needs attention' if value['state']=='failed' else names[value['state']])
-                    self.overview_update.set_text('Check the service status below')
-                    self.overview_icon.set_from_icon_name('dialog-warning-symbolic',Gtk.IconSize.LARGE_TOOLBAR)
+                    self.overview_icon.set_from_icon_name('media-record-symbolic' if value['state']=='stopped' else 'dialog-warning-symbolic',Gtk.IconSize.LARGE_TOOLBAR)
                     summary_context.add_class('jarvis-summary-warn')
                 self.refresh_update_button(information)
             self.refresh_startup()
+            self.refresh_recent()
             return False
         worker(status,done);return True
 
@@ -622,6 +769,7 @@ class ControlCenter:
         self.stack.set_visible_child_name(row.key)
         visible=row.key=='apps'
         self.footer.set_visible(visible);self.save.set_visible(visible)
+        if row.key=='maintenance':self.refresh_isolation()
 
     def refresh_update_button(self,information):
         available=information['available']

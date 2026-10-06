@@ -1,5 +1,12 @@
 # Security and update policy
 
+The 4.2 candidate keeps Recent Activity in a bounded in-memory session list.
+It contains reviewed action identifiers and results, never dictated text,
+search queries, window titles or clipboard contents. Appearance settings apply
+only to Jarvis and are included in private settings exports. Maintenance's
+Isolation status inspects native policy; it does not claim actual network
+verification. See the [release record](releases.md) for validation status.
+
 ## Supported foundation
 
 This release supports an x86_64 Linux desktop in an X11 session, with OVOS

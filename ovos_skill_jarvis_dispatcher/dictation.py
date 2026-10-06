@@ -233,11 +233,13 @@ class DictationActionsMixin:
             self.log.info(
                 "Speech Note continuous dictation started",
             )
+            getattr(self, '_record_activity', lambda *args: None)('dictation.start')
         else:
             self._speech_note_action("stop-listening")
             self._speech_note_dictating = False
             self._speech_note_dictation_paused = False
             self.speak("I could not start dictation.")
+            getattr(self, '_record_activity', lambda *args: None)('dictation.start', False)
 
     def _finish_speech_note_dictation(self):
         """Stop active dictation and leave one separator after its punctuation."""
@@ -277,4 +279,6 @@ class DictationActionsMixin:
                 self.log.exception(
                     "Could not verify the dictation window after stopping"
                 )
+        if was_dictating or was_paused:
+            getattr(self, '_record_activity', lambda *args: None)('dictation.stop', bool(stopped))
         return stopped

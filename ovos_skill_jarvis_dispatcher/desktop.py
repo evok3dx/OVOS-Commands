@@ -6,6 +6,11 @@ from pathlib import Path
 class DesktopActionsMixin:
     """Allowlisted desktop application and window actions."""
 
+    def _record_activity(self, action, success=True, integration=None):
+        feed = getattr(self, '_jarvis_activity', None)
+        if feed is not None:
+            feed.record(action, success, integration)
+
     def _focused_window_action(self, action: str) -> None:
         """Control the currently focused normal window."""
 
@@ -24,8 +29,10 @@ class DesktopActionsMixin:
                 f"Focused window action failed: {action}"
             )
             self.speak("I could not control that window.")
+            self._record_activity('window.' + action, False)
             return
 
+        self._record_activity('window.' + action)
         if action == "close":
             self.speak("Window closed.")
 
@@ -97,6 +104,8 @@ class DesktopActionsMixin:
                     self.speak("Opening.")
                 elif action == 'close':
                     self.speak(f"{display_name} closed.")
+            if announce:
+                self._record_activity('application.' + action, success, integration)
             return success
         # Allow the bounded Flatpak discovery probe plus the existing window
         # appearance/focus check; failed launches still return a brief response.
@@ -119,6 +128,8 @@ class DesktopActionsMixin:
                 text=True,
             )
         except Exception as error:
+            if announce:
+                self._record_activity('application.' + action, False, integration)
             if integration == "zoom" and action in {"open", "focus"} and getattr(error, "returncode", None) == 24:
                 if announce:
                     self.speak("Zoom is running in the tray. Select its tray icon to reopen it.")
@@ -132,7 +143,9 @@ class DesktopActionsMixin:
             )
 
             if announce:
-                if action in ("minimize", "maximize", "close"):
+                if integration == 'standard_notes':
+                    self.speak("That didn't work.")
+                elif action in ("minimize", "maximize", "close"):
                     self.speak(f"{display_name} is not open.")
                 else:
                     self.speak(f"I could not open {display_name}.")
@@ -142,4 +155,6 @@ class DesktopActionsMixin:
             self.speak("Opening.")
         elif announce and action == "close":
             self.speak(f"{display_name} closed.")
+        if announce:
+            self._record_activity('application.' + action, True, integration)
         return True

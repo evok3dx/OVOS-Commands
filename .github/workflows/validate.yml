@@ -18,6 +18,12 @@ jobs:
           sudo apt-get install --no-install-recommends python3-gi gir1.2-gtk-3.0 xvfb xauth
       - name: Test real GTK default-app picker as ordinary user
         run: xvfb-run --auto-servernum /usr/bin/python3 scripts/test-default-app-picker-gtk.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: jarvis-dashboard-previews
+          path: ${{ runner.temp }}/Jarvis-Dashboard-*.png
+          if-no-files-found: error
+          retention-days: 14
   security:
     runs-on: ubuntu-latest
     steps:

@@ -204,6 +204,11 @@ reviewed inventory, with every version constraint still checked.
 
 ## Application focus
 
+The 4.2 Notes candidate reads complete reviewed `WM_CLASS` pairs with `xprop`.
+This handles the spaced Debian class without trusting a window title or a
+broad `standard` match. New Note retains `Alt+Shift+N`; search retains its
+existing palette shortcut and rechecks focus before typing.
+
 When one application-specific action fails, verify the application mapping and
 focus helper before changing Jarvis or the app shortcut:
 
@@ -245,6 +250,22 @@ restore and does not undo an unrelated OVOS, application or operating-system
 update.
 
 ## Private support report
+
+Inspect isolation policy without changing services or the microphone:
+
+```bash
+jarvis-isolation-check
+```
+
+Explicitly request actual worker socket checks and a private-model check:
+
+```bash
+jarvis-isolation-check --test-network --test-model
+```
+
+Reports stay in timestamped `Jarvis-Isolation-Check` folders in Downloads.
+Policy inspection is separate from actual-service verification. An unsupported
+private-model IPv6 probe is NOT TESTED, not proof of denial.
 
 If the cause is still unclear, create a bounded report:
 

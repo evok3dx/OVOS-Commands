@@ -33,6 +33,7 @@ python3 "$repo_root/scripts/test-weather-location.py"
 python3 "$repo_root/scripts/test-lifecycle-hotfix.py" apply-v4-weather-fix.py
 python3 "$repo_root/scripts/test-lifecycle-hotfix.py" apply-v4-media-timing-fix.py
 python3 "$repo_root/scripts/test-installer-progress.py"
+python3 "$repo_root/scripts/test-v42.py"
 python3 - "$repo_root/scripts/verify-wake-model.py" <<'PY'
 import os
 import subprocess
@@ -295,14 +296,14 @@ notes_log="$test_root/notes-launch.log"
 mkdir -p "$notes_home/Applications" "$notes_bin"
 printf '%s\n' '#!/bin/sh' 'exit 0' > "$notes_home/Applications/StandardNotes.AppImage"
 chmod 0755 "$notes_home/Applications/StandardNotes.AppImage"
-python3 - "$notes_bin/wmctrl" "$notes_bin/xdotool" "$notes_bin/systemd-run" <<'PY'
+python3 - "$notes_bin/wmctrl" "$notes_bin/xdotool" "$notes_bin/systemd-run" "$notes_bin/xprop" <<'PY'
 import stat
 import sys
 from pathlib import Path
 
-wmctrl, xdotool, systemd_run = map(Path, sys.argv[1:])
+wmctrl, xdotool, systemd_run, xprop = map(Path, sys.argv[1:])
 wmctrl.write_text(r'''#!/usr/bin/env bash
-if [[ "$1" == "-lx" ]]; then
+if [[ "$1" == "-lx" || "$1" == "-l" ]]; then
   if [[ -e "$JARVIS_NOTES_STATE" ]]; then
     echo '0x00001000  0 standard-notes.StandardNotes host Standard Notes'
   fi
@@ -321,7 +322,10 @@ printf '%s\n' "$*" >> "$JARVIS_NOTES_LOG"
 touch "$JARVIS_NOTES_STATE"
 exit 0
 ''', encoding="utf-8")
-for path in (wmctrl, xdotool, systemd_run):
+xprop.write_text('''#!/usr/bin/env bash
+echo 'WM_CLASS(STRING) = "standard-notes", "StandardNotes"'
+''', encoding="utf-8")
+for path in (wmctrl, xdotool, systemd_run, xprop):
     path.chmod(path.stat().st_mode | stat.S_IXUSR)
 PY
 HOME="$notes_home" PATH="$notes_bin:$PATH" \

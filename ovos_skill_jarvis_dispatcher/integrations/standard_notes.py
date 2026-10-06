@@ -27,11 +27,15 @@ class StandardNotesIntegrationMixin:
             capture_output=True,
             text=True,
             timeout=5,
-        ).stdout.lower()
-        normalised_class = "".join(
-            character for character in window_class if character.isalnum()
-        )
-        return "standardnotes" in normalised_class
+        ).stdout.strip().lower()
+        return window_class in {
+            'wm_class(string) = "standard notes", "standard notes"',
+            'wm_class(string) = "standard-notes", "standard-notes"',
+            'wm_class(string) = "standard-notes", "standardnotes"',
+            'wm_class(string) = "standard-notes", "standard notes"',
+            'wm_class(string) = "standardnotes", "standardnotes"',
+            'wm_class(string) = "org.standardnotes.standardnotes", "org.standardnotes.standardnotes"',
+        }
 
     def _create_new_note(self):
         applications = self._jarvis_profile.get("applications", {})
@@ -46,7 +50,8 @@ class StandardNotesIntegrationMixin:
             "focus",
             announce=False,
         ):
-            self.speak("I could not open Notes.")
+            self._record_activity('notes.new', False)
+            self.speak("That didn't work.")
             return
 
         try:
@@ -68,9 +73,11 @@ class StandardNotesIntegrationMixin:
             )
         except Exception:
             self.log.exception("Standard Notes new-note action failed")
-            self.speak("I could not create a new note.")
+            self._record_activity('notes.new', False)
+            self.speak("That didn't work.")
             return
 
+        self._record_activity('notes.new')
         self.speak("New note ready.")
 
     def _search_standard_notes(self):
@@ -83,7 +90,8 @@ class StandardNotesIntegrationMixin:
             return
 
         if not self._run_desktop_app_action("notes", "focus", announce=False):
-            self.speak("I could not open Notes.")
+            self._record_activity('notes.search', False)
+            self.speak("That didn't work.")
             return
 
         try:
@@ -109,4 +117,5 @@ class StandardNotesIntegrationMixin:
             self._type_focused_text(response)
         except Exception:
             self.log.exception("Standard Notes search failed")
-            self.speak("I could not search Notes.")
+            self._record_activity('notes.search', False)
+            self.speak("That didn't work.")

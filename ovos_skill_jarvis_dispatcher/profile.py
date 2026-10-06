@@ -144,6 +144,7 @@ PREFERRED_DYNAMIC_NAMES = {
     # Utility rather than TextEditor. Keep the exception name-based and
     # narrow instead of admitting every utility into the Notes role.
     "notes": {"notes", "sticky", "sticky notes", "text editor", "xed"},
+    "mail": {"electronmail", "electron mail"},
 }
 
 
@@ -163,6 +164,11 @@ def preferred_app_candidates(applications, role):
             continue
         menu_categories = set(definition.get("menu_categories", ()))
         display_name = discovery.normalise(str(definition.get("display_name", "")))
+        # Mail clients often advertise Office as a secondary desktop category.
+        # That metadata must not offer ElectronMail/Thunderbird as an office app.
+        if role == 'office' and ('Email' in menu_categories
+                                or display_name in PREFERRED_DYNAMIC_NAMES['mail']):
+            continue
         if (categories.intersection(menu_categories)
                 or display_name in PREFERRED_DYNAMIC_NAMES.get(role, set())):
             result.append(key)

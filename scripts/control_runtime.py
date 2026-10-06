@@ -402,6 +402,7 @@ def maintenance(action, cancel_event=None):
     commands={
         'health':([str(Path.home()/'.local/bin/jarvis-health-check')],150),
         'report':([str(Path.home()/'.local/bin/jarvis-report')],120),
+        'isolation':([str(Path.home()/'.local/bin/jarvis-isolation-check'),'--test-network','--test-model'],300),
         'updates':([str(Path.home()/'.local/bin/jarvis-update'),'check'],90),
         # The Control Centre has already shown its own confirmation dialog.
         # Its subprocess has no terminal on which to answer the CLI prompt.

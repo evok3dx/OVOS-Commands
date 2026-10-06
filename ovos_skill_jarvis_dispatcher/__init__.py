@@ -174,6 +174,11 @@ class JarvisDispatcherSkill(
         self._confirmation_retries = 0
         self._jarvis_profile = load_profile(logger=self.log)
 
+        from .activity import ActivityLog, QUERY_EVENT
+        self._jarvis_activity = ActivityLog()
+        self.add_event(QUERY_EVENT, lambda message: self.bus.emit(
+            message.reply(QUERY_EVENT + '.response', self._jarvis_activity.snapshot())))
+
         self.add_event(
             "recognizer_loop:wakeword",
             self._pause_speech_note_reading
@@ -195,6 +200,9 @@ class JarvisDispatcherSkill(
         self.log.info("Jarvis configuration ready")
 
     def shutdown(self):
+        feed = getattr(self, '_jarvis_activity', None)
+        if feed is not None:
+            feed.clear()
         router = getattr(self, "_qwen_router", None)
         if router is not None:
             router.close()

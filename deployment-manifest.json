@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "release_version": "4.0.1",
+  "release_version": "4.2.0",
   "package_modules": [
     "__init__.py",
     "agents.py",
@@ -28,7 +28,8 @@
     "_ovos_launcher.py",
     "launcher.py",
     "discovery.py",
-    "model_endpoint.py"
+    "model_endpoint.py",
+    "activity.py"
   ],
   "integration_modules": [
     "__init__.py",
@@ -56,7 +57,8 @@
     "jarvis-update",
     "jarvis-uninstall",
     "jarvis-wake-phrase",
-    "jarvis-desktop-launch"
+    "jarvis-desktop-launch",
+    "jarvis-isolation-check"
   ],
   "profiles": [
     "reference.json",
@@ -114,7 +116,11 @@
       "scripts/model_endpoint.py",
       "scripts/private_ollama.py",
       "scripts/isolation_install.py",
-      "scripts/test-isolation-install.py"
+      "scripts/test-isolation-install.py",
+      "scripts/appearance_settings.py",
+      "scripts/private_reports.py",
+      "scripts/isolation_check.py",
+      "scripts/read_activity.py"
     ],
     "plugin_rollback_preflight": [
       "scripts/check-plugin-rollback.py"

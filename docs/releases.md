@@ -7,6 +7,29 @@ acceptance work. Durable design choices belong in
 under [`history/`](history/README.md). Other current documents link here rather
 than repeating release narratives.
 
+## 4.2.0 (candidate, unpublished)
+
+The native Dashboard places system status and Run/Stop/Restart on the left,
+with Speech, Listener and Commands on the right. General offers app-scoped
+Light/Dark appearance, preserving independent login choices. Subtle Unchained
+branding and bounded session activity contain no transcripts or search text.
+
+Standard Notes recognises reviewed complete WM_CLASS pairs, preserves its
+focus checks and existing shortcuts, and gives short failure feedback.
+ElectronMail appears under Mail even when its desktop metadata omits Email;
+it is excluded from Office. New report/review folders use readable timestamps;
+existing candidate paths and internal security tokens remain unchanged.
+Maintenance shows inspected core/private-model policy separately from network
+verification, with an explicit read-only check also available from the CLI.
+Unsupported dedicated-model IPv6 probes remain NOT TESTED, never a pass.
+
+**PLANNED verification:** ordinary-user GTK, complete source/clean-archive
+regressions, 350-case policy benchmark, retained runtime closure, packaging and
+privacy checks must pass before publication. Live GUI/Notes acceptance remains
+separate. The reviewed 296-package runtime, Media 0.3.5 pacing and File Search
+0.3.0 are unchanged. See the [4.2 plan](v4.2-plan.md),
+[short release notes](release-v4.2.0.md) and [security policy](security-and-updates.md).
+
 ## 4.0.1 (published stable, 1 October 2026)
 
 Guided optional isolation is recommended for new installs and preserves existing

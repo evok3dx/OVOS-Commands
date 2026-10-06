@@ -730,7 +730,9 @@ def run_install(arguments, home):
             apply_native(native, units, rule, originals, old_rule, state.parent / ('native-' + token[:12]))
             if not was_active:
                 from prepare_core_isolation import activate
-                candidate = home / 'Downloads/jarvis-v4-isolation-candidates' / secrets.token_hex(8)
+                from private_reports import next_path
+                candidate = next_path(home / 'Downloads/jarvis-v4-isolation-candidates',
+                                      'Jarvis-Core-Isolation-Review')
                 subprocess.run([str(home / '.venvs/ovos/bin/python'),
                                 str(deployment / 'scripts/prepare_core_isolation.py'), 'prepare',
                                 '--output', str(candidate), '--model-binary', binary], check=True)

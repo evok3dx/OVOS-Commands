@@ -59,8 +59,7 @@ case "$app" in
     ;;
   notes)
     # Standard Notes has used several X11 class spellings across packaging
-    # formats. Alternatives are separated with | and find_window() treats
-    # each member as an independent literal substring.
+    # formats. find_window() verifies complete reviewed WM_CLASS pairs.
     window_match="standard notes.Standard Notes|standard-notes|standardnotes"
     title="Notes"
     ;;
@@ -110,7 +109,30 @@ esac
 find_window() {
   local candidate
   local window_id
+  local properties
   local -a candidates
+
+  # WM_CLASS can contain spaces. wmctrl's third whitespace field then loses
+  # part of the identity. Read the actual property for this reviewed app;
+  # never recognise an application from its window title.
+  if [[ "$app" == notes ]]; then
+    while read -r window_id _; do
+      [[ "$window_id" =~ ^0x[[:xdigit:]]+$ ]] || continue
+      properties="$(xprop -id "$window_id" WM_CLASS 2>/dev/null)" || continue
+      case "${properties,,}" in
+        'wm_class(string) = "standard notes", "standard notes"'|\
+        'wm_class(string) = "standard-notes", "standard-notes"'|\
+        'wm_class(string) = "standard-notes", "standardnotes"'|\
+        'wm_class(string) = "standard-notes", "standard notes"'|\
+        'wm_class(string) = "standardnotes", "standardnotes"'|\
+        'wm_class(string) = "org.standardnotes.standardnotes", "org.standardnotes.standardnotes"')
+          printf '%s\n' "$window_id"
+          return 0
+          ;;
+      esac
+    done < <(wmctrl -l)
+    return 1
+  fi
 
   # window_match is an allowlisted | separated list of literal X11 window
   # signatures. Do not pass it to a regex engine and do not treat the full
