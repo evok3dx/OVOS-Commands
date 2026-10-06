@@ -364,13 +364,15 @@ print('PASS: full-runtime provenance is required and model policy preserves iden
 # Use the real privacy/probe attachment functions without starting a service,
 # capturing logs or opening a socket.
 import privacy_logging as privacy
-capture=types.SimpleNamespace(snapshot=lambda: {'schema_version':1})
+capture=types.SimpleNamespace(role='media',snapshot=lambda: {'schema_version':1})
 with patch.object(privacy,'_capture',capture):
     try:privacy.attach(None)
-    except AttributeError:pass  # Reproduce the released 4.3 helper crash.
+    except AttributeError as error:
+        assert "'NoneType' object has no attribute 'on'" in str(error)
     else:raise AssertionError('Missing diagnostic connection did not reproduce failure')
 
     for component in worker.COMPONENTS:
+        capture.role=component
         for failure in (False,True):
             bus=Bus(host='127.0.0.1',port=8181,ssl=False)
             bus.run_in_thread=Mock()
@@ -389,7 +391,6 @@ with patch.object(privacy,'_capture',capture):
                  patch.object(worker,'verify_pins'), \
                  patch.object(worker,'install_overlay'), \
                  patch.object(weather,'install'), \
-                 patch.object(services,'active',return_value=True), \
                  patch.object(__import__('isolation_install'),'installation_blocked',return_value=False), \
                  patch.object(worker,'run_component',side_effect=run_component):
                 if failure:rejected(worker.main)

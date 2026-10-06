@@ -46,7 +46,7 @@ namespace['main'].__globals__.update(
     install_overlay=lambda component: events.append('overlay'),
     run_component=lambda component: events.append('run'))
 boundary = types.ModuleType('verify_core_isolation')
-boundary.attach = lambda *args: None
+boundary.attach = lambda *args: types.SimpleNamespace(close=lambda: None)
 sys.modules['verify_core_isolation'] = boundary
 sys.argv = [path, component, '--uid', str(os.getuid()), '--gid', str(os.getgid())]
 try:
