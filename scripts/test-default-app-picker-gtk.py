@@ -198,6 +198,8 @@ print('PASS: real GTK Dashboard layout, scoped light/dark styling, white action 
 # Reproduce Apps & Commands' light host notebook inside an app-dark window.
 # Check actual painted content and computed tab text/symbolic-icon colours on
 # all three pages, including a live theme change on the same widget tree.
+animations=settings.get_property('gtk-enable-animations')
+settings.set_property('gtk-enable-animations',False)
 host=Gtk.CssProvider()
 host.load_from_data(b'notebook, notebook > stack, notebook > header, notebook > header tab { background-image: linear-gradient(#FFFFFF, #FFFFFF); background-color: #FFFFFF; } notebook > header image { color: #000000; }')
 Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(),host,
@@ -254,6 +256,7 @@ for selected,background in (('dark',(16,23,34)),('light',(255,255,255)),('dark',
             pixbuf.savev(str(Path(os.environ['RUNNER_TEMP'])/('Jarvis-Apps-'+selected+'.png')),'png',[],[])
 window.destroy()
 Gtk.StyleContext.remove_provider_for_screen(Gdk.Screen.get_default(),host)
+settings.set_property('gtk-enable-animations',animations)
 print('PASS: Apps/Defaults/Custom commands resist light host backgrounds, retain readable tab icons/text and switch themes live')
 
 # A failed activity query must not erase known rows or pretend the feed is
