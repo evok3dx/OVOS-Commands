@@ -7,7 +7,7 @@ acceptance work. Durable design choices belong in
 under [`history/`](history/README.md). Other current documents link here rather
 than repeating release narratives.
 
-## 4.4.1 (release candidate)
+## 4.4.1 (published stable, 6 October 2026 UTC)
 
 Add a small independent supervisor for reading's foreground X11
 clipboard owner. It expires after 15 seconds and explicitly clears only its
@@ -56,11 +56,34 @@ bytes. This establishes normal cleanup on the tested Cinnamon desktop. Crash
 expiry and later-copy preservation are verified with process fixtures; they
 have not been repeated against the live desktop.
 
-**PLANNED release validation:** run the isolated native Xvfb owner/clear test
-and the complete required suite against the final source before publication.
-Local review has checked syntax and the manifest only; this workspace cannot
-run the repository as a normal desktop user. No live installation or
-publication has been performed.
+**VERIFIED automated at `c975701e2a617d5689fa23657c3a60a6470adbc8`:**
+[all six validation jobs](https://github.com/evok3dx/OVOS-Commands/actions/runs/37420997716)
+pass Python 3.10–3.13, native GTK and source/history/archive security checks.
+The isolated native Xvfb regression verifies actual X11/XRes process identity,
+explicit selection clearing, same-text later copying and independent expiry.
+GTK checks verify green zero-error health results, retained warning details,
+rerun reset and failure feedback. [Packaging](https://github.com/evok3dx/OVOS-Commands/actions/runs/37420997864)
+passes the full clean-archive suite, 350/350 non-executing policy cases, exact-wheel
+privacy/helper-lifecycle checks and all 296 retained runtime identities/hashes
+with zero exemptions. Runtime pins and the separate Media/File Search sources
+are unchanged. These checks ran as ordinary CI users; local review was limited
+to syntax and inventory because this workspace cannot run as a desktop user.
+
+**VERIFIED publication:** [run 37421485758](https://github.com/evok3dx/OVOS-Commands/actions/runs/37421485758)
+published [Jarvis 4.4.1](https://github.com/evok3dx/OVOS-Commands/releases/tag/v4.4.1)
+as latest stable. All 11 public assets were downloaded again and verified
+against the original SHA256SUMS. The tag points to the validated source above;
+main was advanced to it before this documentation-only record.
+Code archive SHA-256:
+`1ac46bc6837c101a27a91b20c1f211c8dd493aaa2ae722a178865ffc1cae8447`.
+
+**PLANNED live acceptance:** owner upgrade and the GUI health result on the
+installed system remain pending. Live Cinnamon helper cleanup passed before
+publication as recorded above; live crash/later-copy checks remain separate
+from the process and isolated-X11 fixtures. No laptop installation or staging
+cleanup was performed. Obsolete repairs and identified Downloads trials are
+tracked in [maintenance](maintenance.md#temporary-repairs-and-test-folders)
+for review after successful upgrades; recovery data is retained.
 
 ## 4.4.0 (published stable, 6 October 2026 UTC)
 

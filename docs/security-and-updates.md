@@ -110,8 +110,9 @@ it, normal cleanup or expiry explicitly clears only the verified owner window
 and process, with an atomic ownership check. This addresses Cinnamon's cache
 restoration while preserving later user copies, including identical text.
 **VERIFIED:** normal cleanup passed on the tested Cinnamon desktop; independent
-expiry and later-copy preservation passed process fixtures. Native/release
-validation remains pending. Earlier owner-release-only trials failed live cleanup. Other applications or
+expiry and later-copy preservation passed process fixtures and isolated native
+X11 checks. Full release validation passed; see the release record for evidence.
+Earlier owner-release-only trials failed live cleanup. Other applications or
 clipboard-history extensions can retain separate copies; this is not secure
 erasure of their history. Verification status is in the [release record](releases.md).
 These controls reduce accidental execution
