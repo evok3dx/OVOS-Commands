@@ -196,6 +196,8 @@ class ControlCenter:
             GLib.timeout_add(120,self.tick)
             self.poll()
             self.refresh_startup()
+            self.refresh_logging()
+            GLib.timeout_add_seconds(1,self.logging_tick)
 
     def page(self,key,title,subtitle,icon,scroll=True):
         row=Gtk.ListBoxRow();row.key=key
@@ -281,18 +283,25 @@ class ControlCenter:
             row.pack_start(led,False,False,0);row.pack_start(name,True,True,0);row.pack_end(state,False,False,0)
             service_box.pack_start(row,False,False,0);self.service_labels[unit]=(led,state)
         quick=self.card_grid(parent)
+        self.quiet_descriptions=Gtk.SizeGroup(mode=Gtk.SizeGroupMode.VERTICAL)
         card=self.card(quick,'Microphone','Pause Jarvis listening. Other applications can still use your microphone.')
+        self.quiet_descriptions.add_widget(card.get_children()[1])
         card.set_hexpand(True)
         self.mic=self.action(card,'Checking microphone…','audio-input-microphone-symbolic',lambda _:self.task('Updating microphone',microphone_action))
         self.colour(self.mic,'jarvis-warning')
         card=self.card(quick,'Need quiet?','Stop speech, reading and the current request immediately.')
+        self.quiet_descriptions.add_widget(card.get_children()[1])
         card.set_hexpand(True)
         self.emergency=button('Stop speaking','media-playback-stop-symbolic',self.stop_speech)
         self.colour(self.emergency,'jarvis-danger')
         card.pack_start(self.emergency,False,False,0)
         self.emergency_note=label('Available even while Jarvis is restarting.','jarvis-subtitle')
         card.pack_start(self.emergency_note,False,False,0)
-        recent=self.card(parent,'Recent Activity')
+        recent=self.card(parent,None)
+        header=Gtk.Box(spacing=10);recent.pack_start(header,False,False,0)
+        header.pack_start(label('Recent Activity','jarvis-heading'),True,True,0)
+        self.recent_refresh=self.action(header,'Refresh','view-refresh-symbolic',lambda _:self.refresh_recent())
+        self.recent_status=label('','jarvis-subtitle');recent.pack_start(self.recent_status,False,False,0)
         self.recent_rows=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=2)
         recent.pack_start(self.recent_rows,False,False,0)
         recent.pack_start(label('This session only. No dictated text or search queries.','jarvis-credit'),False,False,0)
@@ -331,20 +340,31 @@ class ControlCenter:
     def refresh_recent(self):
         if self.activity_polling or self.check_only:return
         if not self.running:
-            self.render_recent([]);return
+            self.render_recent([]);self.recent_status.set_text('Start Jarvis to see this session’s actions.');return
         self.activity_polling=True
+        self.recent_status.set_text('Refreshing…')
         def read():
-            result=subprocess.run([str(Path.home()/'.venvs/ovos/bin/python'),'-I',
-                                   str(Path(__file__).with_name('read_activity.py'))],
-                                  capture_output=True,text=True,timeout=6,check=True)
-            if len(result.stdout.encode())>16384:raise ValueError('Activity size is invalid')
+            arguments=[str(Path.home()/'.venvs/ovos/bin/python'),'-I',
+                       str(Path(__file__).with_name('read_activity.py'))]
+            try:
+                output=subprocess.run(arguments,capture_output=True,text=True,timeout=6,check=True).stdout
+            except subprocess.TimeoutExpired as error:
+                # A completed snapshot can arrive before bus cleanup finishes.
+                # subprocess.run stops only this reader; still validate its frame.
+                output=error.stdout or ''
+                if isinstance(output,bytes):output=output.decode('utf-8',errors='replace')
             spec=importlib.util.spec_from_file_location('jarvis_activity_view',Path(__file__).resolve().parents[1]/'ovos_skill_jarvis_dispatcher/activity.py')
             module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
-            return module.display_rows(json.loads(result.stdout))
+            return module.display_output(output)
         def done(rows,error):
             self.activity_polling=False
             if not self.alive:return False
-            self.render_recent(rows if error is None and self.running else [])
+            if not self.running:
+                self.render_recent([]);self.recent_status.set_text('Start Jarvis to see this session’s actions.')
+            elif error is not None:
+                self.recent_status.set_text('Activity unavailable. Try Refresh.')
+            else:
+                self.render_recent(rows);self.recent_status.set_text('')
             return False
         worker(read,done)
 
@@ -606,6 +626,15 @@ class ControlCenter:
         self.theme_picker.set_active_id(getattr(self,'selected_theme','light'))
         self.theme_picker.connect('changed',self.change_theme)
         appearance.pack_start(self.theme_picker,False,False,0)
+        logging_card=self.card(parent,'Logging','Diagnostics capture technical events for five minutes, then clear automatically. Spoken and written content is excluded.')
+        self.logging_picker=Gtk.ComboBoxText()
+        self.logging_picker.append('off','No logs')
+        self.logging_picker.append('diagnostics','Diagnostics for 5 minutes')
+        self.logging_picker.set_active_id('off')
+        self.logging_picker.connect('changed',self.change_logging)
+        logging_card.pack_start(self.logging_picker,False,False,0)
+        self.logging_note=label('No logs','jarvis-subtitle')
+        logging_card.pack_start(self.logging_note,False,False,0)
         card=self.card(parent,'Startup')
         self.startup_switches={}
         for component,title,detail in (
@@ -623,6 +652,32 @@ class ControlCenter:
             self.startup_switches[component]=switch;self.buttons.append(switch)
         self.startup_note=label('Checking login settings…','jarvis-subtitle')
         card.pack_start(self.startup_note,False,False,0)
+
+    def change_logging(self,picker):
+        if getattr(self,'updating_logging',False):return
+        from privacy_logging import set_mode
+        enabled=picker.get_active_id()=='diagnostics'
+        try:
+            set_mode(enabled)
+        except (OSError,ValueError,RuntimeError):
+            self.logging_note.set_text('Logging setting could not be changed. No new diagnostic capture was enabled.')
+            return
+        self.refresh_logging()
+
+    def refresh_logging(self):
+        from privacy_logging import mode
+        current=mode()
+        self.updating_logging=True
+        try:
+            self.logging_picker.set_active_id('diagnostics' if current['enabled'] else 'off')
+            self.logging_note.set_text('Diagnostics: '+str(current['remaining'])+' seconds remaining.'
+                                      if current['enabled'] else 'No logs')
+        finally:self.updating_logging=False
+
+    def logging_tick(self):
+        if not self.alive:return False
+        self.refresh_logging()
+        return True
 
     def change_startup(self,_switch,enabled,component):
         if getattr(self,'updating_startup',False):return False

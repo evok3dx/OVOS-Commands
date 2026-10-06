@@ -303,22 +303,14 @@ def private_tar_info(member: tarfile.TarInfo) -> tarfile.TarInfo:
 
 
 def collect_logs(bundle: Path, home: Path) -> None:
-    unit_arguments = [
-        item
-        for service in SERVICES
-        for item in ("--unit", service)
-    ]
-    result = run(
-        [
-            "journalctl", "--user", "--no-pager", "--since=-24 hours",
-            "--priority=warning", "--lines=200",
-            *unit_arguments,
-        ],
-        home,
-        timeout=20,
-    )
+    from privacy_logging import mode
+    text = 'No logs. Enable Diagnostics for 5 minutes before reproducing an issue.'
+    if mode(home)['enabled']:
+        result = run([str(home / '.venvs/ovos/bin/python'),
+                      str(ROOT / 'scripts/diagnostic_reader.py')], home, timeout=10)
+        text = str(result['stdout']) or 'Diagnostics unavailable.'
     (bundle / "OPTIONAL_SANITISED_LOGS.txt").write_text(
-        str(result["stdout"]) + str(result["stderr"]),
+        text,
         encoding="utf-8",
     )
 
@@ -333,7 +325,7 @@ def main() -> int:
     parser.add_argument(
         "--include-logs",
         action="store_true",
-        help="Include sanitised warning logs; may still contain sensitive context",
+        help="Include currently enabled, content-free five-minute diagnostics",
     )
     args = parser.parse_args()
 

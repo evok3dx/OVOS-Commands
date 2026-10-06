@@ -1,10 +1,13 @@
 """Bounded in-memory results, never transcripts or user-supplied labels."""
 from collections import deque
 from datetime import datetime
+import json
 import threading
+import time
 import uuid
 
 QUERY_EVENT = 'jarvis.activity.snapshot'
+FRAME = 'JARVIS_ACTIVITY_SNAPSHOT='
 LIMIT = 32
 APP_NAMES = {
     'brave': 'Brave', 'firefox': 'Firefox', 'standard_notes': 'Notes',
@@ -50,12 +53,15 @@ class ActivityLog:
         row = {'action': action, 'integration': integration if integration in APP_NAMES else None,
                'success': success, 'time': datetime.now().strftime('%H:%M')}
         with self._lock:
-            self._rows.appendleft(row)
+            self._rows.appendleft((time.monotonic(), row))
 
     def snapshot(self):
         with self._lock:
+            deadline = time.monotonic() - 300
+            while self._rows and self._rows[-1][0] <= deadline:
+                self._rows.pop()
             return {'schema_version': 1, 'session': self._session,
-                    'rows': [dict(row) for row in self._rows]}
+                    'rows': [dict(row) for _, row in self._rows]}
 
     def clear(self):
         with self._lock:
@@ -85,3 +91,13 @@ def display_rows(value):
         result.append((text if row['success'] else 'Could not complete: ' + text,
                        stamp, row['success']))
     return result
+
+
+def display_output(output):
+    """Read one framed snapshot without treating diagnostic logs as JSON."""
+    if not isinstance(output, str) or len(output.encode()) > 65536:
+        raise ValueError('Activity response exceeds its limit')
+    frames = [line[len(FRAME):] for line in output.splitlines() if line.startswith(FRAME)]
+    if len(frames) != 1 or len(frames[0].encode()) > 16384:
+        raise ValueError('Activity snapshot is unavailable')
+    return display_rows(json.loads(frames[0]))

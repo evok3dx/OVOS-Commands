@@ -159,8 +159,7 @@ def wait_ready(units, report=lambda text: None, timeout=180):
             if not invocation:
                 ready = False
                 continue
-            logs = run(journal_arguments(unit,invocation), timeout=10).stdout
-            ready = ready and any(marker in logs for marker in MARKERS[unit])
+            ready = ready and worker_ready(unit, invocation)
         if ready:
             return
         if time.monotonic() >= next_report:
@@ -269,12 +268,23 @@ def status():
             invocation = states[unit].get('InvocationID')
             if not invocation:
                 state = 'starting'; break
-            logs = run(journal_arguments(unit,invocation), timeout=10).stdout
-            if not any(marker in logs for marker in MARKERS[unit]):
+            if not worker_ready(unit, invocation):
                 state = 'starting'; break
     else:
         state = 'starting'
     return {'state':state, 'microphone':values[LISTENER] == 'active', 'services':values}
+
+
+def worker_ready(unit, invocation):
+    from privacy_logging import readiness
+    role = {CORE: 'core', LISTENER: 'listener'}[unit]
+    managed = readiness(role, invocation)
+    if managed is not None:
+        return managed
+    # Existing releases use their current invocation's journal until the
+    # managed privacy worker has started. Never accept a historical marker.
+    logs = run(journal_arguments(unit, invocation), timeout=10).stdout
+    return any(marker in logs for marker in MARKERS[unit])
 
 
 def read_json(path):
@@ -450,6 +460,13 @@ def _run_isolation_check(arguments, progress, timeout=300):
 
 
 def maintenance(action, cancel_event=None, progress=None):
+    if action == 'logs':
+        from privacy_logging import mode
+        if not mode()['enabled']:
+            return 'No logs. Enable Diagnostics for 5 minutes in General before reproducing the issue.'
+        result = run([Path.home()/'.venvs/ovos/bin/python',
+                      Path(__file__).with_name('diagnostic_reader.py')], timeout=10)
+        return result.stdout.strip() or 'No diagnostic events available.'
     commands={
         'health':([str(Path.home()/'.local/bin/jarvis-health-check')],150),
         'report':([str(Path.home()/'.local/bin/jarvis-report')],120),

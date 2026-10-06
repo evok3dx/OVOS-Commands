@@ -20,7 +20,7 @@ def main():
         data = json.dumps(reply.data)
         if len(data.encode()) > 16384:
             raise ValueError('Activity response exceeds its limit')
-        print(data)
+        print('JARVIS_ACTIVITY_SNAPSHOT=' + data, flush=True)
     finally:
         bus.close()
 

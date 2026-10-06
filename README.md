@@ -24,7 +24,7 @@ Download the archive and matching `.sha256` from
 [Releases](https://github.com/evok3dx/OVOS-Commands/releases/latest):
 
 ```bash
-version=4.2.2
+version=4.3.0
 sha256sum --check "ovos-commands-$version.tar.gz.sha256"
 tar -xzf "ovos-commands-$version.tar.gz"
 cd "ovos-commands-$version"
@@ -115,6 +115,8 @@ automatic cross-machine import.
 - Risky controls stay strict; writing rechecks focus and refuses terminal windows.
 - Discovered applications launch through their reviewed desktop entries.
 - Configuration writes are private and atomic.
+- General offers No logs or five-minute technical diagnostics; spoken and
+  written content is excluded. See the [logging limits](docs/security-and-updates.md#application-logging-in-43).
 - Temporary reading text is cleared; the previous clipboard is never restored.
 - Tool-capable private-agent messages require readback and single-use confirmation.
 - All 296 runtime packages have exact versions and enforced wheel hashes.
@@ -142,7 +144,7 @@ are separate. Checksums verify bytes; production signing remains future work.
 - [Media and filename search](docs/10-media-files.md)
 - [Troubleshooting](docs/troubleshooting.md) and [maintenance](docs/maintenance.md)
 - [Security](docs/security-and-updates.md), [decisions](docs/12-decisions.md) and [release record](docs/releases.md)
-- [V4.2 release notes](docs/release-v4.2.0.md) and [service isolation](docs/core-isolation.md)
+- [V4.3 release notes](docs/release-v4.3.0.md) and [service isolation](docs/core-isolation.md)
 - [Contributor and AI-agent rules](AGENTS.md)
 
 ## Licence and thanks

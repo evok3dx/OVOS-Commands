@@ -1,9 +1,11 @@
-# Jarvis 4.2.2
+# Jarvis 4.3
 
 ## Changes
 
 - Keep dark sidebar highlights, text and icons readable.
 - Show isolation test stages and a clear completion or timeout result.
+- Add No logs and temporary five-minute diagnostics in General.
+- Align Dashboard controls and improve Recent Activity with Refresh and clear availability feedback.
 
 ## Verification
 

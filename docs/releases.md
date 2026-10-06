@@ -7,13 +7,22 @@ acceptance work. Durable design choices belong in
 under [`history/`](history/README.md). Other current documents link here rather
 than repeating release narratives.
 
-## 4.2.2 (candidate)
+## 4.3.0 (candidate)
 
 **PLANNED; source prepared, validation pending:** dark sidebar hover and
 selected rows keep readable text and symbolic icons even with a light desktop
 theme. Check isolation shows the actual diagnostic stages, finishes with a
 clear results message and releases its busy state on a bounded timeout.
-Services, microphone, isolation policy and diagnostic pass criteria are unchanged.
+Dashboard controls align across wrapped descriptions. Recent Activity gains
+Refresh, framed replies that tolerate diagnostic output and an explicit
+unavailable state instead of silently clearing its rows.
+General adds **No logs** by default and **Diagnostics for 5 minutes**. Managed
+voice workers discard raw application messages and capture only fixed technical
+fields in memory when enabled. Capture expires automatically without the GUI;
+current readiness state is separate. The activity feed shows only the last five
+minutes. Installation, rollback and uninstall manage the ordinary-user wrappers.
+Isolation policy, the reviewed runtime, Media and File Search are retained.
+Automated validation and live privacy/startup acceptance remain pending.
 
 ## 4.2.1 (published stable, 6 October 2026 UTC)
 

@@ -1086,6 +1086,9 @@ backup_file() {
 
 backup_file "$target_profile" profile.json
 backup_file "$target_capabilities" capabilities.json
+for unit in ovos-core.service ovos-listener.service ovos-audio.service ovos-messagebus.service; do
+  backup_file "$systemd_dir/$unit.d/10-jarvis-privacy.conf" "privacy-units/$unit.conf"
+done
 backup_file "$target_profile_dir/router.json" router.json
 for helper in "${runtime_helpers[@]}"; do
   backup_file "$target_bin/$helper" "helpers/$helper"
@@ -1490,6 +1493,8 @@ render_unit "$target_root/systemd/jarvis-update-check.service.in" \
 install -m 0644 "$target_root/systemd/jarvis-update-check.timer" \
   "$systemd_dir/jarvis-update-check.timer"
 
+"$desktop_python" "$target_root/scripts/privacy_units.py" "$jarvis_home"
+
 profile_has_hermes="$(python3 - "$configuration_source" <<'PY'
 import json
 import sys
@@ -1563,6 +1568,13 @@ PY
   fi
 
   systemctl --user daemon-reload
+  "$desktop_python" "$target_root/scripts/privacy_units.py" "$jarvis_home" --verify
+  if "$restart"; then
+    # Apply privacy before any managed voice process resumes. The bus wrapper
+    # starts without raw logs; existing native 90-* relays retain precedence.
+    systemctl --user stop ovos-core.service ovos-listener.service ovos-audio.service
+    systemctl --user try-restart ovos-messagebus.service
+  fi
   if ! systemctl --user cat ovos.service >/dev/null 2>&1; then
     echo "The official OVOS user service is unavailable; refusing an install that cannot start at login." >&2
     exit 1

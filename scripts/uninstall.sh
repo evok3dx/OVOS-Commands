@@ -125,6 +125,9 @@ fi
 for helper in "${helpers[@]}"; do
   rm -f -- "$target_bin/$helper"
 done
+for unit in ovos-core.service ovos-listener.service ovos-audio.service ovos-messagebus.service; do
+  rm -f -- "$systemd_root/$unit.d/10-jarvis-privacy.conf"
+done
 rm -f -- "$target_bin/ovos-tray" "$target_bin/jarvis-mic-indicator" \
   "$target_bin/jarvis-mic-toggle"
 rm -f -- "$jarvis_home/.config/autostart/ovos-tray.desktop" \

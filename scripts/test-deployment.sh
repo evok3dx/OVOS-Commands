@@ -34,6 +34,7 @@ python3 "$repo_root/scripts/test-lifecycle-hotfix.py" apply-v4-weather-fix.py
 python3 "$repo_root/scripts/test-lifecycle-hotfix.py" apply-v4-media-timing-fix.py
 python3 "$repo_root/scripts/test-installer-progress.py"
 python3 "$repo_root/scripts/test-v42.py"
+python3 "$repo_root/scripts/test-privacy-logging.py"
 python3 - "$repo_root/scripts/verify-wake-model.py" <<'PY'
 import os
 import subprocess
@@ -438,6 +439,9 @@ JARVIS_HOME="$fresh_home" JARVIS_TEST_MODE=1 \
   bash "$repo_root/scripts/install.sh" --no-restart
 
 fresh_target="$fresh_home/.local/src/ovos-skill-jarvis-dispatcher"
+for unit in ovos-core.service ovos-listener.service ovos-audio.service ovos-messagebus.service; do
+  test -f "$fresh_home/.config/systemd/user/$unit.d/10-jarvis-privacy.conf"
+done
 test -f "$fresh_target/pyproject.toml"
 test -f "$fresh_target/compatibility.json"
 test ! -e "$fresh_home/.config/jarvis/profile.json"
@@ -1058,6 +1062,9 @@ grep -q 'OPTIONAL_SANITISED_LOGS.txt' "$test_root/log-report-files.txt"
 JARVIS_HOME="$fresh_home" JARVIS_TEST_MODE=1 \
   bash "$fresh_target/scripts/rollback.sh" --no-restart
 test ! -e "$fresh_target"
+for unit in ovos-core.service ovos-listener.service ovos-audio.service ovos-messagebus.service; do
+  test ! -e "$fresh_home/.config/systemd/user/$unit.d/10-jarvis-privacy.conf"
+done
 test ! -e "$fresh_home/.config/jarvis/profile.json"
 test ! -e "$fresh_home/.config/jarvis/capabilities.json"
 test ! -e "$fresh_home/.config/mycroft/mycroft.conf"

@@ -250,6 +250,32 @@ message instead of only Working. A timeout is incomplete verification, never
 a passed isolation test. Policy status remains separate from actual socket
 results. The check does not start services or enable the microphone.
 
+## Recent Activity
+
+The Dashboard shows bounded completed action labels from the current Commands
+session's last five minutes, not transcripts or search text. Refresh reads the same local bus as
+automatic polling. The prepared follow-up separates unavailable/stopped state
+from an empty session, tolerates unrelated diagnostic output and retains known
+rows when retrieval fails. A complete, validated snapshot remains usable if
+the short-lived reader reaches its cleanup timeout. Commands restart starts a
+new activity session; no persistent activity history is written.
+
+## Five-minute diagnostics
+
+The 4.3 candidate defaults to **General → Logging → No logs**. Choose
+**Diagnostics for 5 minutes**, reproduce the problem, then open
+**Maintenance → Recent logs** while capture is active. Capture stops and
+clears after five minutes independently of the GUI. Choosing No logs clears
+it earlier. Re-enabling while already active does not extend the timer.
+Only fixed technical fields are captured; speech, dictation, messages and raw
+exceptions are excluded. No earlier activity can be recovered from No logs.
+
+Readiness is independent of logging. If startup is incomplete, service state
+and exit status remain available. A service override which bypasses the
+privacy wrapper blocks installation rather than silently weakening this
+policy. Earlier journals and exported reports are not erased; this setting
+does not change Speech Note, other apps or global system logging.
+
 ## Application focus
 
 The 4.2 Notes helper reads complete reviewed `WM_CLASS` pairs with `xprop`.

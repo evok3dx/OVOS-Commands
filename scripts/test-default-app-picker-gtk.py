@@ -62,6 +62,8 @@ centre.buttons=[]
 centre.change_startup=lambda *args: True
 parent=Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 centre.build_general(parent)
+assert centre.logging_picker.get_active_id()=='off'
+assert centre.logging_note.get_text()=='No logs'
 assert set(centre.startup_switches)=={'tray','voice'}
 assert all(isinstance(switch,Gtk.Switch) for switch in centre.startup_switches.values())
 centre.install_update=Gtk.Button();centre.update_health=Gtk.Label()
@@ -184,12 +186,43 @@ for selected in ('light','dark'):
         assert painted,'Dashboard did not paint a frame'
         pixbuf=Gdk.pixbuf_get_from_window(window.get_window(),0,0,*window.get_size())
         assert pixbuf is not None
+        assert abs(centre.mic.translate_coordinates(window,0,0)[1]-
+                   centre.emergency.translate_coordinates(window,0,0)[1])<=1
         pixbuf.savev(str(Path(os.environ['RUNNER_TEMP'])/('Jarvis-Dashboard-'+selected+'.png')),'png',[],[])
 assert centre.start_stop.get_parent().get_parent() is centre.overview_summary
 assert centre.restart.get_parent() is centre.start_stop.get_parent()
 assert len(centre.recent_rows.get_children())==3
 window.destroy()
 print('PASS: real GTK Dashboard layout, scoped light/dark styling, white action labels and private activity rows')
+
+# A failed activity query must not erase known rows or pretend the feed is
+# empty. Manual refresh and the polling guard use the same read-only path.
+import importlib.util
+import json
+import subprocess
+from unittest.mock import Mock,patch
+namespace.update({'Path':Path,'__file__':str(ROOT/'scripts/control_center.py'),
+                  'importlib':importlib,'json':json,'subprocess':subprocess})
+centre.running=True;centre.check_only=False;centre.activity_polling=False;centre.alive=True
+centre.recent_rows=Gtk.Box(orientation=Gtk.Orientation.VERTICAL);centre.recent_status=Gtk.Label()
+namespace['worker']=lambda work,finish:finish(work(),None)
+snapshot={'schema_version':1,'rows':[{'action':'application.open','integration':'firefox','success':True,'time':'12:00'},
+                                  {'action':'notes.new','integration':None,'success':True,'time':'12:01'}]}
+with patch.object(subprocess,'run',return_value=Mock(stdout='Background diagnostic\nJARVIS_ACTIVITY_SNAPSHOT='+json.dumps(snapshot)+'\n')):
+    centre.refresh_recent()
+assert len(centre.recent_rows.get_children())==2 and centre.recent_status.get_text()==''
+assert 'Opened Firefox' in [child.get_text() for child in descendants(centre.recent_rows) if isinstance(child,Gtk.Label)]
+with patch.object(subprocess,'run',side_effect=subprocess.TimeoutExpired(['fixed-reader'],6,
+                  output=('JARVIS_ACTIVITY_SNAPSHOT='+json.dumps(snapshot)+'\n').encode())):
+    centre.refresh_recent()
+assert len(centre.recent_rows.get_children())==2 and centre.recent_status.get_text()==''
+namespace['worker']=lambda work,finish:finish(None,'unavailable')
+centre.refresh_recent()
+assert len(centre.recent_rows.get_children())==2 and 'Activity unavailable' in centre.recent_status.get_text()
+centre.running=False;centre.refresh_recent()
+assert 'Start Jarvis' in centre.recent_status.get_text() and len(centre.recent_rows.get_children())==1
+centre.recent_rows.destroy();centre.recent_status.destroy()
+print('PASS: activity refresh reads framed Firefox/Notes rows, retains results on error and distinguishes stopped voice')
 
 # Visual policy status is not a claim that live network tests passed.
 centre.check_only=False;centre.isolation_polling=False;centre.alive=True

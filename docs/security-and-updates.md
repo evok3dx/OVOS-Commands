@@ -189,11 +189,37 @@ dependency by itself.
 
 ## AI-assisted maintenance
 
+### Application logging in 4.3
+
+**PLANNED; implementation prepared, validation pending:** General provides
+**No logs** by default and **Diagnostics for 5 minutes**. The managed OVOS
+core, listener, audio, Weather, Media and bus suppress raw Python log messages
+and direct stdout/stderr, including inherited playback output. Diagnostics
+retain only component, severity, fixed event type, reviewed source label and line number in
+bounded process memory. They contain no recognised speech, dictated text,
+messages, queries, raw exception text or traceback. Capture stops and clears
+automatically after five minutes even when the GUI is closed; a reboot,
+expired control or invalid state defaults to No logs. Repeated selection
+does not extend a running capture. No logs also clears the capture.
+
+Current readiness uses private, overwritten process state identified by boot,
+invocation and PID. It remains available when logging is off. Existing
+release readiness markers remain only as a migration/recovery fallback.
+Recent Activity stores fixed action labels in memory and displays the last
+five minutes. Optional support-report diagnostics use the same bounded feed.
+
+This policy does not erase historical journals, old OVOS files, exported
+reports or backups. Systemd can retain service lifecycle/exit records. Ollama,
+Speech Note, audio/model caches and other applications have separate storage
+and logging behaviour. The general Ollama instance and global journal policy
+are unchanged. Do not describe this as system-wide zero retention.
+
 `jarvis-report` produces a bounded, private diagnostic snapshot and embeds
 instructions requesting a patch. It never uploads, applies or deploys that
 patch. Review the archive before sharing and review any proposed patch before
 running the normal validation and isolated deployment tests.
 Home paths, usernames, common credential shapes and OVOS session location
-coordinates are redacted from its optional logs. Control Centre Recent Logs
-uses the same location boundary, but recognised utterances can still be
-sensitive and must be reviewed before sharing.
+coordinates are redacted from report fields. In the 4.3 candidate, optional
+diagnostics and Control Centre Recent Logs use the bounded technical feed
+above; raw historical journals are not collected. Previously exported reports
+and pre-4.3 logs can still contain recognised utterances and need review.

@@ -50,9 +50,18 @@ rows = activity.display_rows(snapshot)
 assert rows[0][0] == 'Opened an application'
 assert rows[1][2] is False
 assert rows[2][0] == 'Opened Firefox'
+framed=activity.FRAME+json.dumps(snapshot)+'\n'
+assert activity.display_output('Background diagnostic\n'+framed+'Another diagnostic\n')==rows
+rejected(lambda:activity.display_output(framed+framed))
+rejected(lambda:activity.display_output('No snapshot was received'))
+rejected(lambda:activity.display_output('x'*65537))
+rejected(lambda:activity.display_output(activity.FRAME+'{}'))
 rejected(lambda: activity.display_rows({'schema_version': 1, 'rows': [{'action': 'raw private text', 'success': True, 'time': '12:00'}]}))
 rejected(lambda: activity.display_rows({'schema_version': 1, 'rows': [{'action': 'notes.new', 'success': True, 'time': '99:00'}]}))
 feed.clear();assert feed.snapshot()['rows'] == []
+with patch.object(activity.time,'monotonic',return_value=0):feed.record('notes.new')
+with patch.object(activity.time,'monotonic',return_value=299):assert len(feed.snapshot()['rows'])==1
+with patch.object(activity.time,'monotonic',return_value=300):assert feed.snapshot()['rows']==[]
 
 with tempfile.TemporaryDirectory() as directory:
     home = Path(directory)

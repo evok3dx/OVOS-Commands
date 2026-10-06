@@ -234,6 +234,8 @@ def main():
     args=parser.parse_args()
     worker_identity(args.component,args.uid,args.gid)
     sys.path.insert(0,str(Path(__file__).resolve().parent))
+    from privacy_logging import bootstrap, attach as attach_privacy
+    bootstrap(args.component)
     from isolation_install import installation_blocked
     if installation_blocked():
         raise RuntimeError('Managed installation is incomplete; isolated workers remain stopped for recovery')
@@ -247,6 +249,7 @@ def main():
         install()
     from verify_core_isolation import attach
     bus=attach(args.component,args.uid,args.gid)
+    attach_privacy(bus)
     try:run_component(args.component)
     finally:
         if bus is not None:bus.close()

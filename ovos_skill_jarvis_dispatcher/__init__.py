@@ -1,5 +1,6 @@
 import re
 import subprocess
+import sys
 import threading
 
 from ovos_workshop.decorators import intent_handler
@@ -197,9 +198,15 @@ class JarvisDispatcherSkill(
         from .routing_runtime import RouterRuntime
         self._qwen_router = RouterRuntime(self)
         from . import launcher  # Verify the launch backend is importable at startup.
+        privacy = sys.modules.get('privacy_logging')
+        if privacy is not None:
+            privacy.mark_ready('core')
         self.log.info("Jarvis configuration ready")
 
     def shutdown(self):
+        privacy = sys.modules.get('privacy_logging')
+        if privacy is not None:
+            privacy.mark_ready('core', False)
         feed = getattr(self, '_jarvis_activity', None)
         if feed is not None:
             feed.clear()

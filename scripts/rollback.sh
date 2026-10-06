@@ -120,6 +120,11 @@ if [[ ! -d "$backup_root/target-root" && ! -f "$backup_root/target-root.missing"
 fi
 validate_restore_entry "$backup_root/profile.json"
 validate_restore_entry "$backup_root/capabilities.json"
+if [[ -d "$backup_root/privacy-units" ]]; then
+  for unit in ovos-core.service ovos-listener.service ovos-audio.service ovos-messagebus.service; do
+    validate_restore_entry "$backup_root/privacy-units/$unit.conf"
+  done
+fi
 if [[ -f "$backup_root/router.json" || -f "$backup_root/router.json.missing" ]]; then
   validate_restore_entry "$backup_root/router.json"
 fi
@@ -204,6 +209,11 @@ fi
 
 restore_file "$backup_root/profile.json" "$target_profile" 0600
 restore_file "$backup_root/capabilities.json" "$target_capabilities" 0600
+if [[ -d "$backup_root/privacy-units" ]]; then
+  for unit in ovos-core.service ovos-listener.service ovos-audio.service ovos-messagebus.service; do
+    restore_file "$backup_root/privacy-units/$unit.conf" "$systemd_dir/$unit.d/10-jarvis-privacy.conf" 0600
+  done
+fi
 if [[ -f "$backup_root/router.json" || -f "$backup_root/router.json.missing" ]]; then
   restore_file "$backup_root/router.json" "$jarvis_home/.config/jarvis/router.json" 0600
 fi
