@@ -8,7 +8,7 @@
 ## Verification
 
 The regression reproduces the old failure and checks the repaired update path,
-duplicate-update protection and recovery. Final archive checks are pending.
+duplicate-update protection and recovery. Clean-archive checks pass.
 Settings, isolation, the reviewed runtime, Media and File Search are retained.
 Live desktop upgrade acceptance remains separate.
 

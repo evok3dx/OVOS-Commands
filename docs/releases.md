@@ -7,7 +7,7 @@ acceptance work. Durable design choices belong in
 under [`history/`](history/README.md). Other current documents link here rather
 than repeating release narratives.
 
-## 4.2.1 (candidate, awaiting validation and publication)
+## 4.2.1 (published stable, 6 October 2026 UTC)
 
 The GUI holds a separate update lock, leaving the installer free to acquire
 the service-control lock for Stop and recovery. Duplicate GUI updates remain
@@ -16,12 +16,26 @@ A one-time, hash-checked repair supports the installed 4.0.1 and 4.2.0 GUI
 updaters. It saves a private backup, refuses unreviewed source and pending
 recovery, and leaves settings, services and isolation policy unchanged.
 
-**VERIFIED candidate regression:** the old update-lock failure is reproduced,
-and the correction passes all six source validation jobs. The migration check
-also reproduces the failure in both released updaters and passes after the
-reviewed repair. Final candidate/archive validation remains pending. This is
-automated process/transaction evidence, not a live Brain GUI upgrade.
+**VERIFIED at `1505ff7635e233f833d1f0fd1189c137da8c72ea`:**
+[all six validation jobs](https://github.com/evok3dx/OVOS-Commands/actions/runs/37399328256)
+pass Python 3.10–3.13, GTK, security scans, deployment/recovery and 350/350
+clean-copy policy cases. The
+[migration regression](https://github.com/evok3dx/OVOS-Commands/actions/runs/37399328201)
+reproduces the old failure in both released updaters and passes after repair,
+including duplicate-update protection, pending-recovery refusal and private
+backups. [Final packaging](https://github.com/evok3dx/OVOS-Commands/actions/runs/37399328273)
+passes clean-archive checks and all 296 runtime identities/hashes with zero
+exemptions. This is automated process/transaction evidence, not a live Brain
+GUI upgrade; that acceptance remains pending.
 The reviewed runtime, Media and File Search remain unchanged.
+
+**VERIFIED publication:** [run 37399767585](https://github.com/evok3dx/OVOS-Commands/actions/runs/37399767585)
+published [Jarvis 4.2.1](https://github.com/evok3dx/OVOS-Commands/releases/tag/v4.2.1)
+as the latest stable release. All 11 public assets were downloaded again and
+verified against SHA256SUMS. The `v4.2.1` tag points to the validated source
+above; main was advanced to it before this documentation-only record.
+Code archive SHA-256:
+`315a098b72fc4ec004841fa4f062aa2f1baaca989bb9739e4f3a8f226dfe8d62`.
 
 ## 4.2.0 (published stable, 6 October 2026)
 
@@ -61,11 +75,11 @@ above; main was advanced to that source before this documentation-only record.
 Code archive SHA-256:
 `3f164e8d74f1987105f9d6b9f46de58c6f684decd4bcf6170b4bb1c5f7136bf5`.
 
-**VERIFIED source limitation after publication:** an isolated update launched
+**VERIFIED source limitation in 4.2.0 after publication:** an isolated update launched
 from the Control Centre holds the control lock while the installer needs that
 lock to stop services. The supplied update failure is consistent with this
 conflict. Use the [terminal recovery/update procedure](troubleshooting.md#isolated-gui-update-lock-conflict);
-a corrective release remains pending; see the 4.2.1 candidate above. Do not disable isolation
+4.2.1 corrects the conflict, with a one-time repair for older GUIs. Do not disable isolation
 or delete the recovery journal to bypass the guard.
 
 ## 4.0.1 (published stable, 1 October 2026)

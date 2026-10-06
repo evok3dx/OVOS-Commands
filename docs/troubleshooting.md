@@ -204,10 +204,10 @@ reviewed inventory, with every version constraint still checked.
 
 ## Isolated GUI update lock conflict
 
-**VERIFIED in source:** the Control Centre's update wrapper holds the control
+**VERIFIED released-version regression:** in 4.0.1 and 4.2.0, the Control Centre's update wrapper holds the control
 lock while the isolated installer tries to acquire it to stop services. This
 can report "Another Jarvis control action is running" and block recovery too.
-A corrective 4.2.1 release is being validated. Close the Control Centre after the
+4.2.1 corrects this conflict. Close the Control Centre after the
 failed operation finishes, then run as the desktop user, without sudo:
 
 ```bash
