@@ -37,6 +37,14 @@ system**. If it says `failed`, inspect the recent logs before changing files.
 
 ## Service controls
 
+**4.3.0 isolated Media/Weather startup regression:** those helpers can exit
+before loading because the privacy hook receives no bus from the
+restricted-worker probe. Their installed plugin and runtime checks can still
+pass. The prepared 4.3.1 correction supplies a fixed loopback diagnostic
+connection without changing isolation policy. See the [release record](releases.md)
+for validation/publication status; do not remove isolation or enable raw logs
+to work around this failure.
+
 For slow named-city weather, compare transcription, intent-match and first
 `Speak` timestamps. The observed post-rc2 delay is after matching. The source
 correction logs `Weather intent/location`, `forecast`, `display`, `speech

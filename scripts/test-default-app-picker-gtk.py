@@ -195,6 +195,60 @@ assert len(centre.recent_rows.get_children())==3
 window.destroy()
 print('PASS: real GTK Dashboard layout, scoped light/dark styling, white action labels and private activity rows')
 
+# Reproduce Apps & Commands' light host notebook inside an app-dark window.
+# Check actual painted content and computed tab text/symbolic-icon colours on
+# all three pages, including a live theme change on the same widget tree.
+host=Gtk.CssProvider()
+host.load_from_data(b'notebook, notebook > stack, notebook > header, notebook > header tab { background-image: linear-gradient(#FFFFFF, #FFFFFF); background-color: #FFFFFF; } notebook > header image { color: #000000; }')
+Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(),host,
+                                        Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION-1)
+window=Gtk.Window();window.set_default_size(760,420)
+window.get_style_context().add_class('jarvis-root')
+book=Gtk.Notebook();pages=[];tab_children=[]
+for title,icon_name in (('Applications','applications-other-symbolic'),
+                        ('Defaults','emblem-default-symbolic'),
+                        ('Custom commands','input-keyboard-symbolic')):
+    page=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12)
+    page.set_border_width(20)
+    intro=Gtk.Label(label='Choose what Jarvis can control.',xalign=0)
+    page.pack_start(intro,False,False,0)
+    page.pack_start(Gtk.SearchEntry(),False,False,0)
+    tab=Gtk.Box(spacing=6)
+    icon=Gtk.Image.new_from_icon_name(icon_name,Gtk.IconSize.MENU)
+    text=Gtk.Label(label=title);tab.pack_start(icon,False,False,0);tab.pack_start(text,False,False,0)
+    book.append_page(page,tab);pages.append((page,intro));tab_children.extend((text,icon))
+window.add(book);window.show_all()
+for selected,background in (('dark',(16,23,34)),('light',(255,255,255)),('dark',(16,23,34))):
+    context=window.get_style_context()
+    for name in ('jarvis-light','jarvis-dark'):context.remove_class(name)
+    context.add_class('jarvis-'+selected)
+    for index,(page,intro) in enumerate(pages):
+        book.set_current_page(index)
+        while Gtk.events_pending():Gtk.main_iteration()
+        loop=GLib.MainLoop();painted=[];clock=window.get_frame_clock()
+        def after_paint(_clock):painted.append(True);loop.quit()
+        handler=clock.connect('after-paint',after_paint)
+        def expired():loop.quit();return False
+        timeout=GLib.timeout_add(3000,expired);window.queue_draw();loop.run()
+        clock.disconnect(handler)
+        if painted:GLib.source_remove(timeout)
+        assert painted,'Apps notebook did not paint'
+        pixbuf=Gdk.pixbuf_get_from_window(window.get_window(),0,0,*window.get_size())
+        assert pixbuf is not None
+        x,y=page.translate_coordinates(window,0,0)
+        offset=(y+3)*pixbuf.get_rowstride()+(x+3)*pixbuf.get_n_channels()
+        actual=pixbuf.get_pixels()[offset:offset+3]
+        assert all(abs(value-expected)<=3 for value,expected in zip(actual,background)),(selected,index,list(actual))
+        bg=Gdk.RGBA(*(value/255 for value in background),1)
+        for child in [intro,*tab_children]:
+            foreground=child.get_style_context().get_color(child.get_state_flags())
+            assert (max(luminance(foreground),luminance(bg))+0.05)/(min(luminance(foreground),luminance(bg))+0.05)>=4.5,(selected,foreground)
+        if os.environ.get('RUNNER_TEMP') and index==0:
+            pixbuf.savev(str(Path(os.environ['RUNNER_TEMP'])/('Jarvis-Apps-'+selected+'.png')),'png',[],[])
+window.destroy()
+Gtk.StyleContext.remove_provider_for_screen(Gdk.Screen.get_default(),host)
+print('PASS: Apps/Defaults/Custom commands resist light host backgrounds, retain readable tab icons/text and switch themes live')
+
 # A failed activity query must not erase known rows or pretend the feed is
 # empty. Manual refresh and the polling guard use the same read-only path.
 import importlib.util

@@ -249,8 +249,15 @@ def main():
         install()
     from verify_core_isolation import attach
     bus=attach(args.component,args.uid,args.gid)
-    attach_privacy(bus)
-    try:run_component(args.component)
+    # Socket probes cover only restricted workers. Online helpers still need
+    # a local connection for content-free diagnostics before skill loading.
+    if bus is None:
+        from ovos_bus_client import MessageBusClient
+        bus=MessageBusClient(host='127.0.0.1',port=8181,ssl=False)
+    try:
+        attach_privacy(bus)
+        if args.component in {'weather','media'}:bus.run_in_thread()
+        run_component(args.component)
     finally:
         if bus is not None:bus.close()
 

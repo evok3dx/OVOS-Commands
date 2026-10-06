@@ -81,6 +81,24 @@ combobox menu menuitem { padding: 9px 14px; min-height: 24px; }
 .jarvis-dark .jarvis-card { background-color: #192536; border-color: #2A3A50; }
 .jarvis-dark label { color: #EDF2FA; }
 .jarvis-light label { color: #243247; }
+.jarvis-dark notebook, .jarvis-dark notebook > stack,
+.jarvis-dark notebook viewport { background-image: none; background-color: #101722; color: #EDF2FA; }
+.jarvis-light notebook, .jarvis-light notebook > stack,
+.jarvis-light notebook viewport { background-image: none; background-color: #FFFFFF; color: #243247; }
+.jarvis-dark notebook > header { background-image: none; background-color: #192536; border-color: #3A4C65; }
+.jarvis-light notebook > header { background-image: none; background-color: #ECF0F6; border-color: #DFE5EE; }
+.jarvis-dark notebook > header tab { background-image: none; background-color: #192536; border-color: #3A4C65; color: #EDF2FA; }
+.jarvis-dark notebook > header tab:hover { background-image: none; background-color: #26364C; color: #EDF2FA; }
+.jarvis-dark notebook > header tab:checked { background-image: none; background-color: #26364C; border-bottom-color: #2F6FED; color: #FFFFFF; }
+.jarvis-dark notebook > header tab label,
+.jarvis-dark notebook > header tab image { color: #EDF2FA; }
+.jarvis-dark notebook > header tab:checked label,
+.jarvis-dark notebook > header tab:checked image { color: #FFFFFF; }
+.jarvis-light notebook > header tab { background-image: none; background-color: #ECF0F6; border-color: #DFE5EE; color: #243247; }
+.jarvis-light notebook > header tab:hover { background-image: none; background-color: #E0E7F1; color: #243247; }
+.jarvis-light notebook > header tab:checked { background-image: none; background-color: #FFFFFF; border-bottom-color: #2F6FED; color: #243247; }
+.jarvis-light notebook > header tab label,
+.jarvis-light notebook > header tab image { color: #243247; }
 .jarvis-dark .jarvis-subtitle, .jarvis-dark .jarvis-service-state { color: #AAB8CD; }
 .jarvis-light .jarvis-subtitle, .jarvis-light .jarvis-service-state { color: #66758B; }
 .jarvis-dark .jarvis-service-row { background-color: #1D2D41; border-color: #304158; }

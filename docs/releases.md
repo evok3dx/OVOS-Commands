@@ -7,6 +7,33 @@ acceptance work. Durable design choices belong in
 under [`history/`](history/README.md). Other current documents link here rather
 than repeating release narratives.
 
+## 4.3.1 (prepared correction, not published)
+
+Fix isolated Media and Weather startup after the 4.3 privacy change. These
+online helpers are outside the restricted-worker socket probe, which returns
+no bus for them. Give their content-free diagnostic hooks a connection to the
+existing fixed loopback bus before loading the skill. Close that connection
+after normal exit or startup failure. Core, listener and audio retain their
+existing probe connections. No native policy or dependency changes are needed.
+Apps, Defaults and Custom commands also receive app-scoped notebook content
+and tab colours, preventing white host-theme surfaces behind pale dark-mode
+text and restoring readable symbolic icons.
+
+**VERIFIED source diagnosis:** 4.3 unconditionally passed the absent helper
+connection to the privacy hook, which calls `bus.on` before skill loading.
+File Search runs in the core and has no corresponding startup path. The
+ordinary-user launcher and activity/diagnostic readers construct their own
+connections. No additional occurrence was found in these call sites.
+
+**PLANNED validation and publication:** the entry-point regression exercises
+all five worker roles with the real privacy/probe attachment functions and
+simulated connections, including cleanup on failure and no socket-probe
+registration in online helpers. Required CI, clean-archive checks and owner
+live Media/Weather acceptance remain pending. This correction is not released.
+The GTK regression checks painted notebook content and computed text/icon
+contrast on all three pages under conflicting light host styling, including
+theme switching in the same window; execution and preview review are pending.
+
 ## 4.3.0 (published stable, 6 October 2026 UTC)
 
 Dark sidebar hover and selected rows keep readable text and symbolic icons even with a light desktop

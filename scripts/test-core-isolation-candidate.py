@@ -358,3 +358,43 @@ with patch.object(model.subprocess,'run',return_value=subprocess.CompletedProces
      patch.object(model,'regular',return_value='fixture unit'),patch.object(Path,'read_text',return_value='Uid:\t1000\t1000\t1000\t1000\n'):
     rejected(model.daemon_context)
 print('PASS: full-runtime provenance is required and model policy preserves identity/executable while refusing root/custom policy')
+
+# Exercise the worker entry point, not just imports: restricted probes return
+# no connection for Media/Weather, while privacy attachment requires one.
+# Use the real privacy/probe attachment functions without starting a service,
+# capturing logs or opening a socket.
+import privacy_logging as privacy
+capture=types.SimpleNamespace(snapshot=lambda: {'schema_version':1})
+with patch.object(privacy,'_capture',capture):
+    try:privacy.attach(None)
+    except AttributeError:pass  # Reproduce the released 4.3 helper crash.
+    else:raise AssertionError('Missing diagnostic connection did not reproduce failure')
+
+    for component in worker.COMPONENTS:
+        for failure in (False,True):
+            bus=Bus(host='127.0.0.1',port=8181,ssl=False)
+            bus.run_in_thread=Mock()
+            constructor=Mock(return_value=bus)
+            fake=types.SimpleNamespace(MessageBusClient=constructor,Message=Message)
+            def run_component(name):
+                assert name==component
+                assert 'jarvis.diagnostics.'+component in bus.handlers
+                assert (verify.EVENT in bus.handlers)==(component in verify.COMPONENTS)
+                assert bus.run_in_thread.call_count==1
+                if failure:raise RuntimeError('Fixture startup failure')
+            with patch.dict(sys.modules,{'ovos_bus_client':fake}), \
+                 patch.object(sys,'argv',['isolation_worker.py',component,'--uid','1000','--gid','1000']), \
+                 patch.object(worker,'worker_identity') as identity, \
+                 patch.object(privacy,'bootstrap'), \
+                 patch.object(worker,'verify_pins'), \
+                 patch.object(worker,'install_overlay'), \
+                 patch.object(weather,'install'), \
+                 patch.object(services,'active',return_value=True), \
+                 patch.object(__import__('isolation_install'),'installation_blocked',return_value=False), \
+                 patch.object(worker,'run_component',side_effect=run_component):
+                if failure:rejected(worker.main)
+                else:worker.main()
+                identity.assert_called_once_with(component,1000,1000)
+            constructor.assert_called_once_with(host='127.0.0.1',port=8181,ssl=False)
+            assert bus.closed
+print('PASS: actual worker startup attaches private diagnostics for all five roles and closes on failure; online helpers receive no isolation probes')
