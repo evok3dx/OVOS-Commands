@@ -195,7 +195,7 @@ Live installation requires the coordinated service restart so an older running
 worker cannot keep logging after the upgrade. The short-lived activity and
 diagnostic readers also discard upstream output and relay only validated data.
 
-**PLANNED; implementation prepared, validation pending:** General provides
+**VERIFIED automated; owner laptop acceptance pending:** General provides
 **No logs** by default and **Diagnostics for 5 minutes**. The managed OVOS
 core, listener, audio, Weather, Media and bus suppress raw Python log messages
 and direct stdout/stderr, including inherited playback output. Diagnostics

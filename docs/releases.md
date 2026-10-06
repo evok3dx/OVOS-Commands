@@ -9,7 +9,7 @@ than repeating release narratives.
 
 ## 4.3.0 (candidate)
 
-**PLANNED; source prepared, validation pending:** dark sidebar hover and
+Dark sidebar hover and
 selected rows keep readable text and symbolic icons even with a light desktop
 theme. Check isolation shows the actual diagnostic stages, finishes with a
 clear results message and releases its busy state on a bounded timeout.
@@ -22,7 +22,22 @@ fields in memory when enabled. Capture expires automatically without the GUI;
 current readiness state is separate. The activity feed shows only the last five
 minutes. Installation, rollback and uninstall manage the ordinary-user wrappers.
 Isolation policy, the reviewed runtime, Media and File Search are retained.
-Automated validation and live privacy/startup acceptance remain pending.
+
+**VERIFIED automated at `5806eef8d2467624e675a1fc6cece829c6515a96`:**
+[all six validation jobs](https://github.com/evok3dx/OVOS-Commands/actions/runs/37405967336)
+pass Python 3.10–3.13, actual GTK theme/layout, security scans, deployment and
+recovery. [Packaging](https://github.com/evok3dx/OVOS-Commands/actions/runs/37405967386)
+passes the complete clean-archive suite and 350/350 non-executing policy cases.
+All 296 retained runtime identities/hashes pass with zero exemptions. Privacy
+regressions verify suppressed child/file output, content exclusion, five-minute
+expiry without GUI queries, reboot/off/invalid-state refusal, quiet readers and
+the exact pinned upstream readiness methods and console names. The prepared
+archive and separate plugin wheels are checksum-verified; publication is pending.
+
+**PLANNED live acceptance:** the new logging modes, expiry with the GUI closed,
+post-upgrade microphone/startup and Recent Activity still need owner laptop
+acceptance. Automated process/GTK tests do not establish live speech or desktop
+focus behaviour. The previous 4.2.1 GUI upgrade acceptance remains recorded below.
 
 ## 4.2.1 (published stable, 6 October 2026 UTC)
 
