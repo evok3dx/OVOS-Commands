@@ -20,20 +20,39 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: '3.11.16'
-      - name: Require regression failure against the released updater
+      - name: Reproduce and repair both released GUI update paths
         run: |
           set -euo pipefail
           test "$(id -u)" -ne 0
-          baseline="$RUNNER_TEMP/gui-lock-baseline"
-          mkdir -m 700 "$baseline"
-          git archive HEAD | tar -x -C "$baseline"
-          git show b1917af809400a9fa29d80bae264b4e0bf67fe91:scripts/control_runtime.py \
-            > "$baseline/scripts/control_runtime.py"
-          if python3 "$baseline/scripts/test-isolation-install.py" > "$RUNNER_TEMP/baseline-result.log" 2>&1; then
-            echo 'FAIL: regression accepted the released lock conflict.'
-            exit 1
-          fi
-          grep -Fq 'Another Jarvis control action is running' "$RUNNER_TEMP/baseline-result.log"
-          echo 'PASS: regression reproduces the released GUI/installer lock conflict.'
+          for version in v4.0.1 v4.2.0; do
+            baseline="$RUNNER_TEMP/gui-lock-baseline-$version"
+            mkdir -m 700 "$baseline"
+            git archive HEAD | tar -x -C "$baseline"
+            git show "$version:scripts/control_runtime.py" > "$baseline/scripts/control_runtime.py"
+            if python3 "$baseline/scripts/test-isolation-install.py" > "$RUNNER_TEMP/baseline-$version.log" 2>&1; then
+              echo 'FAIL: regression accepted the released lock conflict.'
+              exit 1
+            fi
+            grep -Fq 'Another Jarvis control action is running' "$RUNNER_TEMP/baseline-$version.log"
+            echo "PASS: $version reproduces the released GUI/installer lock conflict."
+            fix_home="$RUNNER_TEMP/gui-lock-home-$version"
+            target="$fix_home/.local/src/ovos-skill-jarvis-dispatcher/scripts/control_runtime.py"
+            mkdir -m 700 -p "$(dirname "$target")"
+            cp "$baseline/scripts/control_runtime.py" "$target"
+            env HOME="$fix_home" python3 scripts/apply-gui-update-lock-fix.py
+            env HOME="$fix_home" python3 scripts/apply-gui-update-lock-fix.py --apply
+            env HOME="$fix_home" python3 scripts/apply-gui-update-lock-fix.py --apply
+            test "$(find "$fix_home/Downloads" -mindepth 1 -maxdepth 1 -type d | wc -l)" -eq 1
+            cp "$target" "$baseline/scripts/control_runtime.py"
+            python3 "$baseline/scripts/test-isolation-install.py"
+            echo "PASS: $version GUI maintenance path succeeds after the reviewed one-time repair."
+            printf '\n# Unreviewed modification\n' >> "$target"
+            cp "$target" "$RUNNER_TEMP/unreviewed-$version.py"
+            if env HOME="$fix_home" python3 scripts/apply-gui-update-lock-fix.py --apply; then
+              echo 'FAIL: unreviewed updater was changed.'
+              exit 1
+            fi
+            cmp "$target" "$RUNNER_TEMP/unreviewed-$version.py"
+          done
       - name: Require success with the correction
         run: python3 scripts/test-isolation-install.py
