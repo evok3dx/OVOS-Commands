@@ -7,10 +7,9 @@ acceptance work. Durable design choices belong in
 under [`history/`](history/README.md). Other current documents link here rather
 than repeating release narratives.
 
-## 4.3.0 (candidate)
+## 4.3.0 (published stable, 6 October 2026 UTC)
 
-Dark sidebar hover and
-selected rows keep readable text and symbolic icons even with a light desktop
+Dark sidebar hover and selected rows keep readable text and symbolic icons even with a light desktop
 theme. Check isolation shows the actual diagnostic stages, finishes with a
 clear results message and releases its busy state on a bounded timeout.
 Dashboard controls align across wrapped descriptions. Recent Activity gains
@@ -23,16 +22,24 @@ current readiness state is separate. The activity feed shows only the last five
 minutes. Installation, rollback and uninstall manage the ordinary-user wrappers.
 Isolation policy, the reviewed runtime, Media and File Search are retained.
 
-**VERIFIED automated at `5806eef8d2467624e675a1fc6cece829c6515a96`:**
-[all six validation jobs](https://github.com/evok3dx/OVOS-Commands/actions/runs/37405967336)
+**VERIFIED automated at `7a1a99f7ee6fcda720e215645c9c12fab00defc5`:**
+[all six validation jobs](https://github.com/evok3dx/OVOS-Commands/actions/runs/37406313435)
 pass Python 3.10–3.13, actual GTK theme/layout, security scans, deployment and
-recovery. [Packaging](https://github.com/evok3dx/OVOS-Commands/actions/runs/37405967386)
+recovery. [Packaging](https://github.com/evok3dx/OVOS-Commands/actions/runs/37406313459)
 passes the complete clean-archive suite and 350/350 non-executing policy cases.
 All 296 retained runtime identities/hashes pass with zero exemptions. Privacy
 regressions verify suppressed child/file output, content exclusion, five-minute
 expiry without GUI queries, reboot/off/invalid-state refusal, quiet readers and
 the exact pinned upstream readiness methods and console names. The prepared
-archive and separate plugin wheels are checksum-verified; publication is pending.
+archive and separate plugin wheels are checksum-verified.
+
+**VERIFIED publication:** [run 37406745263](https://github.com/evok3dx/OVOS-Commands/actions/runs/37406745263)
+published [Jarvis 4.3.0](https://github.com/evok3dx/OVOS-Commands/releases/tag/v4.3.0)
+as the latest stable release. All 11 public assets were downloaded again and
+verified against the original SHA256SUMS. The tag points to the validated source
+above; main was advanced to it before this documentation-only record.
+Code archive SHA-256:
+`84ed148ffce729178c926ec56b98caa08340a4b8892a6e7e50145118917aea47`.
 
 **PLANNED live acceptance:** the new logging modes, expiry with the GUI closed,
 post-upgrade microphone/startup and Recent Activity still need owner laptop

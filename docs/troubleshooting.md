@@ -254,7 +254,7 @@ results. The check does not start services or enable the microphone.
 
 The Dashboard shows bounded completed action labels from the current Commands
 session's last five minutes, not transcripts or search text. Refresh reads the same local bus as
-automatic polling. The prepared follow-up separates unavailable/stopped state
+automatic polling. The 4.3 update separates unavailable/stopped state
 from an empty session, tolerates unrelated diagnostic output and retains known
 rows when retrieval fails. A complete, validated snapshot remains usable if
 the short-lived reader reaches its cleanup timeout. Commands restart starts a
@@ -262,7 +262,7 @@ new activity session; no persistent activity history is written.
 
 ## Five-minute diagnostics
 
-The 4.3 candidate defaults to **General → Logging → No logs**. Choose
+Jarvis 4.3 defaults to **General → Logging → No logs**. Choose
 **Diagnostics for 5 minutes**, reproduce the problem, then open
 **Maintenance → Recent logs** while capture is active. Capture stops and
 clears after five minutes independently of the GUI. Choosing No logs clears
