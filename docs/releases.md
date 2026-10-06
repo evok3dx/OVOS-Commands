@@ -17,7 +17,8 @@ after normal exit or startup failure. Core, listener and audio retain their
 existing probe connections. No native policy or dependency changes are needed.
 Apps, Defaults and Custom commands also receive app-scoped notebook content
 and tab colours, preventing white host-theme surfaces behind pale dark-mode
-text and restoring readable symbolic icons.
+text and restoring readable symbolic icons. Search fields discard inherited
+light gradients and use the matching app-theme background and icon colour.
 
 **VERIFIED source diagnosis:** 4.3 unconditionally passed the absent helper
 connection to the privacy hook, which calls `bus.on` before skill loading.

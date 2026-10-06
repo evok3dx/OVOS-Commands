@@ -212,17 +212,19 @@ for title,icon_name in (('Applications','applications-other-symbolic'),
     page.set_border_width(20)
     intro=Gtk.Label(label='Choose what Jarvis can control.',xalign=0)
     page.pack_start(intro,False,False,0)
-    page.pack_start(Gtk.SearchEntry(),False,False,0)
+    search=Gtk.SearchEntry();search.set_placeholder_text('Find an app or spoken command')
+    page.pack_start(search,False,False,0)
     tab=Gtk.Box(spacing=6)
     icon=Gtk.Image.new_from_icon_name(icon_name,Gtk.IconSize.MENU)
     text=Gtk.Label(label=title);tab.pack_start(icon,False,False,0);tab.pack_start(text,False,False,0)
-    book.append_page(page,tab);pages.append((page,intro));tab_children.extend((text,icon))
+    tab.show_all()  # Production setup's tab_label shows custom tab children.
+    book.append_page(page,tab);pages.append((page,intro,search));tab_children.extend((text,icon))
 window.add(book);window.show_all()
 for selected,background in (('dark',(16,23,34)),('light',(255,255,255)),('dark',(16,23,34))):
     context=window.get_style_context()
     for name in ('jarvis-light','jarvis-dark'):context.remove_class(name)
     context.add_class('jarvis-'+selected)
-    for index,(page,intro) in enumerate(pages):
+    for index,(page,intro,search) in enumerate(pages):
         book.set_current_page(index)
         while Gtk.events_pending():Gtk.main_iteration()
         loop=GLib.MainLoop();painted=[];clock=window.get_frame_clock()
@@ -233,6 +235,7 @@ for selected,background in (('dark',(16,23,34)),('light',(255,255,255)),('dark',
         clock.disconnect(handler)
         if painted:GLib.source_remove(timeout)
         assert painted,'Apps notebook did not paint'
+        assert all(child.get_visible() and child.get_mapped() for child in tab_children)
         pixbuf=Gdk.pixbuf_get_from_window(window.get_window(),0,0,*window.get_size())
         assert pixbuf is not None
         x,y=page.translate_coordinates(window,0,0)
@@ -240,6 +243,10 @@ for selected,background in (('dark',(16,23,34)),('light',(255,255,255)),('dark',
         actual=pixbuf.get_pixels()[offset:offset+3]
         assert all(abs(value-expected)<=3 for value,expected in zip(actual,background)),(selected,index,list(actual))
         bg=Gdk.RGBA(*(value/255 for value in background),1)
+        entry_background=search.get_style_context().get_background_color(search.get_state_flags())
+        expected_entry=(21,32,49) if selected=='dark' else (255,255,255)
+        assert all(abs(value-expected/255)<0.01 for value,expected in
+                   zip((entry_background.red,entry_background.green,entry_background.blue),expected_entry)),entry_background
         for child in [intro,*tab_children]:
             foreground=child.get_style_context().get_color(child.get_state_flags())
             assert (max(luminance(foreground),luminance(bg))+0.05)/(min(luminance(foreground),luminance(bg))+0.05)>=4.5,(selected,foreground)

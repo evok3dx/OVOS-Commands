@@ -3,7 +3,7 @@
 ## Changes
 
 - Fix isolated Music and Weather workers failing to start after the privacy update.
-- Keep Apps, Defaults and Custom commands backgrounds, text and tab icons readable in dark mode.
+- Keep Apps, Defaults and Custom commands backgrounds, search fields, text and tab icons readable in dark mode.
 - Keep No logs, temporary diagnostics and existing isolation policy.
 
 ## Verification

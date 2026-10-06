@@ -108,6 +108,10 @@ combobox menu menuitem { padding: 9px 14px; min-height: 24px; }
 .jarvis-dark button { background-image: none; background-color: #26364C; border-color: #3A4C65; color: #EDF2FA; }
 .jarvis-dark entry, .jarvis-dark textview text, .jarvis-dark treeview { background-color: #152031; color: #EDF2FA; }
 .jarvis-light entry, .jarvis-light textview text, .jarvis-light treeview { background-color: #FFFFFF; color: #243247; }
+.jarvis-dark entry { background-image: none; border-color: #3A4C65; }
+.jarvis-light entry { background-image: none; border-color: #DFE5EE; }
+.jarvis-dark entry image { color: #AAB8CD; }
+.jarvis-light entry image { color: #66758B; }
 .jarvis-dark button.jarvis-danger, .jarvis-dark button.jarvis-warning, .jarvis-dark button.jarvis-restart,
 .jarvis-dark button.jarvis-update-available { background-image: none; background-color: #2F6FED; border-color: #2459C2; color: #FFFFFF; }
 .jarvis-dark button.jarvis-update, .jarvis-dark button.jarvis-enable { background-image: none; background-color: #20A464; border-color: #16814C; color: #FFFFFF; }
