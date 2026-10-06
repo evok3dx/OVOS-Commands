@@ -7,7 +7,7 @@ acceptance work. Durable design choices belong in
 under [`history/`](history/README.md). Other current documents link here rather
 than repeating release narratives.
 
-## 4.2.0 (candidate, unpublished)
+## 4.2.0 (candidate, awaiting publication)
 
 The native Dashboard places system status and Run/Stop/Restart on the left,
 with Speech, Listener and Commands on the right. General offers app-scoped
@@ -23,11 +23,18 @@ Maintenance shows inspected core/private-model policy separately from network
 verification, with an explicit read-only check also available from the CLI.
 Unsupported dedicated-model IPv6 probes remain NOT TESTED, never a pass.
 
-**PLANNED verification:** ordinary-user GTK, complete source/clean-archive
-regressions, 350-case policy benchmark, retained runtime closure, packaging and
-privacy checks must pass before publication. Live GUI/Notes acceptance remains
-separate. The reviewed 296-package runtime, Media 0.3.5 pacing and File Search
-0.3.0 are unchanged. See the [4.2 plan](v4.2-plan.md),
+**VERIFIED automated checks:** all six validation jobs at
+`4a21e2d350deb5ac0ac5c2c11c251f1fba9f102f`
+([37396653608](https://github.com/evok3dx/OVOS-Commands/actions/runs/37396653608))
+pass Python 3.10–3.13, real GTK controls/colours, source/history/archive scans,
+deployment/recovery and 350/350 clean-copy policy cases. Packaging
+([37396653757](https://github.com/evok3dx/OVOS-Commands/actions/runs/37396653757))
+rechecks all 296 dependency identities/hashes with zero exemptions and validates
+the three current first-party wheels and exact public assets. Light/Dark GTK
+renders were inspected. Final documentation/archive validation and publication
+remain pending; live laptop GUI/Notes acceptance remains separate.
+The reviewed runtime, Media 0.3.5 pacing and File Search 0.3.0 are unchanged.
+See the [4.2 plan](v4.2-plan.md),
 [short release notes](release-v4.2.0.md) and [security policy](security-and-updates.md).
 
 ## 4.0.1 (published stable, 1 October 2026)

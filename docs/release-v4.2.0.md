@@ -10,8 +10,9 @@
 
 ## Verification
 
-Candidate checks are pending; this release has not been published.
-The reviewed runtime and Media/File Search versions are retained.
-Live GUI and Notes acceptance remain separate from automated checks.
+Python 3.10–3.13, GTK, routing, clean-archive deployment/recovery and security
+checks pass, including 350 policy cases and the reviewed 296-package runtime.
+Media and File Search retain their existing versions and behaviour.
+Live laptop GUI and Notes acceptance remain separate from automated checks.
 
 See the [release record](releases.md) and [security policy](security-and-updates.md).

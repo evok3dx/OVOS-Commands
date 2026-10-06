@@ -109,6 +109,7 @@ jobs:
       - name: Prepare only byte-verified release assets
         run: |
           python3 scripts/prepare-test-release.py --retained "$RUNNER_TEMP/retained" --plugins "$RUNNER_TEMP/current-plugins" --output "$RUNNER_TEMP/public-assets"
+          (cd "$RUNNER_TEMP/public-assets" && sha256sum --check SHA256SUMS && cat SHA256SUMS)
           gitleaks dir "$RUNNER_TEMP/public-assets" --redact --no-banner
           mkdir -m 700 "$RUNNER_TEMP/public-notes"
           cp docs/release-v4.2.0.md "$RUNNER_TEMP/public-notes/release-notes.md"
