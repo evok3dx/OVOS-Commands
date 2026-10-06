@@ -709,6 +709,7 @@ class ControlCenter:
             names={'ready':'System Online','muted':'Microphone paused','stopped':'System Offline','starting':'Starting…','failed':'Needs attention'}
             self.status_label.set_text(names[value['state']])
             self.running=value['services'].get('ovos-core.service')=='active'
+            self.start_stop.set_image(Gtk.Image.new_from_icon_name('media-playback-stop-symbolic' if self.running else 'media-playback-start-symbolic',Gtk.IconSize.BUTTON))
             self.status_detail.set_text('Ready for your next command.' if value['state']=='ready' else
                                        'Use the controls below, or check Maintenance for details.')
             self.start_stop.set_label('Stop Jarvis' if self.running else 'Run Jarvis')

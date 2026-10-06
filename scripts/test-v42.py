@@ -148,7 +148,7 @@ policy = {'LoadState': 'loaded', 'User': str(os.getuid()), 'NoNewPrivileges': 'y
 with patch.object(isolation, 'active', return_value=True), patch.object(isolation, 'model_port', return_value=11435), \
      patch.object(isolation, 'properties', return_value=policy):
     assert isolation.policy_status()['summary'] == 'active'
-    assert 'not been run' in isolation.policy_status()['verification']
+    assert 'Policy status only' in isolation.policy_status()['verification']
     with patch.object(isolation, 'properties', return_value={**policy, 'IPAddressAllow': '0.0.0.0/0 ::1/128 127.0.0.1/32'}):
         assert isolation.policy_status()['summary'] == 'attention'
 with patch.object(isolation, 'active', return_value=False), patch.object(isolation, 'model_port', return_value=11434), \

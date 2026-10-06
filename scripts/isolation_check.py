@@ -62,7 +62,7 @@ def policy_status():
     absent = all(value.get('LoadState') == 'not-found' for value in states.values())
     summary = 'active' if core and model else 'off' if not mapping and absent and port != 11435 else 'attention'
     return {'summary': summary, 'core': bool(core), 'model': bool(model),
-            'verification': 'Network tests have not been run in this view.'}
+            'verification': 'Policy status only. Use Check isolation for network verification.'}
 
 
 def model_checks():

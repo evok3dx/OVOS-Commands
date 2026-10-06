@@ -15,7 +15,7 @@ jobs:
       - name: Prepare native GTK test prerequisites
         run: |
           sudo apt-get update
-          sudo apt-get install --no-install-recommends python3-gi gir1.2-gtk-3.0 xvfb xauth
+          sudo apt-get install --no-install-recommends python3-gi gir1.2-gtk-3.0 adwaita-icon-theme xvfb xauth
       - name: Test real GTK default-app picker as ordinary user
         run: xvfb-run --auto-servernum /usr/bin/python3 -u scripts/test-default-app-picker-gtk.py
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

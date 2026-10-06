@@ -6,7 +6,7 @@ from pathlib import Path
 
 import gi
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gio, Gtk, Gdk
+from gi.repository import Gio, Gtk, Gdk, GLib
 
 assert os.getuid() != 0, 'Run GUI tests as the ordinary user'
 assert Gtk.init_check()[0], 'A test display is required; use xvfb-run'
@@ -110,7 +110,10 @@ dashboard=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=18);dashboard.set
 window.add(dashboard);centre.build_overview(dashboard)
 centre.status_label.set_text('System Online');centre.status_detail.set_text('Ready for your next command.')
 centre.start_stop.set_label('Stop Jarvis');centre.colour(centre.start_stop,'jarvis-danger')
+centre.start_stop.set_image(Gtk.Image.new_from_icon_name('media-playback-stop-symbolic',Gtk.IconSize.BUTTON))
 centre.mic.set_label('Pause microphone')
+for led,state in centre.service_labels.values():
+    led.get_style_context().add_class('jarvis-led-ready');state.set_text('Ready')
 centre.render_recent([('Opened Firefox','21:00',True),('Created a new note','21:01',True),('Started dictation','21:02',True)])
 for selected in ('light','dark'):
     centre.apply_theme(selected)
@@ -122,6 +125,19 @@ for selected in ('light','dark'):
             colour=child.get_style_context().get_color(child.get_state_flags())
             assert all(abs(value-1)<0.001 for value in (colour.red,colour.green,colour.blue)),colour
     if os.environ.get('RUNNER_TEMP'):
+        # Wait for a real painted frame, not a guessed sleep or an empty event
+        # queue which can precede the very first paint.
+        loop=GLib.MainLoop();painted=[]
+        clock=window.get_frame_clock()
+        def after_paint(_clock):
+            painted.append(True);loop.quit()
+        handler=clock.connect('after-paint',after_paint)
+        def expired():
+            loop.quit();return False
+        timeout=GLib.timeout_add(3000,expired)
+        window.queue_draw();loop.run();clock.disconnect(handler)
+        if painted:GLib.source_remove(timeout)
+        assert painted,'Dashboard did not paint a frame'
         pixbuf=Gdk.pixbuf_get_from_window(window.get_window(),0,0,*window.get_size())
         assert pixbuf is not None
         pixbuf.savev(str(Path(os.environ['RUNNER_TEMP'])/('Jarvis-Dashboard-'+selected+'.png')),'png',[],[])
@@ -138,10 +154,10 @@ parent=Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 centre.build_maintenance(parent)
 for state,colour in (('active','jarvis-led-ready'),('off','jarvis-off'),('attention','jarvis-led-warn')):
     namespace['isolation_policy_status']=lambda s=state: {'summary':s,'core':s=='active','model':s=='active',
-                                                        'verification':'Network tests have not been run in this view.'}
+                                                        'verification':'Policy status only. Use Check isolation for network verification.'}
     centre.refresh_isolation()
     assert centre.isolation_led.get_style_context().has_class(colour)
-    assert 'not been run' in centre.isolation_note.get_text()
+    assert 'Policy status only' in centre.isolation_note.get_text()
 parent.destroy()
 print('PASS: Maintenance isolation green/grey/amber policy states without a live-test claim')
 
