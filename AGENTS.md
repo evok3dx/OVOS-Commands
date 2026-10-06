@@ -220,6 +220,23 @@ If any one of these layers is missing, the command change is incomplete.
     GitHub URLs are repository content, not a separate store. Laptop test-folder
     cleanup must use an explicit owner-reviewed inventory; never broadly remove
     Jarvis folders, active isolation candidates or deployment recovery data.
+12. Deliver temporary owner-test patches and side-test bundles as private
+    download attachments with SHA-256 checksums and an identified base version
+    or commit. Keep those delivery files, staging copies and machine evidence
+    outside Git and release archives; do not add a public script or temporary
+    workflow merely to obtain a download URL. Commit the finished implementation,
+    regression tests, maintained compatibility repairs and normal release/CI
+    workflows through the usual review and validation path. An attachment is
+    not a release and does not bypass safety, verification or approval rules.
+13. Keep issue documentation lightweight and useful. Record the symptom,
+    confirmed cause or uncertainty, safe solution, affected/fixed versions and
+    verification with a source/test/release link. Use `docs/troubleshooting.md`
+    for current remedies, `docs/releases.md` for release evidence and
+    `docs/history/` for completed investigations; link rather than duplicate.
+    A few sentences usually suffice. Preserve unresolved limits and failed
+    trials that explain the solution, but exclude raw logs, transcripts,
+    machine identifiers, private paths and temporary download URLs. See
+    `docs/history/README.md` for the record format.
 
 ## Required validation
 

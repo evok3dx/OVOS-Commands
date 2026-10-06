@@ -188,7 +188,19 @@ under `docs/history/` preserve implementation rationale and old observed
 baselines; their installer names and counts must not be treated as current
 instructions. `docs/releases.md` is the only current per-release ledger.
 
+Keep useful issue history, not every support exchange or temporary patch.
+Current remedies belong in troubleshooting; completed investigations retain
+the concise symptom, cause, solution and verification in history, with links
+to the fixed code and release. See the [issue record format](history/README.md#recording-issues-and-solutions).
+
 ## Temporary repairs and test folders
+
+New temporary patches and side-test bundles are delivered as private download
+attachments with SHA-256 checksums and a known base version/commit. They are
+not committed merely to create a raw GitHub link. Finished fixes, regression
+tests and maintained compatibility repairs remain in the normal repository.
+Document useful solutions without retaining private machine evidence or
+temporary attachment URLs.
 
 **PLANNED owner cleanup:** retire obsolete one-off public repair scripts and
 their preparation/publication workflows after supported devices have upgraded
