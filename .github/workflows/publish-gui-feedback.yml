@@ -1,0 +1,91 @@
+name: Publish owner-authorised Jarvis 4.3.0
+
+on:
+  push:
+    branches: [work/gui-feedback-release]
+    paths: [.github/workflows/publish-gui-feedback.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-gui-feedback
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/work/gui-feedback-release'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: evok3dx/OVOS-Commands
+      RELEASE_SHA: 7a1a99f7ee6fcda720e215645c9c12fab00defc5
+      EXPECTED_MAIN: 4626b1f379d24bab8e21336171ff2761b2aa42b6
+    steps:
+      - name: Require the exact successful validation and packaging runs
+        run: |
+          set -euo pipefail
+          test "$(id -u)" -ne 0
+          for run_id in 37406313435 37406313459; do
+            gh api "repos/$GH_REPO/actions/runs/$run_id" \
+              --jq '[.head_sha, .conclusion] | @tsv' | \
+              grep -Fx "$(printf '%s\tsuccess' "$RELEASE_SHA")"
+          done
+          gh api "repos/$GH_REPO/git/ref/heads/main" --jq '.object.sha' | grep -Fx "$EXPECTED_MAIN"
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          artifact-ids: '11387701937'
+          run-id: '37406313459'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          merge-multiple: true
+          path: ${{ runner.temp }}/assets
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          artifact-ids: '11387711852'
+          run-id: '37406313459'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          merge-multiple: true
+          path: ${{ runner.temp }}/notes
+      - name: Publish only verified stable assets and recheck public bytes
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/assets"
+          sha256sum --check SHA256SUMS
+          test "$(find . -maxdepth 1 -type f | wc -l)" -eq 11
+          python3 - <<'PYNOTES'
+          import os
+          from pathlib import Path
+          path = Path(os.environ['RUNNER_TEMP']) / 'notes/release-notes.md'
+          notes = path.read_text()
+          for filename in ('releases.md', '07-installer-updates.md', 'security-and-updates.md'):
+              notes = notes.replace('(' + filename + ')', '(https://github.com/evok3dx/OVOS-Commands/blob/main/docs/' + filename + ')')
+          path.write_text(notes)
+          PYNOTES
+          gh release create v4.3.0 --target "$RELEASE_SHA" \
+            --title 'Jarvis 4.3.0' --draft \
+            --notes-file "$RUNNER_TEMP/notes/release-notes.md"
+          gh release upload v4.3.0 \
+            ovos-commands-4.3.0.tar.gz ovos-commands-4.3.0.tar.gz.sha256 \
+            ovos_skill_jarvis_dispatcher-4.3.0-py3-none-any.whl \
+            ovos_skill_jarvis_media-0.3.5-py3-none-any.whl \
+            jarvis_file_search_skill-0.3.0-py3-none-any.whl \
+            jarvis-runtime-linux-x86_64-py311.zip jarvis-runtime-linux-x86_64-py311.zip.sha256 \
+            third-party-licenses.json espeak-ng-COPYING RUNTIME-NOTICES.md SHA256SUMS
+          gh release edit v4.3.0 --draft=false --prerelease=false --latest
+          mkdir -m 700 "$RUNNER_TEMP/public-download"
+          gh release download v4.3.0 --dir "$RUNNER_TEMP/public-download"
+          cmp "$RUNNER_TEMP/assets/SHA256SUMS" "$RUNNER_TEMP/public-download/SHA256SUMS"
+          cd "$RUNNER_TEMP/public-download"
+          test "$(find . -maxdepth 1 -type f | wc -l)" -eq 11
+          sha256sum --check SHA256SUMS
+          gh api "repos/$GH_REPO/git/ref/tags/v4.3.0" --jq '.object.sha' | grep -Fx "$RELEASE_SHA"
+          gh api "repos/$GH_REPO/git/ref/heads/main" --jq '.object.sha' | grep -Fx "$EXPECTED_MAIN"
+          gh api --method PATCH "repos/$GH_REPO/git/refs/heads/main" \
+            -f sha="$RELEASE_SHA" -F force=false > /dev/null
+          gh api "repos/$GH_REPO/git/ref/heads/main" --jq '.object.sha' | grep -Fx "$RELEASE_SHA"
+          gh release view v4.3.0 --json url,isPrerelease,isDraft
