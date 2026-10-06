@@ -7,7 +7,7 @@ acceptance work. Durable design choices belong in
 under [`history/`](history/README.md). Other current documents link here rather
 than repeating release narratives.
 
-## 4.3.1 (prepared correction, not published)
+## 4.3.1 (published stable, 6 October 2026 UTC)
 
 Fix isolated Media and Weather startup after the 4.3 privacy change. These
 online helpers are outside the restricted-worker socket probe, which returns
@@ -26,14 +26,30 @@ File Search runs in the core and has no corresponding startup path. The
 ordinary-user launcher and activity/diagnostic readers construct their own
 connections. No additional occurrence was found in these call sites.
 
-**PLANNED validation and publication:** the entry-point regression exercises
-all five worker roles with the real privacy/probe attachment functions and
-simulated connections, including cleanup on failure and no socket-probe
-registration in online helpers. Required CI, clean-archive checks and owner
-live Media/Weather acceptance remain pending. This correction is not released.
-The GTK regression checks painted notebook content and computed text/icon
-contrast on all three pages under conflicting light host styling, including
-theme switching in the same window; execution and preview review are pending.
+**VERIFIED automated at `41edd97aa7b6bbb18b5ad275ddfdfd870e2e0731`:**
+[all six validation jobs](https://github.com/evok3dx/OVOS-Commands/actions/runs/37409224206)
+pass Python 3.10–3.13, GTK contrast and security scans. The worker entry-point
+regression reproduces the absent-bus failure and checks all five roles,
+connection cleanup after failure and no socket-probe registration in online
+helpers. Existing Python `-I` startup/recovery guards also pass.
+[Packaging](https://github.com/evok3dx/OVOS-Commands/actions/runs/37409224157)
+passes the complete clean-archive suite, 350/350 non-executing routing cases and
+all 296 retained runtime identities/hashes with zero exemptions. GTK checks
+painted notebook surfaces, visible tab text/icons and search-field colours on
+all three pages, including theme switching under a conflicting light host
+style. Generated light/dark previews were visually reviewed.
+
+**VERIFIED publication:** [run 37409472736](https://github.com/evok3dx/OVOS-Commands/actions/runs/37409472736)
+published [Jarvis 4.3.1](https://github.com/evok3dx/OVOS-Commands/releases/tag/v4.3.1)
+as latest stable. All 11 public assets were downloaded again and verified
+against the original SHA256SUMS. The tag and main point to the validated source
+above before this documentation-only record.
+Code archive SHA-256:
+`045c65e2e74c127d72e6ec9cb2622e2d7f76dc6dbd6c159a582cbcdd79c3521b`.
+
+**PLANNED live acceptance:** owner upgrade and Music/Weather commands remain
+pending; automated entry-point tests use simulated bus/service boundaries.
+The 4.3 privacy-mode laptop acceptance limits below remain open.
 
 ## 4.3.0 (published stable, 6 October 2026 UTC)
 

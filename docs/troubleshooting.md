@@ -40,8 +40,8 @@ system**. If it says `failed`, inspect the recent logs before changing files.
 **4.3.0 isolated Media/Weather startup regression:** those helpers can exit
 before loading because the privacy hook receives no bus from the
 restricted-worker probe. Their installed plugin and runtime checks can still
-pass. The prepared 4.3.1 correction supplies a fixed loopback diagnostic
-connection without changing isolation policy. See the [release record](releases.md)
+pass. Upgrade to 4.3.1, which supplies a fixed loopback diagnostic connection
+without changing isolation policy. See the [release record](releases.md)
 for validation/publication status; do not remove isolation or enable raw logs
 to work around this failure.
 
