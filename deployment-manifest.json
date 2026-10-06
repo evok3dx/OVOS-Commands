@@ -118,7 +118,6 @@
       "scripts/private_ollama.py",
       "scripts/isolation_install.py",
       "scripts/test-isolation-install.py",
-      "scripts/apply-gui-update-lock-fix.py",
       "scripts/appearance_settings.py",
       "scripts/private_reports.py",
       "scripts/isolation_check.py",

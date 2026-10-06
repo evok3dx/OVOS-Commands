@@ -23,6 +23,9 @@ and media investigations, exact evidence and the original expanded stable
 notes. The [4.0.1 recovery record](v4.0.1-recovery.md) preserves the resolved
 guided-isolation startup and package-build incidents. Stable V4 scope and unresolved checks live in the current release ledger.
 
+The [temporary V4 repair record](temporary-v4-repairs.md) summarises retired
+delivery scripts, their maintained fixes and the immutable legacy source.
+
 ## Recording issues and solutions
 
 Keep a short, sanitised record when an investigation provides a reusable

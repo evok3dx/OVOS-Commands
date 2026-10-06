@@ -31,8 +31,6 @@ python3 "$repo_root/scripts/test-isolated-media-routing.py"
 python3 "$repo_root/scripts/test-intent-cleanup.py"
 python3 "$repo_root/scripts/test-helper-lifecycle.py"
 python3 "$repo_root/scripts/test-weather-location.py"
-python3 "$repo_root/scripts/test-lifecycle-hotfix.py" apply-v4-weather-fix.py
-python3 "$repo_root/scripts/test-lifecycle-hotfix.py" apply-v4-media-timing-fix.py
 python3 "$repo_root/scripts/test-installer-progress.py"
 python3 "$repo_root/scripts/test-v42.py"
 python3 "$repo_root/scripts/test-privacy-logging.py"
@@ -168,8 +166,6 @@ python3 "$repo_root/scripts/test-startup-settings.py"
 python3 "$repo_root/scripts/test-core-isolation-candidate.py"
 python3 "$repo_root/scripts/test-isolation-install.py"
 python3 "$repo_root/scripts/test-boot-readiness.py"
-python3 "$repo_root/scripts/test-lifecycle-hotfix.py"
-python3 "$repo_root/scripts/test-lifecycle-hotfix.py" apply-v4-final-fix.py
 python3 "$repo_root/scripts/test-runtime-provenance.py"
 python3 "$repo_root/scripts/test-runtime-bundle.py"
 python3 "$repo_root/scripts/test-wake-onnx-boundary.py"

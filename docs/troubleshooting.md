@@ -246,8 +246,11 @@ recovery fails, stop and review its reported reason; do not delete the journal
 or remove native policy to force deployment.
 
 For a GUI upgrade from an installed 4.0.1 or 4.2.0, finish any recovery first,
-then run the reviewed `scripts/apply-gui-update-lock-fix.py` from the corrective
-release with `--apply`, as the desktop user. Its default invocation is read-only.
+then use the exact reviewed `scripts/apply-gui-update-lock-fix.py` from the
+unchanged 4.2.1 release archive with `--apply`, as the desktop user. This
+one-off delivery file is retired from current source; its
+[historical record](history/temporary-v4-repairs.md) preserves the original
+source and limits. Its default invocation is read-only.
 It accepts only the exact reviewed updater hashes, saves a private timestamped
 Downloads backup and refuses to patch while a recovery journal remains.
 If the repair rejects permissions, inspect only the named source, UI state

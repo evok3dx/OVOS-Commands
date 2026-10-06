@@ -202,17 +202,14 @@ tests and maintained compatibility repairs remain in the normal repository.
 Document useful solutions without retaining private machine evidence or
 temporary attachment URLs.
 
-**PLANNED owner cleanup:** retire obsolete one-off public repair scripts and
-their preparation/publication workflows after supported devices have upgraded
-and their recovery links are no longer needed. Raw GitHub URLs serve files
-from repository commits; there is no separate raw-file storage area. Removing
-a current file does not remove copies from Git history or old release archives.
-
-The current repair inventory includes `apply-gui-update-lock-fix.py`,
-`apply-v4-final-fix.py`, `apply-v4-lifecycle-fix.py`,
-`apply-v4-media-timing-fix.py` and `apply-v4-weather-fix.py` under `scripts/`.
-Keep the GUI updater repair while older isolated deployments need it. Review
-documentation and regression references together before deleting a repair.
+**Owner-authorised retirement, 6 October 2026:** remove the five obsolete
+one-off public repair scripts, their script-only regression and the two
+dedicated GUI-patch workflows from current source. Keep the
+[concise issue/solution record](history/temporary-v4-repairs.md), immutable
+historical copies and unchanged release assets for reviewed legacy recovery.
+The maintained fixes and current behaviour/recovery tests remain.
+Raw GitHub URLs serve repository commits; there is no separate raw-file store.
+Removing a current file does not remove Git history or old release archives.
 
 Owner-run clipboard trials use `Downloads/Jarvis-Clipboard-Test-*` and the
 downloaded clipboard patch files. Remove those identified copies only after
