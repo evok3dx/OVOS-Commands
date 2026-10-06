@@ -102,6 +102,8 @@ parent.destroy();centre.install_update.destroy();centre.update_health.destroy()
 print('PASS: General independent switches; GTK update button green/blue/neutral and disabled text/icon computed white')
 
 # A host's light hover/icon rules must not leak into the app's dark sidebar.
+settings=Gtk.Settings.get_default();animations=settings.get_property('gtk-enable-animations')
+settings.set_property('gtk-enable-animations',False)
 host=Gtk.CssProvider();host.load_from_data(b'.jarvis-sidebar row:hover { background-image: linear-gradient(#FFFFFF, #FFFFFF); background-color: #FFFFFF; } .jarvis-sidebar image { color: #000000; }')
 Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(),host,
                                         Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION-1)
@@ -136,6 +138,7 @@ for flags,background in ((Gtk.StateFlags.NORMAL,None),
         assert (luminance(foreground)+0.05)/(luminance(colour)+0.05)>=4.5
 window.destroy()
 Gtk.StyleContext.remove_provider_for_screen(Gdk.Screen.get_default(),host)
+settings.set_property('gtk-enable-animations',animations)
 print('PASS: dark sidebar hover/selected text and symbolic icons resist light host styling with readable contrast')
 
 # Render the production Dashboard in both app-scoped themes, with real GTK
