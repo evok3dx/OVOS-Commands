@@ -264,7 +264,9 @@ class ControlCenter:
         self.service_labels={}
         for unit,title in [('ovos-audio.service','Speech'),('ovos-listener.service','Listener'),('ovos-core.service','Commands')]:
             row=Gtk.Box(spacing=9);row.get_style_context().add_class('jarvis-service-row')
-            led=Gtk.Image.new_from_icon_name('media-record-symbolic',Gtk.IconSize.MENU)
+            # A text dot follows our state colour even if a desktop icon theme
+            # substitutes a coloured recording icon for the symbolic name.
+            led=label('●')
             led.get_style_context().add_class('jarvis-led')
             name=label(title,'jarvis-service-name')
             state=Gtk.Label(label='Checking…',xalign=1);state.get_style_context().add_class('jarvis-service-state')

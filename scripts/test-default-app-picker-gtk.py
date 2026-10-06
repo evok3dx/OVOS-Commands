@@ -119,6 +119,10 @@ for selected in ('light','dark'):
     centre.apply_theme(selected)
     window.show_all()
     while Gtk.events_pending():Gtk.main_iteration()
+    for led,_state in centre.service_labels.values():
+        assert isinstance(led,Gtk.Label)
+        colour=led.get_style_context().get_color(led.get_state_flags())
+        assert colour.green>colour.red and colour.green>colour.blue,colour
     context=centre.start_stop.get_child().get_style_context()
     for child in descendants(centre.start_stop):
         if isinstance(child,Gtk.Label):
