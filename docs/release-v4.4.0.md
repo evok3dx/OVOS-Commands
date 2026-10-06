@@ -5,4 +5,4 @@
 - Show unavailable diagnostic collectors instead of an unexplained empty feed.
 - Clarify isolation, activity and contributor guidance; retain Music timing.
 
-Automated validation and live acceptance are pending. See the [release record](releases.md).
+Automated checks passed. Laptop acceptance of these corrections remains pending. See the [release record](releases.md).

@@ -50,7 +50,7 @@ Provider challenges are reported without retries, CAPTCHA bypass or simulated
 activity. No interval is a guarantee against provider alerts. Local file search
 is unaffected.
 
-The staged standalone-helper lifecycle guard prevents concurrent startup or
+The 4.4 standalone-helper lifecycle guard prevents concurrent startup or
 repeated activation from leaving duplicate handlers. It applies to Media and
 Weather without changing plugin wheel bytes or search timing. Future standalone
 helpers must follow [AGENTS.md](../AGENTS.md) and extend the exact-runtime

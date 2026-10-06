@@ -264,7 +264,7 @@ upgrade path worked; broader live desktop acceptance stays separate.
 Check isolation runs explicitly requested worker and private-model tests,
 including network denial attempts and a possible cold model load. These can
 take several minutes; the GUI limits the diagnostic process to five minutes.
-The prepared follow-up shows each actual stage and a completion or failure
+The 4.3 Control Centre shows each actual stage and a completion or failure
 message instead of only Working. A timeout is incomplete verification, never
 a passed isolation test. Policy status remains separate from actual socket
 results. The check does not start services or enable the microphone.
@@ -386,8 +386,9 @@ alternative when recognition mishears `Play`.
 New weather locations can spend roughly 13 seconds in search/reverse lookup
 before the forecast request. Repeated locations reuse the lookup. The durations
 include wrapper/network/provider work, so do not assume a CPU or provider fault.
-Collect the three fixed worker units with `journalctl -u ...` without forcing
-`--system`; accessible per-user journal output may otherwise be omitted.
+For current builds, enable five-minute diagnostics in General before reproducing
+the delay and inspect the fixed Weather stages in Maintenance. Earlier raw
+journal procedures are historical and may contain private content.
 
 For a full upgrade with native isolation already installed, the guarded normal
 stable 4.0.0 installer refuses the native state. Use the exact reviewed deactivation/removal

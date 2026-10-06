@@ -7,45 +7,53 @@ acceptance work. Durable design choices belong in
 under [`history/`](history/README.md). Other current documents link here rather
 than repeating release narratives.
 
-## 4.4.0 (prepared correction, not published)
+## 4.4.0 (published stable, 6 October 2026 UTC)
 
-Serialize the exact reviewed Workshop standalone-helper lifecycle for Media
-and Weather. Concurrent initial-ready and core-ready loads must not orphan a
-live skill instance. Activation of an already loaded helper is idempotent;
-legitimate reload/reactivation is retained and final shutdown rejects late
-loads. The adapter runs in memory and does not edit upstream wheel bytes.
-The contributor guide records this requirement for future standalone helpers.
-Core-loaded plugins, native policy, dependency pins and Music pacing are retained.
-README and focused maintenance/isolation/privacy/AI-report guides now map the
-actual GUI controls and distinguish policy inspection from network tests.
-The GUI's obsolete raw-log warning is replaced with the temporary-diagnostics
-description. Contributor rules retain mapped worker/readiness state, private
-capture expiry, safe activity labels and app-scoped theme contrast for future changes.
+Prevent duplicate standalone Media/Weather handlers by serialising the exact
+reviewed Workshop lifecycle. Loaded-helper activation is idempotent; proper
+reload/reactivation and final shutdown remain available. The adapter changes
+no upstream wheel bytes. Music timing, native policy, dependency pins and
+core-loaded plugins are retained. Contributor rules cover future helpers.
 
-**VERIFIED owner observation:** three isolated Media status checks each returned
-two replies while a process scan identified one standalone Media worker.
-Duplicate Music search/open actions were reported. This establishes duplicate
-handlers; it does not establish which startup callback interleaved on the host.
-Source inspection found unprotected ready-event/initial-ready loading and a
-repeated-activation path that creates an instance without unloading the old one.
+Five-minute diagnostics now show reviewed fixed reasons for Music stages,
+reading/application/browser/Qwen failures, empty transcription and Weather
+stages, with relative capture time. Unknown informational traffic is omitted;
+unknown warnings/errors retain severity and source location. Collector summaries
+separate responding, missing and invalid replies and respect ordinary versus
+isolated helper placement. No private messages, exception formatting or
+persistence is added; expiry and non-extending enablement are retained.
+README and focused guides clarify actual GUI state, private activity and
+policy inspection versus network tests. The obsolete raw-log GUI warning is removed.
 
-**PLANNED validation:** the prepared regression executes the retained wheel's
-actual `SkillContainer` against bounded skill/bus substitutes, reproduces an
-orphaned handler and checks concurrent guarded startup, activation, reload,
-reactivation, shutdown, source refusal and disabled choices. Required CI,
-clean-archive checks, packaging, publication and owner Music acceptance remain
-pending. No new live fix or successful test run is claimed here.
+**VERIFIED owner observation before correction:** three Media status requests
+each returned two replies while a process scan found one standalone worker.
+This proves duplicate handlers, not the exact host startup interleaving.
 
-**PLANNED validation; implemented diagnostics:** fixed reviewed reasons now
-identify Music lookup/wait/open/control stages, empty transcription, reading,
-application/browser and Qwen failures, and Weather lookup stages. Relative
-capture time uses the local monotonic clock. Unknown informational traffic is
-omitted; unknown warnings/errors retain only severity and source location.
-Recent Logs distinguishes responding, missing and invalid collectors, with
-online-helper collectors requested only under isolation. Fixed labels replace
-private messages; no raw logging, exception formatting or persistence is added.
-The five-minute expiry and non-extending enablement remain unchanged. Required
-privacy, collector, clean-archive and release checks are still pending.
+**VERIFIED automated at `132af8086ac405ed8fdd84621504ed2aaf6a3641`:**
+[all six validation jobs](https://github.com/evok3dx/OVOS-Commands/actions/runs/37412051275)
+pass Python 3.10–3.13, native GTK and source/history/archive security checks.
+[Packaging](https://github.com/evok3dx/OVOS-Commands/actions/runs/37412051305)
+passes the full clean-archive suite, 350/350 non-executing policy cases and all
+296 retained runtime identities/hashes with zero exemptions. The exact retained
+Workshop class reproduces two live handlers with bounded skill/bus substitutes;
+guarded startup, activation, reload, reactivation, concurrent stop, source
+refusal and disabled choices pass. Diagnostic regressions pass fixed-reason
+content exclusion, strict IPC fields, relative time, expiry, collector availability,
+quiet child/file output and readiness without logs. Upgrade/recovery preserves
+native policy, source, settings and deliberate mute without new administrator prompts.
+
+**VERIFIED publication:** [run 37412319891](https://github.com/evok3dx/OVOS-Commands/actions/runs/37412319891)
+published [Jarvis 4.4.0](https://github.com/evok3dx/OVOS-Commands/releases/tag/v4.4.0)
+as latest stable. All 11 public assets were downloaded again and verified
+against the original SHA256SUMS. The tag points to the validated source above;
+main was advanced to it before this documentation-only record.
+Code archive SHA-256:
+`4660a7641c35de71e656e002993284d2567bab52243c271087767633082f8046`.
+
+**PLANNED live acceptance:** owner upgrade, single-search Music behaviour and
+useful diagnostics remain pending. Automated class/process tests do not
+establish microphone, desktop or live network behaviour. Existing V4 privacy,
+fresh-install and mediated/inherited-network limits remain unchanged.
 
 ## 4.3.1 (published stable, 6 October 2026 UTC)
 
