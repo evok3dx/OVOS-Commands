@@ -1,0 +1,39 @@
+name: Verify GUI update lock regression
+
+on:
+  push:
+    branches: [work/gui-update-lock]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lock-regression:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.11.16'
+      - name: Require regression failure against the released updater
+        run: |
+          set -euo pipefail
+          test "$(id -u)" -ne 0
+          baseline="$RUNNER_TEMP/gui-lock-baseline"
+          mkdir -m 700 "$baseline"
+          git archive HEAD | tar -x -C "$baseline"
+          git show b1917af809400a9fa29d80bae264b4e0bf67fe91:scripts/control_runtime.py \
+            > "$baseline/scripts/control_runtime.py"
+          if python3 "$baseline/scripts/test-isolation-install.py" > "$RUNNER_TEMP/baseline-result.log" 2>&1; then
+            echo 'FAIL: regression accepted the released lock conflict.'
+            exit 1
+          fi
+          grep -Fq 'Another Jarvis control action is running' "$RUNNER_TEMP/baseline-result.log"
+          echo 'PASS: regression reproduces the released GUI/installer lock conflict.'
+      - name: Require success with the correction
+        run: python3 scripts/test-isolation-install.py
