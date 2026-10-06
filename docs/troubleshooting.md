@@ -207,7 +207,7 @@ reviewed inventory, with every version constraint still checked.
 **VERIFIED in source:** the Control Centre's update wrapper holds the control
 lock while the isolated installer tries to acquire it to stop services. This
 can report "Another Jarvis control action is running" and block recovery too.
-A corrective release remains pending. Close the Control Centre after the
+A corrective 4.2.1 release is being validated. Close the Control Centre after the
 failed operation finishes, then run as the desktop user, without sudo:
 
 ```bash
@@ -224,6 +224,15 @@ failed operation finishes, then run as the desktop user, without sudo:
 The terminal path avoids the GUI's outer lock and retains isolation. If
 recovery fails, stop and review its reported reason; do not delete the journal
 or remove native policy to force deployment.
+
+For a GUI upgrade from an installed 4.0.1 or 4.2.0, finish any recovery first,
+then run the reviewed `scripts/apply-gui-update-lock-fix.py` from the corrective
+release with `--apply`, as the desktop user. Its default invocation is read-only.
+It accepts only the exact reviewed updater hashes, saves a private timestamped
+Downloads backup and refuses to patch while a recovery journal remains.
+Reopen the Control Centre before using its update button. The new release
+includes the correction for subsequent updates. Live desktop acceptance remains
+separate from the automated process regression.
 
 ## Application focus
 

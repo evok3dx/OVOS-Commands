@@ -7,6 +7,22 @@ acceptance work. Durable design choices belong in
 under [`history/`](history/README.md). Other current documents link here rather
 than repeating release narratives.
 
+## 4.2.1 (candidate, awaiting validation and publication)
+
+The GUI holds a separate update lock, leaving the installer free to acquire
+the service-control lock for Stop and recovery. Duplicate GUI updates remain
+blocked, and the existing transaction guard still blocks unsafe starts.
+A one-time, hash-checked repair supports the installed 4.0.1 and 4.2.0 GUI
+updaters. It saves a private backup, refuses unreviewed source and pending
+recovery, and leaves settings, services and isolation policy unchanged.
+
+**VERIFIED candidate regression:** the old update-lock failure is reproduced,
+and the correction passes all six source validation jobs. The migration check
+also reproduces the failure in both released updaters and passes after the
+reviewed repair. Final candidate/archive validation remains pending. This is
+automated process/transaction evidence, not a live Brain GUI upgrade.
+The reviewed runtime, Media and File Search remain unchanged.
+
 ## 4.2.0 (published stable, 6 October 2026)
 
 The native Dashboard places system status and Run/Stop/Restart on the left,
@@ -49,7 +65,7 @@ Code archive SHA-256:
 from the Control Centre holds the control lock while the installer needs that
 lock to stop services. The supplied update failure is consistent with this
 conflict. Use the [terminal recovery/update procedure](troubleshooting.md#isolated-gui-update-lock-conflict);
-a regression and corrective release remain pending. Do not disable isolation
+a corrective release remains pending; see the 4.2.1 candidate above. Do not disable isolation
 or delete the recovery journal to bypass the guard.
 
 ## 4.0.1 (published stable, 1 October 2026)

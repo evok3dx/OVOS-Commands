@@ -24,7 +24,7 @@ Download the archive and matching `.sha256` from
 [Releases](https://github.com/evok3dx/OVOS-Commands/releases/latest):
 
 ```bash
-version=4.2.0
+version=4.2.1
 sha256sum --check "ovos-commands-$version.tar.gz.sha256"
 tar -xzf "ovos-commands-$version.tar.gz"
 cd "ovos-commands-$version"
@@ -39,6 +39,8 @@ Selected network isolation needs bounded administrator approval for service
 data and a dedicated local model. Existing choices are preserved; see the
 [upgrade procedure](docs/07-installer-updates.md#upgrading-an-isolated-installation)
 before using the full installer or updater.
+For an isolated 4.0.1/4.2.0 GUI upgrade, first apply the
+[reviewed updater repair](docs/troubleshooting.md#isolated-gui-update-lock-conflict).
 
 ```mermaid
 flowchart TD

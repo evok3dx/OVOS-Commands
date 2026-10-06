@@ -40,6 +40,16 @@ jobs:
             mkdir -m 700 -p "$(dirname "$target")"
             cp "$baseline/scripts/control_runtime.py" "$target"
             env HOME="$fix_home" python3 scripts/apply-gui-update-lock-fix.py
+            journal="$fix_home/.local/state/jarvis/isolation-install/current.json"
+            mkdir -m 700 -p "$(dirname "$journal")"
+            printf '{"phase":"blocked"}\n' > "$journal"
+            if env HOME="$fix_home" python3 scripts/apply-gui-update-lock-fix.py --apply; then
+              echo 'FAIL: interrupted-install source was modified.'
+              exit 1
+            fi
+            cmp "$target" "$baseline/scripts/control_runtime.py"
+            test ! -e "$fix_home/Downloads"
+            rm -- "$journal"
             env HOME="$fix_home" python3 scripts/apply-gui-update-lock-fix.py --apply
             env HOME="$fix_home" python3 scripts/apply-gui-update-lock-fix.py --apply
             test "$(find "$fix_home/Downloads" -mindepth 1 -maxdepth 1 -type d | wc -l)" -eq 1

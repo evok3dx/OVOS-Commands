@@ -58,6 +58,9 @@ def repair(apply=False):
     if os.getuid() <= 0 or os.getuid() != os.geteuid():
         raise RuntimeError('Run as the desktop user, without sudo.')
     home = Path.home()
+    journal = home / '.local/state/jarvis/isolation-install/current.json'
+    if journal.exists() or journal.is_symlink():
+        raise RuntimeError('Recover the interrupted installation before patching its source; nothing changed.')
     target = home / '.local/src/ovos-skill-jarvis-dispatcher/scripts/control_runtime.py'
     original, info, result = reviewed(target)
     if result is None:
@@ -128,4 +131,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
