@@ -24,7 +24,7 @@ Download the archive and matching `.sha256` from
 [Releases](https://github.com/evok3dx/OVOS-Commands/releases/latest):
 
 ```bash
-version=4.3.1
+version=4.4.0
 sha256sum --check "ovos-commands-$version.tar.gz.sha256"
 tar -xzf "ovos-commands-$version.tar.gz"
 cd "ovos-commands-$version"
@@ -84,6 +84,9 @@ replace full desktop and voice acceptance testing.
 | Files | “Find {filename}”, “Search my documents” | File Search plugin |
 | Voice | Wake phrase, hotkeys and background-audio level | Voice |
 | Startup | Start the app minimised and/or voice services at login; Run/Stop this session | General / Dashboard |
+| Status | Speech, Listener and Commands; isolation policy and explicit network checks | Dashboard / Maintenance |
+| Privacy | No logs by default, or Diagnostics for 5 minutes | General |
+| Activity | Recent completed action labels, with Refresh; no transcripts | Dashboard |
 | Updates | Installed version, release date, check and install | Updates |
 
 Fresh setup offers **Recommended**, **All** and **Custom** application modes.
@@ -115,19 +118,27 @@ automatic cross-machine import.
 - Risky controls stay strict; writing rechecks focus and refuses terminal windows.
 - Discovered applications launch through their reviewed desktop entries.
 - Configuration writes are private and atomic.
-- General offers No logs or five-minute technical diagnostics; spoken and
-  written content is excluded. See the [logging limits](docs/security-and-updates.md#application-logging-in-43).
+- General offers No logs or five-minute diagnostics with fixed failure reasons; spoken and
+  written content is excluded. Diagnostics expire and clear even with the GUI
+  closed. See the [logging limits](docs/security-and-updates.md#application-logging-in-43).
 - Temporary reading text is cleared; the previous clipboard is never restored.
 - Tool-capable private-agent messages require readback and single-use confirmation.
 - All 296 runtime packages have exact versions and enforced wheel hashes.
 - Updates require reviewed HTTPS hosts, checksums and bounded archive extraction.
 - Optional native isolation restricts core/listener/audio and a dedicated local
   model; weather and browser music retain separate online paths.
+- Maintenance shows configured isolation policy. **Check isolation** tests the
+  current workers and private model; a policy indicator alone is not proof of
+  blocked network access. See [GUI status and checks](docs/core-isolation.md#control-centre-status-and-checks).
 - The [guided isolation installer](docs/core-isolation.md#guided-installer-401)
   offers isolation recommended for new installs and preserves existing choices.
   Its dedicated loopback model instance leaves general Ollama unchanged.
   [Live checks](docs/releases.md) verify local generation and the tested
   IPv4/IPv6 network restrictions.
+
+Recent Activity is a separate, temporary list of reviewed action labels. It
+works with No logs selected and displays the last five minutes. Existing logs,
+exported reports and other applications have their own retention rules.
 
 X11 applications in the same desktop session can observe or inject input, so
 X11 itself is not treated as a security boundary. See
@@ -144,7 +155,7 @@ are separate. Checksums verify bytes; production signing remains future work.
 - [Media and filename search](docs/10-media-files.md)
 - [Troubleshooting](docs/troubleshooting.md) and [maintenance](docs/maintenance.md)
 - [Security](docs/security-and-updates.md), [decisions](docs/12-decisions.md) and [release record](docs/releases.md)
-- [V4.3.1 release notes](docs/release-v4.3.1.md) and [service isolation](docs/core-isolation.md)
+- [V4.4.0 release notes](docs/release-v4.4.0.md) and [service isolation](docs/core-isolation.md)
 - [Contributor and AI-agent rules](AGENTS.md)
 
 ## Licence and thanks

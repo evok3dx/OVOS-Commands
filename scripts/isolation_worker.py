@@ -19,6 +19,58 @@ ONLINE_STAGES={'ovos-common-query-pipeline-plugin','ovos-persona-pipeline-plugin
                'common_qa','ocp_high','ocp_medium','ocp_low','ocp_legacy'}
 BOOT_SOURCE_SHA256='1bc356474e0d970fdd7955b5e2592a4c053178c1c1f2e8c2aa075e7b8e0d1a5b'
 PADACIOSO_SOURCE_SHA256='645edc74b0711bc9d0547e8c809acea6ae0b24ad61f38528d48fc1a49fdab02c'
+SKILL_LAUNCHER_SOURCE_SHA256='ab5585ca30cd501c13d1191cc03c0f62febf00af0f83f3372928a09021c99ec6'
+
+
+def install_helper_lifecycle():
+    """Serialize the reviewed standalone loader without changing its wheel.
+
+    Core-ready events and the initial readiness reply may load concurrently.
+    Keep reload cleanup ordered so neither path can orphan a live instance.
+    Activating an already loaded helper must not create another instance.
+    """
+    import ovos_workshop.skill_launcher as launcher
+    if hashlib.sha256(Path(launcher.__file__).read_bytes()).hexdigest()!=SKILL_LAUNCHER_SOURCE_SHA256:
+        raise RuntimeError('Standalone skill launcher source differs from the reviewed runtime')
+    cls=launcher.SkillContainer
+    if getattr(cls,'_jarvis_lifecycle_installed',False):return
+    initialise,activate,unload=cls.__init__,cls.do_load,cls.unload
+
+    @wraps(initialise)
+    def initialise_guarded(self,*args,**kwargs):
+        self._jarvis_container_lock=threading.RLock()
+        self._jarvis_container_stopped=False
+        initialise(self,*args,**kwargs)
+
+    def guarded(function):
+        @wraps(function)
+        def call(self,*args,**kwargs):
+            with self._jarvis_container_lock:
+                if self._jarvis_container_stopped:return
+                return function(self,*args,**kwargs)
+        return call
+
+    @wraps(activate)
+    def activate_guarded(self,message):
+        with self._jarvis_container_lock:
+            if self._jarvis_container_stopped:return
+            if (message.data.get('skill')==self.skill_id and self.skill_loader is not None
+                    and self.skill_loader.instance is not None):
+                return  # An explicit activation is idempotent while loaded.
+            return activate(self,message)
+
+    @wraps(unload)
+    def unload_guarded(self):
+        with self._jarvis_container_lock:
+            self._jarvis_container_stopped=True
+            return unload(self)
+
+    cls.__init__=initialise_guarded
+    for name in ('load_skill','do_unload'):
+        setattr(cls,name,guarded(getattr(cls,name)))
+    cls.do_load=activate_guarded
+    cls.unload=unload_guarded
+    cls._jarvis_lifecycle_installed=True
 
 
 def install_intent_cleanup():
@@ -210,6 +262,7 @@ def run_component(component):
         skill_id='ovos-skill-'+('weather' if component=='weather' else 'jarvis-media')+'.openvoiceos'
         if skill_id in Configuration().get('skills',{}).get('blacklisted_skills',[]):
             return  # Retain the owner's explicit disabled-skill choice.
+        install_helper_lifecycle()
         container=SkillContainer(skill_id)
         container.skill_directory=None
         container.run()

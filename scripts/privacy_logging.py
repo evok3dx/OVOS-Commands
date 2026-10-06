@@ -22,7 +22,109 @@ EVENTS = ('ready', 'technical', 'warning', 'error')
 LEVELS = ('DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL')
 SOURCES = ('runtime', 'desktop', 'dictation', 'browser', 'conversation',
            'routing_model', 'routing_runtime', 'weather_boundary', 'pipeline',
-           'media', 'voice_loop', 'service', 'client', '__init__', '__main__')
+           'media', 'voice_loop', 'service', 'client', '__init__', '__main__',
+           'helpers', 'routing_pipeline')
+# Codes and labels are reviewed constants. Never display a log message, even
+# when its template looks harmless: arguments can contain speech or secrets.
+REASONS = {
+    'component-ready': 'Component ready',
+    'media-ready': 'Music helper ready',
+    'search-wait': 'Waiting for the shared search gap',
+    'search-start': 'Music lookup started',
+    'search-finish': 'Music lookup finished',
+    'result-open': 'Music result opened',
+    'provider-refused': 'Music provider refused the request',
+    'search-timeout': 'Music lookup timed out',
+    'media-request-failed': 'Music lookup or launch failed',
+    'media-invalid-action': 'Unrecognised media control rejected',
+    'media-control-sent': 'Media control sent',
+    'media-no-player': 'No compatible playback session',
+    'media-tool-missing': 'Media control tool unavailable',
+    'media-control-failed': 'Media control failed',
+    'app-focus-failed': 'Application launch or focus failed',
+    'window-control-failed': 'Window control failed',
+    'reading-failed': 'Reading request failed',
+    'reading-no-selection': 'No selected text found',
+    'reading-start-failed': 'Speech Note reading could not start',
+    'reading-starting': 'Speech Note reading is still starting',
+    'browser-failed': 'Browser action failed',
+    'qwen-router-unavailable': 'Qwen command routing unavailable',
+    'qwen-answer-unavailable': 'Qwen answer unavailable',
+    'qwen-dispatch-failed': 'Qwen action dispatch failed',
+    'empty-transcription': 'No transcription returned: silence or speech recognition failure',
+    'weather-location': 'Weather location stage finished',
+    'weather-forecast': 'Weather forecast stage finished',
+    'weather-display': 'Weather display stage finished',
+    'weather-speech': 'Weather speech submission stage finished',
+    'weather-search': 'Weather location search finished',
+    'weather-reverse': 'Weather reverse lookup finished',
+    'weather-details': 'Weather location details lookup finished',
+    'weather-provider-forecast': 'Weather provider forecast request finished',
+}
+MEDIA_TEMPLATES = {
+    ('initialize', 'Jarvis Media ready (%s)'): 'media-ready',
+    ('_wait_search_slot', 'Waiting for the shared search gap'): 'search-wait',
+    ('_search_and_open', 'Reserved one bounded YouTube title lookup'): 'search-start',
+    ('_search_and_open', 'YouTube lookup completed in %.2f seconds'): 'search-finish',
+    ('_search_and_open', 'Opened first YouTube result in %s: %s'): 'result-open',
+    ('_search_and_open', 'YouTube refused the search request'): 'provider-refused',
+    ('_search_and_open', 'YouTube result search timed out'): 'search-timeout',
+    ('_search_and_open', 'Media request failed: %s'): 'media-request-failed',
+    ('_handle_control', 'Rejected unknown Media action'): 'media-invalid-action',
+    ('_control', 'Media action sent%s: %s'): 'media-control-sent',
+    ('_control', 'Media action ignored; no compatible player: %s'): 'media-no-player',
+    ('_control', 'playerctl is unavailable'): 'media-tool-missing',
+    ('_control', 'Media action failed: %s'): 'media-control-failed',
+}
+
+
+def reason(record, role, is_ready=False):
+    """Classify reviewed sites without formatting or retaining private data."""
+    if is_ready:
+        return 'component-ready'
+    module, function, message = record.module, record.funcName, record.msg
+    if any(type(value) is not str for value in (module, function, message)):
+        return None
+    if role in ('core', 'media') and module == '__init__':
+        return MEDIA_TEMPLATES.get((function, message))
+    if role == 'listener' and (module, function, message) == (
+            'service', '_stt_text', 'Empty transcription, either recorded silence or STT failed!'):
+        return 'empty-transcription'
+    if role in ('core', 'weather') and module == 'weather_boundary':
+        if function == 'intent_data' and message == 'Weather intent/location stage: %.2f seconds':
+            return 'weather-location'
+        # Only a fixed enum is read. Location, query and duration arguments
+        # are never copied; elapsed time comes from our own capture clock.
+        if type(record.args) is tuple and record.args and type(record.args[0]) is str:
+            name = record.args[0]
+            if function == 'call' and message == 'Weather %s stage: %.2f seconds':
+                return {'forecast': 'weather-forecast', 'display': 'weather-display',
+                        'speech submission': 'weather-speech'}.get(name)
+            if function == 'request' and message == 'Weather provider %s operation: %.2f seconds':
+                return {'search': 'weather-search', 'reverse': 'weather-reverse',
+                        'details': 'weather-details', 'forecast': 'weather-provider-forecast'}.get(name)
+    if role != 'core' or record.levelno < logging.WARNING:
+        return None
+    if module == 'desktop':
+        return {'_run_desktop_app_action': 'app-focus-failed',
+                '_focused_window_action': 'window-control-failed'}.get(function)
+    if module == 'helpers' and function == '_read_visible_text':
+        if message == 'Reading request failed: mode=%s code=%s' and type(record.args) is tuple and len(record.args) == 2:
+            mode_value, code = record.args
+            if type(code) is int:
+                if type(mode_value) is str and mode_value == 'selection' and code == 20:
+                    return 'reading-no-selection'
+                if code in (22, 23):
+                    return {22: 'reading-start-failed', 23: 'reading-starting'}[code]
+        return 'reading-failed'
+    if module == 'browser' and function in (
+            '_run_browser_action', '_prompt_browser_search', '_submit_prompted_browser_search',
+            '_prompt_youtube_search', '_open_youtube_shorts', '_open_fixed_website'):
+        return 'browser-failed'
+    return {('routing_pipeline', 'Qwen router unavailable (%s)'): 'qwen-router-unavailable',
+            ('routing_pipeline', 'Qwen answer pipeline unavailable (%s)'): 'qwen-answer-unavailable',
+            ('routing_runtime', 'Qwen dispatch failed (%s)'): 'qwen-dispatch-failed',
+            ('routing_runtime', 'Qwen answer unavailable (%s)'): 'qwen-answer-unavailable'}.get((module, message))
 _capture = None
 
 
@@ -161,12 +263,19 @@ class Capture:
         level = logging.getLevelName(record.levelno)
         if level not in LEVELS:
             return
+        code = reason(record, self.role, is_ready)
+        if code is None and record.levelno < logging.WARNING:
+            return  # Unknown informational traffic is noise, not useful evidence.
         event = 'ready' if is_ready else 'error' if record.levelno >= 40 else 'warning' if record.levelno >= 30 else 'technical'
         line = record.lineno if type(record.lineno) is int and 0 <= record.lineno < 1000000 else 0
         source = record.module if record.module in SOURCES else 'runtime'
         with self.lock:
-            self.rows.appendleft({'tick': time.monotonic(), 'component': self.role,
-                                  'level': level, 'event': event, 'source': source, 'line': line})
+            clock = time.monotonic()
+            row = {'tick': clock, 'component': self.role,
+                   'level': level, 'event': event, 'source': source, 'line': line}
+            if code is not None:
+                row.update(reason=code, elapsed=round(max(0, min(WINDOW, clock - current['start'])), 1))
+            self.rows.appendleft(row)
 
     def snapshot(self):
         current = self.prune()
@@ -271,10 +380,20 @@ def display(value):
         raise ValueError('Diagnostic size is invalid')
     result = []
     for row in rows:
-        if (not isinstance(row, dict) or set(row) != {'component', 'level', 'event', 'source', 'line'}
+        fields = {'component', 'level', 'event', 'source', 'line'}
+        if (not isinstance(row, dict) or set(row) not in (fields, fields | {'reason', 'elapsed'})
                 or row['component'] != value['component'] or row['level'] not in LEVELS
                 or row['event'] not in EVENTS or row['source'] not in SOURCES or type(row['line']) is not int
                 or not 0 <= row['line'] < 1000000):
             raise ValueError('Diagnostic row is invalid')
-        result.append(f"{row['component']}: {row['level'].lower()} · {row['event']} · {row['source']}:{row['line']}")
+        label = row['event']
+        elapsed = ''
+        if 'reason' in row:
+            if (type(row['reason']) is not str or row['reason'] not in REASONS
+                    or type(row['elapsed']) not in (int, float) or not math.isfinite(row['elapsed'])
+                    or not 0 <= row['elapsed'] <= WINDOW):
+                raise ValueError('Diagnostic reason is invalid')
+            label = REASONS[row['reason']]
+            elapsed = f"+{row['elapsed']:.1f}s · "
+        result.append(f"{elapsed}{row['component']}: {row['level'].lower()} · {label} · {row['source']}:{row['line']}")
     return result

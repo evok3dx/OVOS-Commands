@@ -50,6 +50,12 @@ Provider challenges are reported without retries, CAPTCHA bypass or simulated
 activity. No interval is a guarantee against provider alerts. Local file search
 is unaffected.
 
+The staged standalone-helper lifecycle guard prevents concurrent startup or
+repeated activation from leaving duplicate handlers. It applies to Media and
+Weather without changing plugin wheel bytes or search timing. Future standalone
+helpers must follow [AGENTS.md](../AGENTS.md) and extend the exact-runtime
+regression. Validation and publication remain in the [release record](releases.md).
+
 Opening another result does not stop an earlier music tab. Pause or close the
 earlier playback explicitly. This remains a known follow-up, alongside Brave's
 idle-session expiry. The complete voice examples come from Media's

@@ -19,13 +19,32 @@ def read():
             return 'Diagnostics unavailable while the voice bus is stopped.'
         def fetch(role):
             topic = 'jarvis.diagnostics.' + role
-            reply = bus.wait_for_response(Message(topic), topic + '.response', timeout=2)
-            return [] if reply is None else display(reply.data)
+            try:
+                reply = bus.wait_for_response(Message(topic), topic + '.response', timeout=2)
+                if reply is None:
+                    return role + ': no diagnostic response (stopped, disabled or unavailable).', []
+                if not isinstance(reply.data, dict) or reply.data.get('component') != role:
+                    raise ValueError('Wrong diagnostic component')
+                rows = display(reply.data)
+                return role + ': diagnostic collector responding.', rows or [role + ': no captured warnings or reviewed events.']
+            except Exception:
+                return role + ': diagnostic response unavailable or invalid.', []
+        # Ordinary deployments load online skills in core, so they have no
+        # standalone collector. Do not describe those absent roles as failed.
+        from isolation_services import active
+        try:
+            roles = ROLES if active() else tuple(role for role in ROLES if role not in ('weather', 'media'))
+        except (ValueError, OSError, RuntimeError):
+            return 'Diagnostic component mapping unavailable. Review isolation status in Maintenance.'
         with ThreadPoolExecutor(max_workers=len(ROLES)) as pool:
-            rows = [row for batch in pool.map(fetch, ROLES) for row in batch]
+            batches = list(pool.map(fetch, roles))
         if not mode()['enabled']:
             return 'Diagnostics finished. No logs are being kept.'
-        return '\n'.join(rows)[:20000] or 'Diagnostics enabled. No technical events captured yet.'
+        # Collector summaries always appear before bounded event detail, so a
+        # noisy core cannot hide a missing listener or online helper.
+        rows = [status for status, _ in batches]
+        rows += [row for _, events in batches for row in events[:32]]
+        return '\n'.join(rows)[:20000]
     finally:
         bus.close()
 
@@ -33,6 +52,10 @@ def read():
 if __name__ == '__main__':
     output = quiet_reader()
     try:
-        os.write(output, (read() + '\n').encode())
+        try:
+            result = read()
+        except Exception:
+            result = 'Diagnostics unavailable. Check service status in Dashboard.'
+        os.write(output, (result + '\n').encode())
     finally:
         os.close(output)

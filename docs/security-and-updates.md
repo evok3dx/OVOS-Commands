@@ -1,11 +1,13 @@
 # Security and update policy
 
-Jarvis 4.2 keeps Recent Activity in a bounded in-memory session list.
+Jarvis keeps Recent Activity in a bounded in-memory session list.
 It contains reviewed action identifiers and results, never dictated text,
 search queries, window titles or clipboard contents. Appearance settings apply
 only to Jarvis and are included in private settings exports. Maintenance's
 Isolation status inspects native policy; it does not claim actual network
-verification. See the [release record](releases.md) for validation status.
+verification. Explicit [GUI checks](core-isolation.md#control-centre-status-and-checks)
+report current-worker/model results and their limits. See the
+[release record](releases.md) for validation status.
 
 ## Supported foundation
 
@@ -91,7 +93,7 @@ created or silently managed by this repository.
 Before installing a downloaded archive:
 
 ```bash
-version=4.0.1
+version=4.4.0
 sha256sum --check "ovos-commands-$version.tar.gz.sha256"
 tar -tzf "ovos-commands-$version.tar.gz"
 ```
@@ -199,7 +201,8 @@ diagnostic readers also discard upstream output and relay only validated data.
 **No logs** by default and **Diagnostics for 5 minutes**. The managed OVOS
 core, listener, audio, Weather, Media and bus suppress raw Python log messages
 and direct stdout/stderr, including inherited playback output. Diagnostics
-retain only component, severity, fixed event type, reviewed source label and line number in
+retain only component, severity, fixed event type, reviewed source label, line number,
+allowlisted reason code and relative capture time in
 bounded process memory. They contain no recognised speech, dictated text,
 messages, queries, raw exception text or traceback. Capture stops and clears
 automatically after five minutes even when the GUI is closed; a reboot,
@@ -210,7 +213,28 @@ Current readiness uses private, overwritten process state identified by boot,
 invocation and PID. It remains available when logging is off. Existing
 release readiness markers remain only as a migration/recovery fallback.
 Recent Activity stores fixed action labels in memory and displays the last
-five minutes. Optional support-report diagnostics use the same bounded feed.
+five minutes, independently of No logs or diagnostic mode. Restarting command
+handling clears its activity session. **Dashboard → Refresh** requests the
+current feed; it is not a transcript or a complete audit trail.
+**Maintenance → Recent logs** and optional support-report diagnostics use the
+bounded technical capture, not that activity list or historical raw journals.
+
+In 4.4, reviewed logging sites map to fixed labels for Music stages and failures,
+reading/application/browser/Qwen failures, empty transcription and Weather
+stages. Only exact templates or reviewed failure sites are classified. The two
+argument checks accept fixed Weather stage names or reading exit codes, never
+user text. Labels come from constants, and relative time comes from the local
+capture clock. Unknown informational traffic is omitted; unknown warnings and
+errors retain only source and severity. IPC rejects additional fields, unknown
+reasons and invalid times. Legacy fixed-field rows remain readable.
+
+Recent Logs lists collector availability before event detail. A missing reply
+can mean stopped, disabled or unavailable; it is not automatically a failure.
+Ordinary deployments capture Media/Weather inside core rather than requiring
+standalone collectors. A responding collector and a finished Weather stage do
+not establish successful execution. Original exception messages are deliberately
+unavailable. Use Dashboard state or a targeted private check when fixed reasons
+are insufficient; empty output alone is not a health result.
 
 This policy does not erase historical journals, old OVOS files, exported
 reports or backups. Systemd can retain service lifecycle/exit records. Ollama,

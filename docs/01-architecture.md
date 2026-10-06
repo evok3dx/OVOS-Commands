@@ -27,6 +27,14 @@ host-owned. Earlier comparison evidence remains in the
 **VERIFIED V4 design:** optional native isolation runs core, listener and audio
 as the ordinary user with external IP access denied. Weather and Media use
 separate online workers; desktop launches retain the user's ordinary session.
-Ollama has its own reviewed loopback-only policy. Installation alone does not
-activate these policies. The same-user bus and X11 session remain trusted.
+The selected guided install activates reviewed native policy and uses a
+dedicated Jarvis Ollama, leaving general Ollama unchanged. Installation or a
+configured-policy indicator alone does not prove actual network denial. The
+same-user bus and X11 session remain trusted.
 See [security](security-and-updates.md) and [release evidence](releases.md).
+
+Dashboard and tray use one shared status/control path, including actual
+isolated-worker mapping. No logs and temporary technical diagnostics keep
+readiness outside historical logs; Recent Activity is a separate, bounded list
+of reviewed action labels. See [maintenance](maintenance.md) and the
+[logging policy](security-and-updates.md#application-logging-in-43).

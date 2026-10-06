@@ -31,6 +31,14 @@ override current code, tests, decisions or the current release record.
 - `compatibility.json` and `voice/reviewed-stack.json`: supported host and
   reviewed voice-stack versions.
 - `scripts/install.sh`, `update.py` and `rollback.sh`: deployment truth.
+- `scripts/control_runtime.py` and `isolation_services.py`: shared GUI/tray
+  service state, current-invocation readiness and physical worker mapping.
+- `scripts/privacy_logging.py`, `privacy_worker.py`, `privacy_units.py` and
+  `diagnostic_reader.py`: managed logging, expiry, readiness and diagnostic IPC.
+- `ovos_skill_jarvis_dispatcher/activity.py`: reviewed in-memory activity labels.
+- `scripts/isolation_check.py`: current native policy and explicit network tests.
+- `scripts/control_center.py` and `appearance_settings.py`: GUI controls and
+  app-scoped appearance.
 
 The Control Centre command list is generated from the action registry and
 registered vocabulary. Do not create another hand-maintained command list.
@@ -124,6 +132,46 @@ If any one of these layers is missing, the command change is incomplete.
   in private evidence outside Git. Packaging and release scans must reject
   `runtime-observed-*`, including untracked captures and backups.
 
+## Control Centre and privacy contract
+
+- Keep Dashboard and tray on the shared service-state path. When isolation is
+  active, inspect/control the actual mapped system workers, not inactive user
+  relays. Distinguish stopped, starting, paused and failed states; never hide a
+  shutdown failure or turn an unavailable check into a ready indicator.
+- Readiness comes from the current boot/invocation/PID state and reviewed
+  service replies, not a guessed delay. Keep it available with logging off.
+  Retain the existing narrowly scoped legacy-marker migration fallback; do not
+  restore raw logging merely to make readiness work. Preserve deliberate mute.
+- Maintenance's isolation indicator describes inspected native policy, not a
+  passed network test or running services. Only explicit Check isolation runs
+  the bounded current-worker/model probes. Stream stages, release the GUI busy
+  state on success/failure/timeout and keep unavailable controls inconclusive.
+  State IPv6/model and mediated/inherited-socket limits accurately.
+- Default No logs suppresses raw managed core/listener/audio/Weather/Media/bus
+  output. Bootstrap privacy before voice/skill imports in ordinary and isolated
+  startup, then attach hooks to a usable bus before helper loading; never pass
+  an absent bus. Keep child stdout/stderr suppressed. Five-minute diagnostics retain only the
+  explicit technical-field allowlist in bounded memory, expire/clear without
+  the GUI, and default off for invalid/expired/previous-boot state. Re-selecting
+  diagnostics does not extend a running window. Keep reason codes/labels fixed, validate IPC additions, derive elapsed time from
+  the local capture clock and read only reviewed primitive enums. Unknown informational
+  traffic stays excluded; missing collectors are not silently treated as empty or failed.
+  Extend `test-diagnostic-reasons.py` when adding labels or collectors. Never add message formatting,
+  utterances, dictation, queries, clipboard text, exception text or tracebacks.
+- Recent Activity is independent of diagnostic capture. Keep reviewed action
+  labels in bounded process memory, show only the last five minutes, validate
+  IPC fields and preserve Refresh/unavailable feedback. Never persist the feed
+  or add transcripts, user-supplied names, window titles or query contents.
+- Apply Light/Dark styles only inside Jarvis. Keep sidebar and nested notebook
+  hover/selection, symbolic icons, entry fields and action labels readable under
+  a conflicting host theme. Retain semantic update/control colours. Theme and
+  logging changes must not start services, unmute or alter isolation/login choices.
+- Keep README controls and linked maintenance, isolation, privacy and AI-report
+  guides consistent with code. Historical journals/reports and other apps have
+  separate retention; never claim system-wide zero logging or automatic erasure.
+  Empty diagnostics are not proof of health; preserve missing-collector and
+  limited-reason evidence instead of silently declaring success.
+
 ## Change discipline
 
 1. Start from the current tree and tests; do not rebuild from an old snapshot.
@@ -144,6 +192,15 @@ If any one of these layers is missing, the command change is incomplete.
 9. A short operation lock must not be inherited by a long-lived subprocess or
    playback monitor. Explicitly close its descriptor in every background child
    and add a regression that acquires the lock while that child remains alive.
+10. Standalone online helpers must use the reviewed lifecycle guard before
+    constructing Workshop's `SkillContainer`. Readiness events, initial ready
+    replies, activation and shutdown must never leave duplicate live skill
+    handlers. Keep the adapter scoped to the exact hash-locked upstream source,
+    preserve legitimate reload/reactivation and owner-disabled skills, and
+    reject late loads after final shutdown. Extend `test-helper-lifecycle.py`
+    against the retained wheel when adding another standalone helper. Plugins
+    loaded normally in the core do not use this adapter. New helper roles still
+    require their own reviewed isolation policy and deployment changes.
 
 ## Required validation
 
@@ -162,6 +219,10 @@ archive and plugin wheels once, verify their checksums, extract the final
 archive into a clean directory and rerun the complete suite from that copy.
 Live microphone, wake-word, GUI and desktop focus behaviour must be reported
 as live tests; never relabel offline simulation as live evidence.
+Changes to shared status, privacy or appearance also require the focused
+privacy/readiness/isolation and native GTK regressions. Run
+`test-helper-lifecycle.py` and `test-privacy-runtime.py` against the verified
+retained wheel directory; import-only checks do not establish startup behaviour.
 
 ## Release hygiene
 

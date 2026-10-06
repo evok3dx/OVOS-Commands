@@ -45,6 +45,33 @@ proved that such a mismatch can make an already-open app appear missing.
 See [`window-focus-and-app-integration.md`](window-focus-and-app-integration.md)
 for the validated troubleshooting sequence.
 
+## Control Centre and tray
+
+| Location | What it shows or controls |
+|---|---|
+| Dashboard | System Online/Offline, starting, paused or attention state; Speech, Listener and Commands; Run/Stop, restart commands and microphone controls. |
+| Dashboard → Recent Activity | Reviewed completed action labels from the last five minutes, with Refresh and an unavailable message if the reader cannot respond. |
+| General | Light/Dark appearance; independent tray and voice login choices; No logs or Diagnostics for 5 minutes. |
+| Maintenance → Isolation | Current core/private-model policy, Refresh status and Check isolation. Policy configuration is separate from a network-test result. |
+| Maintenance → Recent logs | Temporary diagnostics with fixed failure reasons, elapsed time and collector availability. Enable in General before reproducing a problem. |
+| Updates | Explicit check/install controls. A successful up-to-date check uses a green button; an available update uses blue; an unavailable check remains unconfirmed. |
+
+Dashboard and tray share the same service-state reader. With isolation active,
+they inspect/control the real system workers instead of the compatibility user
+relays. Current core/listener readiness and service states keep Starting visible
+until the reviewed startup checks pass. A failed worker is not silently presented as stopped.
+Pausing the Jarvis microphone leaves other applications' microphones alone.
+
+Recent Activity is separate from logging: No logs still allows fixed action
+labels in memory. The feed contains at most 32 rows and displays the latest
+five matching rows in the GUI; restarting command handling clears its session.
+It never records transcripts, dictated content, queries or window titles.
+
+For inspection versus actual network checks and their limits, see
+[Control Centre status and checks](core-isolation.md#control-centre-status-and-checks).
+For expiry, existing logs and other applications, see the
+[logging policy](security-and-updates.md#application-logging-in-43).
+
 ## Supported entry points
 
 | Command | Purpose |
@@ -58,6 +85,7 @@ for the validated troubleshooting sequence.
 | `python3 scripts/setup.py` | Detect and select reviewed applications |
 | `jarvis-speechnote-setup` | Manage the optional per-user Speech Note add-on |
 | `jarvis-health-check` | Validate the live host and Jarvis installation |
+| `jarvis-isolation-check --test-network --test-model` | Explicit current-worker network and private-model checks; private report in Downloads |
 | `jarvis-report --issue "..."` | Build a private diagnostic handoff |
 | `jarvis-update check` | Check the configured release source without installing |
 | `jarvis-update install` | Verify and install a newer release transactionally |
@@ -112,7 +140,9 @@ The update ownership boundary is intentionally small:
   are updated;
 - OVOS configuration, capabilities, personal commands, shortcuts, sounds and
   unlisted private helpers are machine-owned and preserved;
-- an existing voice stack and its model caches are preserved;
+- the reviewed runtime is staged as a unit, or reused only with matching
+  provenance; the previous environment remains available for rollback and model
+  caches are preserved;
 - fresh installations still receive the complete reviewed setup.
 
 Do not add a machine-owned path to the replacement set merely because the

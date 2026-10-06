@@ -504,7 +504,7 @@ class ControlCenter:
         row=Gtk.Box(spacing=8);support.pack_start(row,False,False,0)
         for name,icon,key in [('Create report','document-save-symbolic','report'),('Recent logs','text-x-generic-symbolic','logs'),('About','help-about-symbolic','about')]:
             self.action(row,name,icon,lambda _,k=key:self.maintain(k))
-        support.pack_start(label('Reports stay on this computer. Location coordinates are redacted, but Recent Logs may contain your spoken words.','jarvis-subtitle'),False,False,0)
+        support.pack_start(label('Reports stay on this computer. Recent logs show only enabled five-minute technical diagnostics, without spoken or written content. Review reports before sharing.','jarvis-subtitle'),False,False,0)
         advanced=Gtk.Expander(label='Advanced');parent.pack_start(advanced,False,False,0)
         box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8);advanced.add(box)
         box.set_border_width(12)

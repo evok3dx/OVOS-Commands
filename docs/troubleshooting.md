@@ -37,6 +37,17 @@ system**. If it says `failed`, inspect the recent logs before changing files.
 
 ## Service controls
 
+**Duplicate Music searches in one worker:** count replies to a single
+`jarvis.media.status` request before restarting. Two replies establish duplicate
+handlers, not two spoken requests. Compare that with a content-free count of
+the owner's standalone Media worker processes. The standalone launcher can
+race its initial readiness check against a core-ready event and orphan an
+instance; repeated activation can also load without first unloading. The
+4.4 lifecycle guard serialises loading, reloading and cleanup for Media and
+Weather and makes activation idempotent while loaded. Future standalone helpers
+must follow the contributor guide. Search pacing is unchanged. Validation and
+publication status are in the [release record](releases.md).
+
 **4.3.0 isolated Media/Weather startup regression:** those helpers can exit
 before loading because the privacy hook receives no bus from the
 restricted-worker probe. Their installed plugin and runtime checks can still
@@ -277,6 +288,11 @@ clears after five minutes independently of the GUI. Choosing No logs clears
 it earlier. Re-enabling while already active does not extend the timer.
 Only fixed technical fields are captured; speech, dictation, messages and raw
 exceptions are excluded. No earlier activity can be recovered from No logs.
+4.4 shows reviewed fixed failure reasons and relative elapsed time. Collector
+summaries distinguish responding from missing or invalid replies. A missing
+collector can be stopped or disabled; inspect Dashboard state before treating
+it as failed. Unknown informational messages and private failure text stay
+excluded. Finished Weather stages do not alone prove a successful forecast.
 
 Readiness is independent of logging. If startup is incomplete, service state
 and exit status remain available. A service override which bypasses the

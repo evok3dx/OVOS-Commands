@@ -1,4 +1,4 @@
-name: Prepare Jarvis 4.3.1 correction assets
+name: Prepare Jarvis 4.4.0 correction assets
 
 on:
   push:
@@ -54,6 +54,7 @@ jobs:
             --policy voice/runtime-bundle.json \
             --output "$RUNNER_TEMP/rechecked-wheels"
           python3 scripts/test-privacy-runtime.py "$RUNNER_TEMP/rechecked-wheels"
+          python3 scripts/test-helper-lifecycle.py "$RUNNER_TEMP/rechecked-wheels"
       - name: Build only current first-party wheels with reviewed local tooling
         run: |
           python3 -m pip install --no-index --no-deps --force-reinstall "$RUNNER_TEMP/rechecked-wheels/setuptools-79.0.1-py3-none-any.whl"
@@ -92,20 +93,21 @@ jobs:
       - name: Build final code archive and scan actual contents
         run: |
           bash scripts/build-release.sh
-          bash scripts/security-audit.sh release dist/ovos-commands-4.3.1.tar.gz
+          bash scripts/security-audit.sh release dist/ovos-commands-4.4.0.tar.gz
       - name: Verify the complete suite from the final clean archive
         run: |
           set -euo pipefail
-          (cd dist && sha256sum --check ovos-commands-4.3.1.tar.gz.sha256)
+          (cd dist && sha256sum --check ovos-commands-4.4.0.tar.gz.sha256)
           mkdir -m 700 "$RUNNER_TEMP/clean-release"
-          tar -xzf dist/ovos-commands-4.3.1.tar.gz -C "$RUNNER_TEMP/clean-release"
-          cd "$RUNNER_TEMP/clean-release/ovos-commands-4.3.1"
+          tar -xzf dist/ovos-commands-4.4.0.tar.gz -C "$RUNNER_TEMP/clean-release"
+          cd "$RUNNER_TEMP/clean-release/ovos-commands-4.4.0"
           python3 scripts/validate_refactor.py
           python3 scripts/test-v3-routing.py
           python3 scripts/test-qwen-safe-workflows.py
           python3 scripts/test-update-security.py
           python3 scripts/test-release-privacy.py
           bash scripts/test-deployment.sh
+          python3 scripts/test-helper-lifecycle.py "$RUNNER_TEMP/rechecked-wheels"
           python3 scripts/routing-benchmark.py --policy-only --output "$RUNNER_TEMP/final-routing.md"
       - name: Prepare only byte-verified release assets
         run: |
@@ -113,17 +115,17 @@ jobs:
           (cd "$RUNNER_TEMP/public-assets" && sha256sum --check SHA256SUMS && cat SHA256SUMS)
           gitleaks dir "$RUNNER_TEMP/public-assets" --redact --no-banner
           mkdir -m 700 "$RUNNER_TEMP/public-notes"
-          cp docs/release-v4.3.1.md "$RUNNER_TEMP/public-notes/release-notes.md"
+          cp docs/release-v4.4.0.md "$RUNNER_TEMP/public-notes/release-notes.md"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: validated-v4-3-1-assets
+          name: validated-v4-4-0-assets
           path: ${{ runner.temp }}/public-assets/
           compression-level: 0
           retention-days: 90
           if-no-files-found: error
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: validated-v4-3-1-notes
+          name: validated-v4-4-0-notes
           path: ${{ runner.temp }}/public-notes/
           retention-days: 90
           if-no-files-found: error

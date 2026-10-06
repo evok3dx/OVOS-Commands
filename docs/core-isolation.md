@@ -39,6 +39,34 @@ and bounds each request with connect/read limits and a 14-second child timeout.
 Only public weather/location requests leave that helper. This adapter is not
 a sandbox against malicious same-user plugin code.
 
+## Control Centre status and checks
+
+Dashboard shows the running state of Speech, Listener and Commands. Under
+isolation these are the actual system-manager workers; inactive compatibility
+user units do not mean voice is off. Run/Stop, restart and microphone controls
+use that same mapping. Current readiness remains separate from logging.
+
+Maintenance's **Isolation** card shows the configured core and private-model
+network policy as **Isolation active**, **Isolation off** or **Needs attention**.
+**Refresh status** inspects current native properties and the selected endpoint.
+Isolation active can remain visible while Jarvis is stopped: it describes the
+installed restrictions, not running services or a passed egress test.
+
+**Check isolation** explicitly probes the current workers and dedicated model.
+Start Jarvis first. The check changes no service or microphone setting, shows
+stages, has a five-minute GUI timeout and writes a private timestamped
+`Jarvis-Isolation-Check-YYYY-MM-DD_HH-MM-SS` folder in Downloads. Results appear
+under **Results and details**. Missing workers, failed outside controls or a
+timeout stay inconclusive rather than becoming a pass.
+
+The current combined check covers worker IPv4/IPv6 TCP and direct DNS/UDP,
+private-model local generation and private-model IPv4 denial. Its model IPv6
+result is explicitly **NOT TESTED** because the numeric registry probe is
+rejected by model-name validation. Separately recorded actual-daemon IPv6
+evidence in the [release record](releases.md) does not make this GUI check test
+IPv6. No broader mediated/inherited-socket or fresh-install claim is made.
+Treat the generated report as private and review it before sharing.
+
 ## Guided installer (4.0.1)
 
 New installations offer **Enable network isolation (recommended)** selected

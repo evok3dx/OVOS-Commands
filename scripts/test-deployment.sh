@@ -29,12 +29,14 @@ mapfile -t helpers < <(manifest_list runtime_helpers)
 python3 "$repo_root/scripts/test-v3-routing.py"
 python3 "$repo_root/scripts/test-isolated-media-routing.py"
 python3 "$repo_root/scripts/test-intent-cleanup.py"
+python3 "$repo_root/scripts/test-helper-lifecycle.py"
 python3 "$repo_root/scripts/test-weather-location.py"
 python3 "$repo_root/scripts/test-lifecycle-hotfix.py" apply-v4-weather-fix.py
 python3 "$repo_root/scripts/test-lifecycle-hotfix.py" apply-v4-media-timing-fix.py
 python3 "$repo_root/scripts/test-installer-progress.py"
 python3 "$repo_root/scripts/test-v42.py"
 python3 "$repo_root/scripts/test-privacy-logging.py"
+python3 "$repo_root/scripts/test-diagnostic-reasons.py"
 python3 - "$repo_root/scripts/verify-wake-model.py" <<'PY'
 import os
 import subprocess
