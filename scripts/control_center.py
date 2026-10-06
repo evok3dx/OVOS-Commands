@@ -69,6 +69,14 @@ combobox menu menuitem { padding: 9px 14px; min-height: 24px; }
 .jarvis-root.jarvis-dark { background-color: #101722; color: #EDF2FA; }
 .jarvis-light .jarvis-sidebar { background-color: #ECF0F6; }
 .jarvis-dark .jarvis-sidebar { background-color: #151F2E; }
+.jarvis-dark .jarvis-sidebar row { background-image: none; background-color: transparent; color: #EDF2FA; }
+.jarvis-dark .jarvis-sidebar row:hover { background-image: none; background-color: #26364C; color: #EDF2FA; }
+.jarvis-dark .jarvis-sidebar row:selected,
+.jarvis-dark .jarvis-sidebar row:selected:hover { background-image: none; background-color: #2F6FED; color: #FFFFFF; }
+.jarvis-dark .jarvis-sidebar row label, .jarvis-dark .jarvis-sidebar row image,
+.jarvis-dark .jarvis-sidebar row:hover label, .jarvis-dark .jarvis-sidebar row:hover image { color: #EDF2FA; }
+.jarvis-dark .jarvis-sidebar row:selected label, .jarvis-dark .jarvis-sidebar row:selected image,
+.jarvis-dark .jarvis-sidebar row:selected:hover label, .jarvis-dark .jarvis-sidebar row:selected:hover image { color: #FFFFFF; }
 .jarvis-light .jarvis-card { background-color: #FFFFFF; border-color: #DFE5EE; }
 .jarvis-dark .jarvis-card { background-color: #192536; border-color: #2A3A50; }
 .jarvis-dark label { color: #EDF2FA; }
@@ -544,8 +552,13 @@ class ControlCenter:
             self.output.get_buffer().set_text(str(text));self.details.set_expanded(True)
             information=update_status()
             self.latest=information['latest'] if information['available'] else None
-            return {'health':'Health check complete. See results below.','report':'Report created. Location shown below.','updates':'Update check complete.','logs':'Recent logs loaded.','about':'Version information loaded.'}[kind]
-        self.task('Working…',lambda:maintenance(kind),on_success=result)
+            if kind=='isolation':self.refresh_isolation()
+            return {'health':'Health check complete. See results below.','report':'Report created. Location shown below.','updates':'Update check complete.','logs':'Recent logs loaded.','about':'Version information loaded.',
+                    'isolation':'Isolation check complete. See results below.'}[kind]
+        if kind=='isolation':
+            self.task('Checking isolation… Network and model tests can take several minutes.',
+                      lambda:maintenance(kind,progress=self.report),on_success=result)
+        else:self.task('Working…',lambda:maintenance(kind),on_success=result)
 
     def install_release(self,_button):
         if not self.latest:return

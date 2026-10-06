@@ -230,9 +230,25 @@ then run the reviewed `scripts/apply-gui-update-lock-fix.py` from the corrective
 release with `--apply`, as the desktop user. Its default invocation is read-only.
 It accepts only the exact reviewed updater hashes, saves a private timestamped
 Downloads backup and refuses to patch while a recovery journal remains.
-Reopen the Control Centre before using its update button. The new release
-includes the correction for subsequent updates. Live desktop acceptance remains
-separate from the automated process regression.
+If the repair rejects permissions, inspect only the named source, UI state
+directory and lock files. Owner-controlled group-writable UI state/locks need
+their group-write bit removed before retrying; do not change ownership or
+permissions recursively. Quit the old Control Centre process completely,
+because changing its source does not reload Python code already in memory.
+Recovery may restore the old source, so recheck/apply the reviewed repair
+after recovery and before reopening the GUI. The new release includes the
+correction for subsequent updates. The owner confirmed this recovered GUI
+upgrade path worked; broader live desktop acceptance stays separate.
+
+## Isolation check feedback
+
+Check isolation runs explicitly requested worker and private-model tests,
+including network denial attempts and a possible cold model load. These can
+take several minutes; the GUI limits the diagnostic process to five minutes.
+The prepared follow-up shows each actual stage and a completion or failure
+message instead of only Working. A timeout is incomplete verification, never
+a passed isolation test. Policy status remains separate from actual socket
+results. The check does not start services or enable the microphone.
 
 ## Application focus
 

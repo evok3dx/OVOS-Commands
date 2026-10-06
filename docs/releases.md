@@ -7,6 +7,14 @@ acceptance work. Durable design choices belong in
 under [`history/`](history/README.md). Other current documents link here rather
 than repeating release narratives.
 
+## 4.2.2 (candidate)
+
+**PLANNED; source prepared, validation pending:** dark sidebar hover and
+selected rows keep readable text and symbolic icons even with a light desktop
+theme. Check isolation shows the actual diagnostic stages, finishes with a
+clear results message and releases its busy state on a bounded timeout.
+Services, microphone, isolation policy and diagnostic pass criteria are unchanged.
+
 ## 4.2.1 (published stable, 6 October 2026 UTC)
 
 The GUI holds a separate update lock, leaving the installer free to acquire
@@ -25,9 +33,15 @@ reproduces the old failure in both released updaters and passes after repair,
 including duplicate-update protection, pending-recovery refusal and private
 backups. [Final packaging](https://github.com/evok3dx/OVOS-Commands/actions/runs/37399328273)
 passes clean-archive checks and all 296 runtime identities/hashes with zero
-exemptions. This is automated process/transaction evidence, not a live Brain
-GUI upgrade; that acceptance remains pending.
+exemptions. This is automated process/transaction evidence, separate from the
+live Brain GUI upgrade below.
 The reviewed runtime, Media and File Search remain unchanged.
+
+**VERIFIED owner-reported live GUI acceptance:** after interrupted recovery,
+the reviewed one-time repair and a fresh Control Centre process, the owner
+confirmed that the GUI upgrade worked. The repair's checks identified
+group-writable UI state/lock permissions; only the identified group-write
+bits were removed. This does not claim new network or fresh-install coverage.
 
 **VERIFIED publication:** [run 37399767585](https://github.com/evok3dx/OVOS-Commands/actions/runs/37399767585)
 published [Jarvis 4.2.1](https://github.com/evok3dx/OVOS-Commands/releases/tag/v4.2.1)

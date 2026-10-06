@@ -411,7 +411,45 @@ def _run_cancellable_update(arguments, cancel_event, timeout=600):
         raise RuntimeError(reason + (('\n' + detail[-12000:]) if detail else ''))
 
 
-def maintenance(action, cancel_event=None):
+def _run_isolation_check(arguments, progress, timeout=300):
+    """Stream fixed diagnostic stages, with a bounded child lifetime."""
+    process = subprocess.Popen(arguments, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                               text=True, close_fds=True, start_new_session=True)
+    deadline = time.monotonic() + timeout
+    delivered = 0
+    finished = False
+
+    def report(output):
+        nonlocal delivered
+        if isinstance(output, bytes):output = output.decode('utf-8', errors='replace')
+        output = output or ''
+        if len(output) > 1048576:
+            raise RuntimeError('Isolation check output exceeded its limit.')
+        complete = output.rsplit('\n', 1)[0] if '\n' in output else ''
+        lines = complete.splitlines()
+        for line in lines[delivered:]:
+            if line.startswith('Isolation check: '):progress(line[len('Isolation check: '):])
+        delivered = len(lines)
+
+    try:
+        while True:
+            try:
+                output, _ = process.communicate(timeout=min(0.25, max(0.001, deadline-time.monotonic())))
+                report(output)
+                finished = True
+                return subprocess.CompletedProcess(arguments, process.returncode, output or '', '')
+            except subprocess.TimeoutExpired as pending:
+                report(pending.output)
+                if time.monotonic() >= deadline:
+                    raise RuntimeError('Isolation check timed out. No passed result was recorded. Jarvis services were not changed.')
+    finally:
+        if not finished:
+            try:os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:pass
+            process.communicate(timeout=5)
+
+
+def maintenance(action, cancel_event=None, progress=None):
     commands={
         'health':([str(Path.home()/'.local/bin/jarvis-health-check')],150),
         'report':([str(Path.home()/'.local/bin/jarvis-report')],120),
@@ -442,6 +480,8 @@ def maintenance(action, cancel_event=None):
             result=(_run_cancellable_update(argv,cancel_event,timeout)
                     if cancel_event is not None else
                     run(argv,timeout=timeout,check=False))
+    elif action=='isolation' and progress is not None:
+        result=_run_isolation_check(argv,progress,timeout)
     else:
         result=run(argv,timeout=timeout,check=False)
     text=(result.stdout+'\n'+result.stderr).strip()

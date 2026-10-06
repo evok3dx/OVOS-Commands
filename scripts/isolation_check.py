@@ -65,11 +65,12 @@ def policy_status():
             'verification': 'Policy status only. Use Check isolation for network verification.'}
 
 
-def model_checks():
+def model_checks(progress=lambda text: None):
     original = properties('ollama')
     if original.get('ActiveState') != 'active' or original.get('MainPID') in {None, '0'}:
         return {'status': 'INCONCLUSIVE: dedicated model is not running'}
     result = {}
+    progress('Checking private model generation (up to two minutes)…')
     try:
         generation = api('/api/generate', {'model': 'qwen3:4b-instruct-2507-q4_K_M',
                          'prompt': 'Reply only OK.', 'stream': False,
@@ -77,6 +78,7 @@ def model_checks():
         result['local_generation'] = bool(generation.get('done') is True and generation.get('response'))
     except (OSError, ValueError, http.client.HTTPException):
         result['local_generation'] = 'INCONCLUSIVE'
+    progress('Comparing private model network access…')
     before = outside_ipv4()
     try:
         pull = api('/api/pull', {'model': '1.1.1.1/jarvis-egress-probe/nonexistent:diagnostic', 'stream': False}, 40)
@@ -97,7 +99,8 @@ def model_checks():
     return result
 
 
-def collect(network=False, model=False):
+def collect(network=False, model=False, progress=lambda text: None):
+    progress('Inspecting service policies…')
     result = {'schema_version': 1, 'isolation_mapping_active': active(),
               'selected_model_port': model_port(),
               'scope': 'Direct socket checks only. No fresh-install, login, mediated or inherited socket claim.',
@@ -107,6 +110,7 @@ def collect(network=False, model=False):
     workers = None
     if result['isolation_mapping_active']:
         if network:
+            progress('Comparing actual worker network access…')
             from verify_core_isolation import collect as worker_checks
             try:
                 workers = worker_checks()
@@ -114,7 +118,7 @@ def collect(network=False, model=False):
             except (OSError, RuntimeError, ValueError):
                 result['worker_tests'] = 'INCONCLUSIVE: workers or controls unavailable'
         if model and result['selected_model_port'] == 11435:
-            result.update(model_checks())
+            result.update(model_checks(progress))
     else:
         result['worker_tests'] = 'NOT TESTED: isolation has not been activated'
     return result, workers
@@ -128,7 +132,10 @@ def main():
     if os.getuid() == 0:
         parser.error('Run as the ordinary desktop user, without sudo')
     output = new_directory(Path.home() / 'Downloads', 'Jarvis-Isolation-Check')
-    result, workers = collect(args.test_network, args.test_model)
+    def progress(text):
+        print('Isolation check: ' + text, flush=True)
+    result, workers = collect(args.test_network, args.test_model, progress)
+    progress('Saving the private report…')
     from prepare_core_isolation import private_file
     private_file(output / 'summary.json', json.dumps(result, indent=2) + '\n')
     if workers is not None:
@@ -139,7 +146,7 @@ def main():
         print('Local generation: ' + str(result.get('local_generation', 'not tested')))
         print('Private model IPv4: ' + result.get('model_IPv4', {}).get('status', 'not tested'))
         print('Private model IPv6: ' + result.get('model_IPv6', {}).get('status', 'not tested'))
-    print('Report folder: ' + str(output))
+    print('Report folder: ' + str(output), flush=True)
 
 
 if __name__ == '__main__':

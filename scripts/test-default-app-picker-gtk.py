@@ -101,6 +101,43 @@ window.destroy()
 parent.destroy();centre.install_update.destroy();centre.update_health.destroy()
 print('PASS: General independent switches; GTK update button green/blue/neutral and disabled text/icon computed white')
 
+# A host's light hover/icon rules must not leak into the app's dark sidebar.
+host=Gtk.CssProvider();host.load_from_data(b'.jarvis-sidebar row:hover { background-image: linear-gradient(#FFFFFF, #FFFFFF); background-color: #FFFFFF; } .jarvis-sidebar image { color: #000000; }')
+Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(),host,
+                                        Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION-1)
+window=Gtk.Window();window.get_style_context().add_class('jarvis-root')
+window.get_style_context().add_class('jarvis-dark')
+nav=Gtk.ListBox();nav.set_selection_mode(Gtk.SelectionMode.NONE)
+nav.get_style_context().add_class('jarvis-sidebar')
+row=Gtk.ListBoxRow();box=Gtk.Box(spacing=8)
+icon=Gtk.Image.new_from_icon_name('preferences-system-symbolic',Gtk.IconSize.MENU)
+text=Gtk.Label(label='Maintenance');box.add(icon);box.add(text);row.add(box);nav.add(row)
+window.add(nav);window.show_all()
+def luminance(colour):
+    channels=[value/12.92 if value<=0.04045 else ((value+0.055)/1.055)**2.4
+              for value in (colour.red,colour.green,colour.blue)]
+    return sum(value*weight for value,weight in zip(channels,(0.2126,0.7152,0.0722)))
+for flags,background in ((Gtk.StateFlags.NORMAL,None),
+                         (Gtk.StateFlags.PRELIGHT,(38,54,76)),
+                         (Gtk.StateFlags.SELECTED,(47,111,237)),
+                         (Gtk.StateFlags.SELECTED|Gtk.StateFlags.PRELIGHT,(47,111,237))):
+    row.set_state_flags(flags,True)
+    while Gtk.events_pending():Gtk.main_iteration()
+    colour=row.get_style_context().get_background_color(flags)
+    if background is None:
+        assert colour.alpha<0.01,colour
+        colour=Gdk.RGBA(21/255,31/255,46/255,1)
+    else:
+        assert all(abs(actual-expected/255)<0.01 for actual,expected in
+                   zip((colour.red,colour.green,colour.blue),background)),colour
+    for child in (text,icon):
+        foreground=child.get_style_context().get_color(child.get_state_flags())
+        assert min(foreground.red,foreground.green,foreground.blue)>0.8,foreground
+        assert (luminance(foreground)+0.05)/(luminance(colour)+0.05)>=4.5
+window.destroy()
+Gtk.StyleContext.remove_provider_for_screen(Gdk.Screen.get_default(),host)
+print('PASS: dark sidebar hover/selected text and symbolic icons resist light host styling with readable contrast')
+
 # Render the production Dashboard in both app-scoped themes, with real GTK
 # widgets, and preserve screenshots for review. No service operations run.
 window=Gtk.Window();window.set_default_size(950,700)
@@ -162,8 +199,35 @@ for state,colour in (('active','jarvis-led-ready'),('off','jarvis-off'),('attent
     centre.refresh_isolation()
     assert centre.isolation_led.get_style_context().has_class(colour)
     assert 'Policy status only' in centre.isolation_note.get_text()
+
+# Exercise the actual task lifecycle: stage feedback, result details and reset
+# after success/failure, without touching native services or the model.
+centre.buttons=[];centre.state={'busy':False};centre.busy=False
+centre.notebook=Gtk.Notebook();centre.save=Gtk.Button();centre.cancel=Gtk.Button()
+centre.poll=lambda:None;centre.refresh_isolation=lambda:None
+messages=[];centre.show_activity=lambda text,busy=False:messages.append((text,busy))
+centre.report=lambda text:messages.append((text,True))
+namespace['update_status']=lambda:{'available':False,'latest':'4.2.1'}
+def isolation_success(kind,progress):
+    assert kind=='isolation'
+    progress('Comparing actual worker network access…')
+    return 'Workers: ACTUAL WORKER SOCKET TESTS PASSED\nPrivate model IPv6: NOT TESTED'
+namespace['maintenance']=isolation_success
+centre.maintain('isolation')
+assert any('Comparing actual worker' in text for text,_ in messages)
+assert messages[-1]==('Isolation check complete. See results below.',False)
+assert 'NOT TESTED' in centre.output.get_buffer().get_text(
+    centre.output.get_buffer().get_start_iter(),centre.output.get_buffer().get_end_iter(),True)
+assert not centre.busy and not centre.state['busy'] and centre.cancel.get_sensitive()
+def failed_worker(work,finish):finish(None,'Isolation check timed out. No passed result was recorded.')
+namespace['worker']=failed_worker
+centre.maintain('isolation')
+assert messages[-1][0].startswith('Could not complete: Isolation check timed out.')
+assert messages[-1][1] is False and not centre.busy and not centre.state['busy']
+namespace['worker']=lambda work,finish:finish(work(),None)
+for widget in (centre.notebook,centre.save,centre.cancel):widget.destroy()
 parent.destroy()
-print('PASS: Maintenance isolation green/grey/amber policy states without a live-test claim')
+print('PASS: Maintenance policy states, isolation progress/completion and timeout UI reset without a live-test claim')
 
 # Exercise the production first-install choice with a real dialog. Existing
 # choices are tested separately without a dialog or administrator prompt.

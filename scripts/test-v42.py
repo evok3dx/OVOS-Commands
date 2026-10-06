@@ -10,6 +10,7 @@ import subprocess
 import sys
 import tempfile
 from unittest.mock import Mock, patch
+import time
 
 if os.getuid() == 0:
     raise RuntimeError('Run tests as the ordinary user')
@@ -161,3 +162,39 @@ with patch.object(isolation, 'properties', return_value=props), \
     assert result['model_IPv4']['status'] == 'INCONCLUSIVE'
     assert result['model_IPv6']['status'] == 'NOT TESTED'
 print('PASS: 4.2 appearance/privacy, exclusive readable reports, ElectronMail roles and Notes focus/shortcut failures')
+
+# The real diagnostic child must deliver progress before it exits. Completion
+# and timeouts may not hold service locks or terminate unrelated processes.
+runtime=load('diagnostic_runtime_fixture','scripts/control_runtime.py')
+with tempfile.TemporaryDirectory() as directory:
+    acknowledgement=Path(directory)/'progress-received'
+    script="""import sys,time
+from pathlib import Path
+print('Isolation check: Comparing actual worker network access…',flush=True)
+deadline=time.monotonic()+4
+while not Path(sys.argv[1]).exists():
+    if time.monotonic()>deadline:raise SystemExit('Progress was buffered until exit')
+    time.sleep(0.01)
+print('Workers: INCONCLUSIVE')
+"""
+    stages=[]
+    def received(stage):
+        stages.append(stage);acknowledgement.write_text('received')
+    completed=runtime._run_isolation_check([sys.executable,'-c',script,str(acknowledgement)],received,timeout=6)
+    assert completed.returncode==0 and 'Workers: INCONCLUSIVE' in completed.stdout
+    assert stages==['Comparing actual worker network access…']
+    with patch.object(runtime,'_run_isolation_check',return_value=subprocess.CompletedProcess([],1,'Diagnostic failed','')):
+        rejected(lambda:runtime.maintenance('isolation',progress=received))
+
+unrelated=subprocess.Popen([sys.executable,'-c','import time; time.sleep(30)'])
+started=time.monotonic()
+try:
+    try:
+        runtime._run_isolation_check([sys.executable,'-c','import time; time.sleep(30)'],lambda text:None,timeout=0.15)
+    except RuntimeError as error:
+        assert 'timed out' in str(error) and 'No passed result' in str(error)
+    else:raise AssertionError('Hung diagnostic returned success')
+    assert time.monotonic()-started<6 and unrelated.poll() is None
+finally:
+    unrelated.terminate();unrelated.wait(timeout=5)
+print('PASS: real diagnostic stage delivery before exit, failed-result refusal and bounded timeout without unrelated termination')
