@@ -7,7 +7,7 @@ acceptance work. Durable design choices belong in
 under [`history/`](history/README.md). Other current documents link here rather
 than repeating release narratives.
 
-## 4.2.0 (candidate, awaiting publication)
+## 4.2.0 (published stable, 6 October 2026)
 
 The native Dashboard places system status and Run/Stop/Restart on the left,
 with Speech, Listener and Commands on the right. General offers app-scoped
@@ -24,18 +24,26 @@ verification, with an explicit read-only check also available from the CLI.
 Unsupported dedicated-model IPv6 probes remain NOT TESTED, never a pass.
 
 **VERIFIED automated checks:** all six validation jobs at
-`4a21e2d350deb5ac0ac5c2c11c251f1fba9f102f`
-([37396653608](https://github.com/evok3dx/OVOS-Commands/actions/runs/37396653608))
+`b834e6d76b277da57fd5a9aced45d09fc57f0306`
+([37397054542](https://github.com/evok3dx/OVOS-Commands/actions/runs/37397054542))
 pass Python 3.10–3.13, real GTK controls/colours, source/history/archive scans,
 deployment/recovery and 350/350 clean-copy policy cases. Packaging
-([37396653757](https://github.com/evok3dx/OVOS-Commands/actions/runs/37396653757))
+([37397054297](https://github.com/evok3dx/OVOS-Commands/actions/runs/37397054297))
 rechecks all 296 dependency identities/hashes with zero exemptions and validates
 the three current first-party wheels and exact public assets. Light/Dark GTK
-renders were inspected. Final documentation/archive validation and publication
-remain pending; live laptop GUI/Notes acceptance remains separate.
+renders were inspected. Final documentation/archive validation passed;
+live laptop GUI/Notes acceptance remains separate.
 The reviewed runtime, Media 0.3.5 pacing and File Search 0.3.0 are unchanged.
 See the [4.2 plan](v4.2-plan.md),
 [short release notes](release-v4.2.0.md) and [security policy](security-and-updates.md).
+
+**VERIFIED publication:** [run 37397660718](https://github.com/evok3dx/OVOS-Commands/actions/runs/37397660718)
+published [Jarvis 4.2](https://github.com/evok3dx/OVOS-Commands/releases/tag/v4.2.0)
+as the latest stable release. All 11 public assets were downloaded again and
+verified against SHA256SUMS. The `v4.2.0` tag points to the validated source
+above; main was advanced to that source before this documentation-only record.
+Code archive SHA-256:
+`3f164e8d74f1987105f9d6b9f46de58c6f684decd4bcf6170b4bb1c5f7136bf5`.
 
 ## 4.0.1 (published stable, 1 October 2026)
 

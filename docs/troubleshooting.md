@@ -204,7 +204,7 @@ reviewed inventory, with every version constraint still checked.
 
 ## Application focus
 
-The 4.2 Notes candidate reads complete reviewed `WM_CLASS` pairs with `xprop`.
+The 4.2 Notes helper reads complete reviewed `WM_CLASS` pairs with `xprop`.
 This handles the spaced Debian class without trusting a window title or a
 broad `standard` match. New Note retains `Alt+Shift+N`; search retains its
 existing palette shortcut and rechecks focus before typing.
