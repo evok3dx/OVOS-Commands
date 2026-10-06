@@ -21,6 +21,11 @@ The 4.0.1 guided isolation installer also exports the saved isolation
 choice. Native units, session receipts, recovery journals and model files are
 excluded; copying a preference does not activate protection on another machine.
 
+The 4.2 candidate adds the Light/Dark appearance preference to the private
+allowlist, retaining unknown appearance fields. Recent Activity stays in memory
+and is never included in this archive. Validation is tracked in the
+[release record](releases.md).
+
 **PLANNED:** merge-based, privacy-filtered import that respects the destination
 machine's enabled applications, voice packages and shortcuts. Until that is
 implemented and tested, do not treat an export as a portable installation.

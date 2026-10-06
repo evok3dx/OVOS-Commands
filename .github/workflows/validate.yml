@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   gtk:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Prepare native GTK test prerequisites
@@ -17,7 +17,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install --no-install-recommends python3-gi gir1.2-gtk-3.0 xvfb xauth
       - name: Test real GTK default-app picker as ordinary user
-        run: xvfb-run --auto-servernum /usr/bin/python3 scripts/test-default-app-picker-gtk.py
+        run: xvfb-run --auto-servernum /usr/bin/python3 -u scripts/test-default-app-picker-gtk.py
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: jarvis-dashboard-previews

@@ -10,7 +10,7 @@ permissions:
 
 concurrency:
   group: prepare-v4-2
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   validate-assets:
@@ -29,6 +29,16 @@ jobs:
           python-version: '3.11.16'
       - name: Check ordinary-user boundary
         run: test "$(id -u)" -ne 0
+      - name: Validate current source regressions
+        run: |
+          python3 scripts/validate_refactor.py
+          python3 scripts/test-v3-routing.py
+          python3 scripts/test-qwen-safe-workflows.py
+          python3 scripts/test-update-security.py
+          python3 scripts/test-release-privacy.py
+          bash scripts/test-window-matching.sh
+          bash scripts/test-focused-navigation.sh
+          bash scripts/test-deployment.sh
       - name: Download the exact retained runtime and tested plugin wheels
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
@@ -54,16 +64,6 @@ jobs:
         run: |
           git diff --exit-code f860a50cfb6a3569be87d45a5570ad400b79680e HEAD -- \
             voice extras plugins/jarvis-file-search plugins/ovos-skill-jarvis-media
-      - name: Validate current source regressions
-        run: |
-          python3 scripts/validate_refactor.py
-          python3 scripts/test-v3-routing.py
-          python3 scripts/test-qwen-safe-workflows.py
-          python3 scripts/test-update-security.py
-          python3 scripts/test-release-privacy.py
-          bash scripts/test-window-matching.sh
-          bash scripts/test-focused-navigation.sh
-          bash scripts/test-deployment.sh
       - name: Fetch checksum-pinned review tools
         run: |
           set -euo pipefail

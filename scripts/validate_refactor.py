@@ -154,7 +154,8 @@ assert "self.service_labels" in control_center
 assert "'jarvis-danger'" in control_center
 assert "'jarvis-service-row'" in control_center
 assert "'jarvis-led-ready'" in control_center
-assert "'Everything is working'" in control_center
+assert "'ready':'System Online'" in control_center
+assert "'Ready for your next command.'" in control_center
 assert "'jarvis-summary-good'" in control_center
 assert "self.page('updates','Updates'" in control_center
 assert "background-color: #2F6FED" in control_center
