@@ -35,6 +35,19 @@ def operation_lock():
         finally:fcntl.flock(lock,fcntl.LOCK_UN)
 
 
+@contextlib.contextmanager
+def update_lock():
+    """Serialize GUI updates without holding the installer's service lock."""
+    directory=Path.home()/'.local/state/jarvis-ui'
+    directory.mkdir(parents=True,exist_ok=True)
+    with (directory/'updates.lock').open('a') as lock:
+        try:fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+        except BlockingIOError:
+            raise RuntimeError('Another Jarvis update is running. Please wait.')
+        try:yield
+        finally:fcntl.flock(lock,fcntl.LOCK_UN)
+
+
 def exclusive(function):
     @wraps(function)
     def guarded(*args,**kwargs):
@@ -419,7 +432,13 @@ def maintenance(action, cancel_event=None):
     if action=='logs' and isolation_active():
         argv=['journalctl',*[x for u in UNITS for x in ('-u',state_arguments(u)[3])],'-n','120','--no-pager']
     if action=='install':
-        with operation_lock():
+        with update_lock():
+            # Refuse a control action already in progress, then release its
+            # lock before starting the updater. The isolated coordinator uses
+            # that lock itself for Stop and recovery; its transaction journal
+            # prevents unsafe starts during installation.
+            with operation_lock():
+                pass
             result=(_run_cancellable_update(argv,cancel_event,timeout)
                     if cancel_event is not None else
                     run(argv,timeout=timeout,check=False))

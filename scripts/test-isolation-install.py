@@ -199,6 +199,68 @@ print('PASS: default recommendation, upgrade preservation, no endpoint fallback,
 # Native system operations are replaced at the boundary; all private files,
 # transaction records, source identity and preference restoration are real.
 import control_runtime
+
+# Exercise the actual GUI maintenance -> updater subprocess -> isolated
+# service-control path. Replace native service inspection/control only; the
+# parent/child locks, installation journal and blocked-start guard stay real.
+updater_fixture = '''
+import os, sys
+from pathlib import Path
+from unittest.mock import patch
+import subprocess
+sys.path.insert(0, os.environ['JARVIS_TEST_SCRIPTS'])
+import control_runtime as runtime
+import isolation_install as install
+assert sys.argv[1:] == ['install', '--yes']
+home = Path.home()
+stopped = {'ActiveState': 'inactive', 'SubState': 'dead', 'MainPID': '0', 'ControlPID': '0'}
+with install.installation_lock(home):
+    install.atomic(home / install.JOURNAL, {'phase': 'updating'})
+    with patch.object(install, 'properties', return_value=stopped), \\
+         patch.object(runtime, 'snapshot', return_value={u: stopped for u in runtime.UNITS}), \\
+         patch.object(runtime, 'run', return_value=subprocess.CompletedProcess([], 0, '', '')):
+        install.stop_workers(home, True)
+        install.stop_workers(home, True, recovery=True)
+        try:
+            runtime.service_action('start')
+        except RuntimeError as error:
+            assert 'installation needs recovery' in str(error), str(error)
+        else:
+            raise AssertionError('Transaction allowed an unsafe start')
+    try:
+        with runtime.update_lock():
+            raise AssertionError('Concurrent GUI update was accepted')
+    except RuntimeError as error:
+        assert 'Another Jarvis update' in str(error), str(error)
+    (home / install.JOURNAL).unlink()
+if os.environ.get('JARVIS_TEST_UPDATE_FAIL'):
+    raise SystemExit(7)
+print('Update fixture completed.')
+'''
+import threading
+with tempfile.TemporaryDirectory() as folder:
+    home = Path(folder)
+    launcher = home / '.local/bin/jarvis-update'
+    launcher.parent.mkdir(parents=True)
+    launcher.write_text('#!' + sys.executable + '\n' + updater_fixture)
+    launcher.chmod(0o700)
+    environment = {'HOME': str(home), 'JARVIS_TEST_SCRIPTS': str(Path(__file__).resolve().parent)}
+    with patch.dict(os.environ, environment), patch.object(Path, 'home', return_value=home):
+        for cancellation in (None, threading.Event()):
+            # Check the actual subprocess result, not only its exit code.
+            result = control_runtime.maintenance('install', cancellation)
+            assert result.endswith('Update fixture completed.'), result
+            assert not (home / install.JOURNAL).exists()
+            with control_runtime.operation_lock():
+                rejects(control_runtime.maintenance, 'install', cancellation)
+            with control_runtime.update_lock():
+                rejects(control_runtime.maintenance, 'install', cancellation)
+        with patch.dict(os.environ, {'JARVIS_TEST_UPDATE_FAIL': '1'}):
+            rejects(control_runtime.maintenance, 'install')
+        with control_runtime.operation_lock(), control_runtime.update_lock():
+            pass
+print('PASS: real GUI updater subprocess permits isolated Stop/recovery, blocks duplicate updates and unsafe starts, and releases locks after failure')
+
 for failure in (None, 'ready', 'port', 'stop'):
     with tempfile.TemporaryDirectory() as folder:
         home = Path(folder)
