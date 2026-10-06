@@ -14,6 +14,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from unittest.mock import patch
 
 
 if os.getuid() == 0:
@@ -183,8 +184,21 @@ def clipboard(environment, value=None):
 def alive_owner(pid):
     try:
         return Path(f'/proc/{pid}/stat').read_text().split(') ', 1)[1].split()[0] != 'Z'
-    except FileNotFoundError:
+    except (FileNotFoundError, ProcessLookupError):
+        # Linux can report ESRCH when an opened /proc entry disappears on read.
         return False
+
+
+for gone in (FileNotFoundError, ProcessLookupError):
+    with patch.object(Path, 'read_text', side_effect=gone):
+        assert alive_owner(1) is False, 'Exited fixture owner reported alive'
+with patch.object(Path, 'read_text', side_effect=PermissionError):
+    try:
+        alive_owner(1)
+    except PermissionError:
+        pass
+    else:
+        raise AssertionError('Denied process inspection treated as termination')
 
 
 for case in ('accept', 'replace', 'replace-same', 'race', 'crash', 'crash-replace', 'ignore-term'):
