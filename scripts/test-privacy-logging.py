@@ -74,6 +74,11 @@ with tempfile.TemporaryDirectory() as temporary:
         rejected(lambda: privacy.set_mode(True, home))
         path.unlink()
         assert (privacy.directory(home) / 'core-ready.json').stat().st_mode & 0o777 == 0o600
+        clock[0] = 0.0000001
+        privacy.set_mode(True, home)
+        assert privacy.mode(home)['enabled'], 'Floating point rounding disabled a valid capture'
+        clock[0] += 300
+        assert not privacy.mode(home)['enabled']
 
     bad = {'schema_version': 1, 'component': 'core', 'rows': [
         {'component': 'core', 'level': 'ERROR', 'event': 'error', 'source': 'runtime', 'line': 2, 'message': 'private text'}]}
@@ -121,6 +126,32 @@ assert privacy.readiness('listener','test-invocation') is False
         assert not (home / 'application.log').exists()
         assert all(b'PRIVATE-CONTENT-SENTINEL' not in path.read_bytes()
                    for path in home.rglob('*') if path.is_file())
+
+    # Actual -I activity reader: bus libraries may print/log private material.
+    # Only canonical reviewed result fields may reach its result descriptor.
+    reader = '''
+import logging, os, runpy, sys, types
+class Bus:
+    connected_event=types.SimpleNamespace(wait=lambda _: True)
+    def __init__(self, **kwargs):
+        logging.getLogger().addHandler(logging.FileHandler(os.path.join(os.environ['HOME'],'reader.log')))
+    def run_in_thread(self):
+        print('PRIVATE-CONTENT-SENTINEL');os.write(2,b'PRIVATE-CONTENT-SENTINEL')
+        logging.getLogger().error('PRIVATE-CONTENT-SENTINEL')
+    def wait_for_response(self, *args, **kwargs):
+        return types.SimpleNamespace(data={'schema_version':1,'extra':'PRIVATE-CONTENT-SENTINEL',
+            'rows':[{'action':'notes.new','integration':None,'time':'12:00','success':True,
+                     'extra':'PRIVATE-CONTENT-SENTINEL'}]})
+    def close(self): pass
+sys.modules['ovos_bus_client']=types.SimpleNamespace(MessageBusClient=Bus,Message=lambda *a:None)
+runpy.run_path(sys.argv[1],run_name='__main__')
+'''
+    result = subprocess.run([sys.executable, '-I', '-c', reader, str(ROOT/'scripts/read_activity.py')],
+                            env=dict(os.environ,HOME=str(home)),capture_output=True,text=True,timeout=10)
+    assert result.returncode == 0, (result.returncode,result.stdout,result.stderr)
+    assert result.stderr == '' and 'PRIVATE' not in result.stdout
+    assert result.stdout.startswith('JARVIS_ACTIVITY_SNAPSHOT=') and 'notes.new' in result.stdout
+    assert not (home/'reader.log').exists()
 
     # The new worker state avoids journal dependency; legacy current-invocation
     # markers remain available solely for migration/recovery.

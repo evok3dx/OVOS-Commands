@@ -75,7 +75,7 @@ def mode(home=None, now=None):
                  and data.get('boot') == boot()
                  and type(start) in (int, float) and type(end) in (int, float)
                  and math.isfinite(start) and math.isfinite(end)
-                 and end - start == WINDOW and start <= clock < end)
+                 and abs((end - start) - WINDOW) <= 1e-6 and start <= clock < end)
         return {'enabled': bool(valid), 'remaining': math.ceil(end - clock) if valid else 0,
                 'start': start if valid else None}
     except (OSError, ValueError, TypeError, AttributeError):
@@ -188,6 +188,18 @@ def suppress_output():
         os.dup2(fd, 2)
     finally:
         os.close(fd)
+
+
+def quiet_reader():
+    """Keep one result descriptor; discard all third-party reader output/logs."""
+    if os.getuid() == 0:
+        raise RuntimeError('Read Jarvis state as the desktop user')
+    output = os.dup(1)
+    os.set_inheritable(output, False)
+    suppress_output()
+    logging.Logger.callHandlers = lambda _logger, _record: None
+    logging.FileHandler._open = lambda _handler: open(os.devnull, 'a', encoding='utf-8')
+    return output
 
 
 def bootstrap(role):

@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """Read only bounded, content-free diagnostic rows from the local bus."""
 from concurrent.futures import ThreadPoolExecutor
-from privacy_logging import ROLES, display, mode
+import os
+from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from privacy_logging import ROLES, display, mode, quiet_reader
 
 
 def read():
@@ -27,4 +31,8 @@ def read():
 
 
 if __name__ == '__main__':
-    print(read())
+    output = quiet_reader()
+    try:
+        os.write(output, (read() + '\n').encode())
+    finally:
+        os.close(output)

@@ -53,6 +53,7 @@ jobs:
             --bundle "$RUNNER_TEMP/retained/candidate/jarvis-runtime-linux-x86_64-py311.zip" \
             --policy voice/runtime-bundle.json \
             --output "$RUNNER_TEMP/rechecked-wheels"
+          python3 scripts/test-privacy-runtime.py "$RUNNER_TEMP/rechecked-wheels"
       - name: Build only current first-party wheels with reviewed local tooling
         run: |
           python3 -m pip install --no-index --no-deps --force-reinstall "$RUNNER_TEMP/rechecked-wheels/setuptools-79.0.1-py3-none-any.whl"

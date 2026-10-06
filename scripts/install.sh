@@ -64,7 +64,7 @@ Options:
   --speechnote         Install the optional Speech Note Flatpak for this user
   --no-speechnote      Do not offer the optional Speech Note add-on
   --check              Run preflight checks without changing files
-  --no-restart         Do not restart OVOS after installation
+  --no-restart         Fixture-only; live privacy activation requires a restart
   --no-health-check    Do not enable periodic read-only health/update timers
   -h, --help           Show this help
 EOF
@@ -143,6 +143,12 @@ while (($#)); do
       ;;
   esac
 done
+
+# First migration must apply the quiet wrappers to running processes too.
+if ! "$check_only" && ! "$restart" && [[ "${JARVIS_TEST_MODE:-0}" != 1 ]]; then
+  echo "Jarvis privacy activation needs a service restart; remove --no-restart." >&2
+  exit 1
+fi
 
 # The coordinator runs as the desktop user and owns the isolated transaction.
 # Fixture installs never invoke administrator operations or real services.

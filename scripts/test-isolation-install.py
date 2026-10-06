@@ -36,6 +36,10 @@ import os, runpy, sys, types
 path, component = sys.argv[1:]
 events = []
 namespace = runpy.run_path(path)
+privacy = types.ModuleType('privacy_logging')
+privacy.bootstrap = lambda *args: None
+privacy.attach = lambda *args: None
+sys.modules['privacy_logging'] = privacy
 namespace['main'].__globals__.update(
     worker_identity=lambda *args: events.append('identity'),
     verify_pins=lambda: events.append('pins'),
