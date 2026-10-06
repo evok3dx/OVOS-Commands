@@ -15,7 +15,9 @@ jobs:
       - name: Prepare native GTK test prerequisites
         run: |
           sudo apt-get update
-          sudo apt-get install --no-install-recommends python3-gi gir1.2-gtk-3.0 adwaita-icon-theme xvfb xauth
+          sudo apt-get install --no-install-recommends python3-gi gir1.2-gtk-3.0 adwaita-icon-theme xvfb xauth xclip libxres1
+      - name: Test native X11 reading clipboard ownership as ordinary user
+        run: JARVIS_ISOLATED_X11_TEST=1 xvfb-run --auto-servernum /usr/bin/python3 scripts/test-reading-clipboard-x11.py
       - name: Test real GTK default-app picker as ordinary user
         run: xvfb-run --auto-servernum /usr/bin/python3 -u scripts/test-default-app-picker-gtk.py
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -86,6 +88,7 @@ jobs:
         run: |
           bash scripts/test-window-matching.sh
           bash scripts/test-focused-navigation.sh
+          python3 scripts/test-reading-clipboard-expiry.py
       - name: Check shell syntax
         run: |
           while IFS= read -r -d '' file; do

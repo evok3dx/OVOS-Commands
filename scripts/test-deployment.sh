@@ -37,6 +37,7 @@ python3 "$repo_root/scripts/test-installer-progress.py"
 python3 "$repo_root/scripts/test-v42.py"
 python3 "$repo_root/scripts/test-privacy-logging.py"
 python3 "$repo_root/scripts/test-diagnostic-reasons.py"
+python3 "$repo_root/scripts/test-reading-clipboard-expiry.py"
 python3 - "$repo_root/scripts/verify-wake-model.py" <<'PY'
 import os
 import subprocess

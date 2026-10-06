@@ -1,0 +1,169 @@
+#!/usr/bin/env python3
+"""Bounded, content-free supervisor for reading's temporary X11 owner.
+
+Clear the selection explicitly while our xclip still owns it. Destroying its
+window alone lets Cinnamon restore cached text. Never clear another owner,
+read clipboard contents, or restore the previous clipboard.
+"""
+
+import ctypes as C
+import os
+import signal
+import subprocess
+import sys
+import time
+
+
+class Spec(C.Structure):
+    _fields_ = [("client", C.c_ulong), ("mask", C.c_uint)]
+
+
+class Value(C.Structure):
+    _fields_ = [("spec", Spec), ("length", C.c_long), ("value", C.c_void_p)]
+
+
+class X11:
+    def __init__(self):
+        self.x = C.CDLL("libX11.so.6")
+        self.r = C.CDLL("libXRes.so.1")
+        self.display = None
+        declarations = {
+            "XOpenDisplay": ([C.c_char_p], C.c_void_p),
+            "XInternAtom": ([C.c_void_p, C.c_char_p, C.c_int], C.c_ulong),
+            "XGetSelectionOwner": ([C.c_void_p, C.c_ulong], C.c_ulong),
+            "XSetSelectionOwner": ([C.c_void_p, C.c_ulong, C.c_ulong, C.c_ulong], C.c_int),
+            "XGrabServer": ([C.c_void_p], C.c_int),
+            "XUngrabServer": ([C.c_void_p], C.c_int),
+            "XSync": ([C.c_void_p, C.c_int], C.c_int),
+            "XCloseDisplay": ([C.c_void_p], C.c_int),
+        }
+        for name, (arguments, result) in declarations.items():
+            function = getattr(self.x, name)
+            function.argtypes, function.restype = arguments, result
+        self.r.XResQueryClientIds.argtypes = [
+            C.c_void_p, C.c_long, C.POINTER(Spec),
+            C.POINTER(C.c_long), C.POINTER(C.POINTER(Value)),
+        ]
+        self.r.XResQueryClientIds.restype = C.c_int
+        self.r.XResGetClientPid.argtypes = [C.POINTER(Value)]
+        self.r.XResGetClientPid.restype = C.c_int
+        self.r.XResClientIdsDestroy.argtypes = [C.c_long, C.POINTER(Value)]
+        self.r.XResClientIdsDestroy.restype = None
+        self.r.XResQueryVersion.argtypes = [C.c_void_p, C.POINTER(C.c_int), C.POINTER(C.c_int)]
+        self.r.XResQueryVersion.restype = C.c_int
+        self.display = self.x.XOpenDisplay(None)
+        if not self.display:
+            raise RuntimeError("X11 display unavailable")
+        major, minor = C.c_int(), C.c_int()
+        self.r.XResQueryVersion(self.display, C.byref(major), C.byref(minor))
+        if (major.value, minor.value) < (1, 2):
+            self.close()
+            raise RuntimeError("X11 process identification unavailable")
+        self.atom = self.x.XInternAtom(self.display, b"CLIPBOARD", 0)
+
+    def owner(self):
+        return self.x.XGetSelectionOwner(self.display, self.atom)
+
+    def pid(self, window):
+        count, values = C.c_long(), C.POINTER(Value)()
+        spec = Spec(window, 2)  # XRES_CLIENT_ID_PID_MASK
+        if self.r.XResQueryClientIds(
+            self.display, 1, C.byref(spec), C.byref(count), C.byref(values)
+        ) != 0:
+            return -1
+        try:
+            for index in range(count.value):
+                pid = self.r.XResGetClientPid(C.byref(values[index]))
+                if pid > 0:
+                    return pid
+            return -1
+        finally:
+            self.r.XResClientIdsDestroy(count, values)
+
+    def clear_if_owner(self, window, pid):
+        # Keep the check and clear together in the X server. No clipboard
+        # retrieval, child wait, sleep or filesystem access while grabbed.
+        self.x.XGrabServer(self.display)
+        try:
+            if self.owner() == window and self.pid(window) == pid:
+                self.x.XSetSelectionOwner(self.display, self.atom, 0, 0)
+                self.x.XSync(self.display, 0)
+        finally:
+            self.x.XUngrabServer(self.display)
+            self.x.XSync(self.display, 0)
+
+    def close(self):
+        if self.display:
+            self.x.XCloseDisplay(self.display)
+            self.display = None
+
+
+def supervise(connection, ready_fd=8, lifetime=15):
+    stopped = False
+
+    def stop(_signal, _frame):
+        nonlocal stopped
+        stopped = True
+
+    signal.signal(signal.SIGTERM, stop)
+    signal.signal(signal.SIGINT, stop)
+    child, window = None, None
+    deadline = time.monotonic() + lifetime
+    try:
+        child = subprocess.Popen(
+            ["xclip", "-selection", "clipboard", "-quiet", "-i"],
+            stdin=sys.stdin, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            close_fds=True,
+        )
+        sys.stdin.close()
+        ready_deadline = min(deadline, time.monotonic() + 1)
+        while not stopped and child.poll() is None and time.monotonic() < ready_deadline:
+            candidate = connection.owner()
+            if candidate and connection.pid(candidate) == child.pid:
+                window = candidate
+                os.write(ready_fd, b"ready\n")
+                break
+            time.sleep(0.01)
+        os.close(ready_fd)
+        if window is None:
+            return 1
+        while not stopped and child.poll() is None and time.monotonic() < deadline:
+            if connection.owner() != window:
+                break  # A new copy permanently ends this handoff.
+            time.sleep(0.02)
+        return 0
+    finally:
+        try:
+            if child is not None:
+                try:
+                    if window is not None and child.poll() is None:
+                        connection.clear_if_owner(window, child.pid)
+                finally:
+                    if child.poll() is None:
+                        child.terminate()
+                        try:
+                            child.wait(timeout=1)
+                        except subprocess.TimeoutExpired:
+                            child.kill()
+                            child.wait()
+        finally:
+            connection.close()
+            try:
+                os.close(ready_fd)
+            except OSError:
+                pass
+
+
+def main():
+    if os.getuid() == 0:
+        raise SystemExit("Run reading as the normal desktop user, without sudo.")
+    try:
+        return supervise(X11())
+    except (OSError, RuntimeError):
+        # Fixed failure text only; never expose clipboard or exception text.
+        print("Cannot safely supervise the reading clipboard", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

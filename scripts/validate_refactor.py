@@ -360,7 +360,11 @@ assert 'Reading is still starting.' in dispatcher_helpers
 assert ') 9>&- >/dev/null 2>&1 &' in reading_helper
 assert '-selection primary' not in reading_helper
 assert 'clipboard_backup' not in reading_helper
-assert '-selection clipboard -silent -i' in reading_helper
+reading_clipboard = (ROOT / 'system_helpers/jarvis-reading-clipboard').read_text()
+assert '$reading_helper_dir/jarvis-reading-clipboard' in reading_helper
+assert '"-selection", "clipboard", "-quiet", "-i"' in reading_clipboard
+assert 'lifetime=15' in reading_clipboard
+assert 'clear_if_owner' in reading_clipboard
 assert 'xclip -selection clipboard -i 9>&-' in reading_helper
 for required_speechnote_fragment in (
     "flatpak remote-add --user --if-not-exists flathub",

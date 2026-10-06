@@ -7,6 +7,61 @@ acceptance work. Durable design choices belong in
 under [`history/`](history/README.md). Other current documents link here rather
 than repeating release narratives.
 
+## 4.4.1 (release candidate)
+
+Add a small independent supervisor for reading's foreground X11
+clipboard owner. It expires after 15 seconds and explicitly clears only its
+verified window/process before termination; a resistant child is killed one
+second later. Keep the accepted-reader handoff and normal immediate cleanup.
+The ownership check and clear are atomic, preserving newer user copies,
+including identical text. Remove captured temporary files before reader startup.
+No clipboard backup/restore, Python dependency, native isolation policy or
+speech setting is changed. Desktop X11/XRes identity inspection is required;
+an unavailable check rejects the reader handoff.
+
+Maintenance's successful health check uses a green **No errors found** button
+and positive completion feedback. Existing warning details remain visible.
+Starting another check clears the previous success styling; a failed check
+cannot keep the old green state. This does not change service or isolation
+checks or imply that live network acceptance passed.
+
+**HISTORICAL trial, 6 October 2026:** the first patch passed owner-run simulated
+process and speed checks, but live execution returned success with 40 clipboard
+bytes remaining. The fixture omitted xclip's `-silent` fork, so its passes did
+not establish actual owner supervision. Upstream source confirms that silent
+mode forks. This is an implementation/test defect; retained content alone does
+not identify the current owner or establish clipboard-manager behaviour.
+
+**VERIFIED owner observation:** the foreground-only trial returned success,
+but the controlled test sentence remained. XRes inspection identified Cinnamon
+as the CLIPBOARD owner immediately after cleanup and after the expiry deadline,
+with the desktop clipboard-manager process still present. The compositor's
+source distinguishes explicit selection clearing from owner destruction; it
+caches text and restores it when the owner disappears.
+
+**VERIFIED owner-run process fixture:** cached-manager cleanup, later and
+identical-text copies, the cleanup race, forced helper death, later copying
+after helper death and resistant-owner expiry passed. These use bounded
+desktop substitutes, not live X11. The speed fixture initially skipped its
+readiness sleeps and failed before supervisor startup; that fixture timing
+is corrected without changing the production helper.
+
+**VERIFIED owner-run speed fixture:** after the fixture timing correction,
+manual defaults, temporary 2x restoration and failed-reader recovery passed.
+The unconfirmed-start message is expected from the intentional failure case.
+
+**VERIFIED live normal cleanup, 6 October 2026:** the revised test-copy helper
+returned success and the immediately following clipboard read returned zero
+bytes. This establishes normal cleanup on the tested Cinnamon desktop. Crash
+expiry and later-copy preservation are verified with process fixtures; they
+have not been repeated against the live desktop.
+
+**PLANNED release validation:** run the isolated native Xvfb owner/clear test
+and the complete required suite against the final source before publication.
+Local review has checked syntax and the manifest only; this workspace cannot
+run the repository as a normal desktop user. No live installation or
+publication has been performed.
+
 ## 4.4.0 (published stable, 6 October 2026 UTC)
 
 Prevent duplicate standalone Media/Weather handlers by serialising the exact

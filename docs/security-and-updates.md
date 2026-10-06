@@ -103,8 +103,18 @@ tar -tzf "ovos-commands-$version.tar.gz"
 **VERIFIED in source and isolated tests:** generic writing and submission
 refuse terminal windows and recheck the focused target. Prompts to the
 tool-capable private agent require readback and an exact, single-use `send it`.
-Reading clears its temporary clipboard text after a bounded handoff and never
-restores a previous clipboard value. These controls reduce accidental execution
+Reading never restores a previous clipboard value. The 4.4.1 clipboard
+supervisor gives its foreground owner an independent
+15-second lifetime and a one-second forced termination backstop. Before ending
+it, normal cleanup or expiry explicitly clears only the verified owner window
+and process, with an atomic ownership check. This addresses Cinnamon's cache
+restoration while preserving later user copies, including identical text.
+**VERIFIED:** normal cleanup passed on the tested Cinnamon desktop; independent
+expiry and later-copy preservation passed process fixtures. Native/release
+validation remains pending. Earlier owner-release-only trials failed live cleanup. Other applications or
+clipboard-history extensions can retain separate copies; this is not secure
+erasure of their history. Verification status is in the [release record](releases.md).
+These controls reduce accidental execution
 and exposure while keeping everyday desktop commands available.
 
 Support reports redact common credentials and machine/location identifiers;

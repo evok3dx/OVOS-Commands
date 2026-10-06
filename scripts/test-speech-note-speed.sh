@@ -8,14 +8,15 @@ trap 'printf "Speech Note fixture failed at line %s\n" "$LINENO" >&2' ERR
 mkdir -p "$test_root/home/.var/app/net.mkiol.SpeechNote/config/net.mkiol/dsnote" \
   "$test_root/mock-bin"
 settings="$test_root/home/.var/app/net.mkiol.SpeechNote/config/net.mkiol/dsnote/settings.conf"
+test_python="$(command -v python3)"
 printf '[General]\nspeech_speed2=13\n' > "$settings"
 
 cat > "$test_root/mock-bin/xclip" <<'EOF'
 #!/usr/bin/env bash
-if [[ " $* " == *' -silent '* && " $* " == *' -i '* ]]; then
+if [[ " $* " == *' -quiet '* && " $* " == *' -i '* ]]; then
   cat >/dev/null
   printf 'clipboard-owner-start\n' >> "$MOCK_SEQUENCE"
-  touch "$MOCK_STATE.owner"
+  printf '%s\n' "$$" > "$MOCK_STATE.owner"
   trap 'rm -f "$MOCK_STATE.owner"; printf "clipboard-owner-stop\n" >> "$MOCK_SEQUENCE"; exit 0' TERM
   while true; do /usr/bin/sleep 0.02; done
 elif [[ " $* " == *' -i '* ]]; then
@@ -28,6 +29,32 @@ else
   printf 'Selected text\n'
 fi
 EOF
+printf '#!%s\n' "$test_python" > "$test_root/mock-bin/python3"
+cat >> "$test_root/mock-bin/python3" <<'PY'
+import os
+from pathlib import Path
+import runpy
+import sys
+
+if len(sys.argv) > 1 and Path(sys.argv[1]).name == 'jarvis-reading-clipboard':
+    scope = runpy.run_path(sys.argv[1], run_name='speed_clipboard_fixture')
+    owner = Path(os.environ['MOCK_STATE'] + '.owner')
+    class Desktop:
+        def owner(self):
+            try:
+                return int(owner.read_text())
+            except (FileNotFoundError, ValueError):
+                return 0
+        def pid(self, window): return window
+        def clear_if_owner(self, window, pid):
+            if self.owner() == window == pid:
+                owner.unlink(missing_ok=True)
+                with open(os.environ['MOCK_SEQUENCE'], 'a') as stream:
+                    stream.write('clipboard-explicit-clear\n')
+        def close(self): pass
+    raise SystemExit(scope['supervise'](Desktop()))
+os.execv(sys.executable, [sys.executable, *sys.argv[1:]])
+PY
 cat > "$test_root/mock-bin/xdotool" <<'EOF'
 #!/usr/bin/env bash
 if [[ "$1" == getactivewindow ]]; then printf '123\n'; fi
@@ -70,6 +97,9 @@ if [[ "${1:-}" == 1 ]]; then
   /usr/bin/sleep 0.05
   printf 'handoff-delay\n' >> "$MOCK_SEQUENCE"
 fi
+# The clipboard supervisor is a real Python process. Preserve the readiness
+# polling delay so this fixture cannot exhaust all attempts before it starts.
+if [[ "${1:-}" == 0.05 ]]; then /usr/bin/sleep 0.05; fi
 if [[ "${MOCK_MONITOR_HOLD:-0}" == 1 ]]; then /usr/bin/sleep 0.02; fi
 exit 0
 EOF
@@ -94,8 +124,10 @@ start = events.index("clipboard-owner-start")
 request = events.index("reader-request", start)
 delay = events.index("handoff-delay", request)
 stop = events.index("clipboard-owner-stop", delay)
-assert start < request < delay < stop, events
-assert events[-1] == "clipboard-clear", events
+clear = events.index("clipboard-explicit-clear", delay)
+assert start < request < delay < clear < stop, events
+# Cleanup explicitly clears only its verified owner before ending it.
+assert events[-1] == "clipboard-owner-stop", events
 PY
 grep -Fxq 'speech_speed2=13' "$settings"
 grep -Fxq '13' "$HOME/.config/jarvis/reading-normal-speed"

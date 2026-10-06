@@ -9,7 +9,10 @@ fast_marker="$HOME/.local/state/jarvis/reading-fast-active"
 captured_text="$(mktemp)"
 captured_html="$(mktemp)"
 main_text="$(mktemp)"
+clipboard_ready_file="$(mktemp)"
+reading_helper_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 clipboard_owner_pid=""
+clipboard_handoff_started=0
 
 clear_clipboard() {
     if [[ -n "$clipboard_owner_pid" ]]; then
@@ -17,9 +20,13 @@ clear_clipboard() {
         wait "$clipboard_owner_pid" 2>/dev/null || true
         clipboard_owner_pid=""
     fi
-    # Never retain or restore clipboard contents. The prior value may have
-    # been a password, and the temporary readable text is sensitive too.
-    : | xclip -selection clipboard -i 9>&- 2>/dev/null || true
+    # The supervisor explicitly clears only its verified X11 owner before
+    # stopping it, so Cinnamon cannot restore this handoff's cached text.
+    # Never retain or restore the previous clipboard value.
+    # Before ownership starts, retain the existing failed-copy cleanup.
+    if (( clipboard_handoff_started == 0 )); then
+        : | xclip -selection clipboard -i 9>&- 2>/dev/null || true
+    fi
 }
 
 cleanup() {
@@ -27,7 +34,8 @@ cleanup() {
     rm -f \
       "$captured_text" \
       "$captured_html" \
-      "$main_text"
+      "$main_text" \
+      "$clipboard_ready_file"
 }
 
 trap cleanup EXIT
@@ -527,19 +535,21 @@ else
     fi
 fi
 
-# Keep one foreground xclip process as the temporary owner while Speech Note
-# resolves the clipboard's available targets and retrieves the text.  A
-# one-request loop is unsafe here because a reader may request TARGETS before
-# requesting the actual UTF-8 value.  Closing fd 9 remains mandatory so this
-# bounded owner cannot inherit the reading transaction lock.
-xclip -selection clipboard -silent -i < "$captured_text" 9>&- &
+# The independent supervisor verifies its foreground xclip's X11 identity,
+# expires after 15 seconds and explicitly clears only that selection before
+# stopping the owner. fd 8 reports readiness without storing text; fd 9 stays
+# closed in both processes. TARGETS and subsequent UTF-8 requests remain valid.
+python3 "$reading_helper_dir/jarvis-reading-clipboard" \
+  < "$captured_text" 8> "$clipboard_ready_file" 9>&- >/dev/null 2>&1 &
 clipboard_owner_pid=$!
+clipboard_handoff_started=1
 
 # Ownership is asynchronous. Verify the newly owned value before the reader
 # can consume it; never substitute an earlier clipboard or retain a backup.
 clipboard_ready=0
-for ((attempt=0; attempt<5; attempt++)); do
-    if timeout 0.1 xclip -selection clipboard -o 9>&- > "$main_text" 2>/dev/null &&
+for ((attempt=0; attempt<20; attempt++)); do
+    if [[ -s "$clipboard_ready_file" ]] &&
+       timeout 0.1 xclip -selection clipboard -o 9>&- > "$main_text" 2>/dev/null &&
        cmp -s "$captured_text" "$main_text"; then
         clipboard_ready=1
         break
@@ -555,6 +565,10 @@ if (( clipboard_ready == 0 )); then
     echo "Could not prepare selected text for Speech Note" >&2
     exit 22
 fi
+
+# The owner has the bytes now. Do not retain captured files throughout a
+# reader startup that may hang or be killed before EXIT cleanup can run.
+rm -f -- "$captured_text" "$captured_html" "$main_text" "$clipboard_ready_file"
 
 flatpak run net.mkiol.SpeechNote \
   --action start-reading-clipboard \

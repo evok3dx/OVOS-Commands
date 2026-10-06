@@ -24,7 +24,7 @@ Download the archive and matching `.sha256` from
 [Releases](https://github.com/evok3dx/OVOS-Commands/releases/latest):
 
 ```bash
-version=4.4.0
+version=4.4.1
 sha256sum --check "ovos-commands-$version.tar.gz.sha256"
 tar -xzf "ovos-commands-$version.tar.gz"
 cd "ovos-commands-$version"
@@ -84,7 +84,7 @@ replace full desktop and voice acceptance testing.
 | Files | “Find {filename}”, “Search my documents” | File Search plugin |
 | Voice | Wake phrase, hotkeys and background-audio level | Voice |
 | Startup | Start the app minimised and/or voice services at login; Run/Stop this session | General / Dashboard |
-| Status | Speech, Listener and Commands; isolation policy and explicit network checks | Dashboard / Maintenance |
+| Status | Speech, Listener and Commands; green health-check success, isolation policy and explicit network checks | Dashboard / Maintenance |
 | Privacy | No logs by default, or Diagnostics for 5 minutes | General |
 | Activity | Recent completed action labels, with Refresh; no transcripts | Dashboard |
 | Updates | Installed version, release date, check and install | Updates |

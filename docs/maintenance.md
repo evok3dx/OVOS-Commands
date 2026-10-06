@@ -74,6 +74,11 @@ For expiry, existing logs and other applications, see the
 
 ## Supported entry points
 
+A successful **Maintenance → Health check** shows a green **No errors found**
+button. Warnings remain in the expanded results. Running another check resets
+the previous success indicator; failures stay visible. This checks the host
+and installation, separately from the explicit isolation network tests.
+
 | Command | Purpose |
 |---|---|
 | `python3 scripts/validate_refactor.py` | Static inventory and safety checks |
@@ -182,3 +187,25 @@ class.
 under `docs/history/` preserve implementation rationale and old observed
 baselines; their installer names and counts must not be treated as current
 instructions. `docs/releases.md` is the only current per-release ledger.
+
+## Temporary repairs and test folders
+
+**PLANNED owner cleanup:** retire obsolete one-off public repair scripts and
+their preparation/publication workflows after supported devices have upgraded
+and their recovery links are no longer needed. Raw GitHub URLs serve files
+from repository commits; there is no separate raw-file storage area. Removing
+a current file does not remove copies from Git history or old release archives.
+
+The current repair inventory includes `apply-gui-update-lock-fix.py`,
+`apply-v4-final-fix.py`, `apply-v4-lifecycle-fix.py`,
+`apply-v4-media-timing-fix.py` and `apply-v4-weather-fix.py` under `scripts/`.
+Keep the GUI updater repair while older isolated deployments need it. Review
+documentation and regression references together before deleting a repair.
+
+Owner-run clipboard trials use `Downloads/Jarvis-Clipboard-Test-*` and the
+downloaded clipboard patch files. Remove those identified copies only after
+the released installation works and no helper/process still uses them. Other
+Downloads trials require their own inventory; a broad `Jarvis-*` deletion is
+unsafe. Preserve active isolation candidates/receipts, installation journals,
+rollback backups, models and settings. Never automatically prune an unfinished
+update or its recovery evidence.

@@ -92,6 +92,17 @@ different results. The short transaction lock covers setup and recovery only;
 the background playback monitor closes its copy so a completed 2× launch
 cannot block later normal reading requests.
 
+The 4.4.1 clipboard safeguard keeps the same handoff, but bounds the
+temporary X11 owner independently of the reading shell. Normal cleanup or
+expiry explicitly clears only that owner's verified X11 window/process before
+ending it. The check and clear are atomic, preserving a newer copy even when
+its text is identical. No previous clipboard value is restored. Foreground
+`xclip -quiet` is required because silent mode forks. The helper uses the
+desktop's X11 and XRes libraries; unavailable identity checks reject the
+reader handoff. Normal cleanup passed on the tested Cinnamon desktop; expiry
+and later-copy checks passed process fixtures. See the [release record](releases.md)
+for failed early trials and remaining native/release validation.
+
 Speech Note's transformation-rule list is opaque and machine-owned. Setup
 therefore explains one additive regular-expression rule for filtering the
 wake phrase during continuous dictation instead of rewriting existing rules.

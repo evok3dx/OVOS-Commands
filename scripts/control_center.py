@@ -496,8 +496,7 @@ class ControlCenter:
         cards=self.card_grid(parent)
         actions=self.card(cards,'Keep Jarvis running')
         grid=Gtk.Box(spacing=8);actions.pack_start(grid,False,False,0)
-        for name,icon,key in [('Health check','emblem-default-symbolic','health')]:
-            self.action(grid,name,icon,lambda _,k=key:self.maintain(k))
+        self.health_check_button=self.action(grid,'Health check','emblem-default-symbolic',lambda _:self.maintain('health'))
         backup=self.card(cards,'Settings backup','Export app choices, spoken names, commands, shortcuts and voice settings. Saved configuration may contain credentials; keep the archive private.')
         self.action(backup,'Export settings…','document-save-as-symbolic',self.export_backup)
         support=self.card(parent,'Support')
@@ -590,12 +589,20 @@ class ControlCenter:
         self.task('Exporting saved settings…',lambda:export_settings(folder),on_success=done)
 
     def maintain(self,kind):
+        if kind=='health':
+            self.health_check_button.set_label('Health check')
+            self.colour(self.health_check_button,None)
         def result(text):
             self.output.get_buffer().set_text(str(text));self.details.set_expanded(True)
             information=update_status()
             self.latest=information['latest'] if information['available'] else None
             if kind=='isolation':self.refresh_isolation()
-            return {'health':'Health check complete. See results below.','report':'Report created. Location shown below.','updates':'Update check complete.','logs':'Recent logs loaded.','about':'Version information loaded.',
+            if kind=='health':
+                # The doctor returns success only when there are no FAIL findings.
+                # Keep warnings in the expanded results; this is not a network test.
+                self.health_check_button.set_label('No errors found')
+                self.colour(self.health_check_button,'jarvis-enable')
+            return {'health':'No errors found. Health check passed.','report':'Report created. Location shown below.','updates':'Update check complete.','logs':'Recent logs loaded.','about':'Version information loaded.',
                     'isolation':'Isolation check complete. See results below.'}[kind]
         if kind=='isolation':
             self.task('Checking isolation… Network and model tests can take several minutes.',

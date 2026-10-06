@@ -325,9 +325,28 @@ centre.maintain('isolation')
 assert messages[-1][0].startswith('Could not complete: Isolation check timed out.')
 assert messages[-1][1] is False and not centre.busy and not centre.state['busy']
 namespace['worker']=lambda work,finish:finish(work(),None)
+for warnings in (0,2):
+    def health_success(kind):
+        assert kind=='health'
+        assert centre.health_check_button.get_label()=='Health check'
+        assert not centre.health_check_button.get_style_context().has_class('jarvis-enable')
+        return f'12 passed, {warnings} warnings, 0 failures'
+    namespace['maintenance']=health_success
+    centre.maintain('health')
+    assert centre.health_check_button.get_label()=='No errors found'
+    assert centre.health_check_button.get_style_context().has_class('jarvis-enable')
+    assert messages[-1]==('No errors found. Health check passed.',False)
+    text=centre.output.get_buffer().get_text(centre.output.get_buffer().get_start_iter(),centre.output.get_buffer().get_end_iter(),True)
+    assert f'{warnings} warnings' in text
+namespace['worker']=lambda work,finish:finish(None,'Health check failed')
+centre.maintain('health')
+assert centre.health_check_button.get_label()=='Health check'
+assert not centre.health_check_button.get_style_context().has_class('jarvis-enable')
+assert messages[-1][0]=='Could not complete: Health check failed'
+namespace['worker']=lambda work,finish:finish(work(),None)
 for widget in (centre.notebook,centre.save,centre.cancel):widget.destroy()
 parent.destroy()
-print('PASS: Maintenance policy states, isolation progress/completion and timeout UI reset without a live-test claim')
+print('PASS: Maintenance policy, isolation lifecycle and green zero-error health results with warnings preserved')
 
 # Exercise the production first-install choice with a real dialog. Existing
 # choices are tested separately without a dialog or administrator prompt.

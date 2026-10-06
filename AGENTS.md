@@ -81,6 +81,17 @@ If any one of these layers is missing, the command change is incomplete.
   may gain only the reviewed application operations.
 - Keep strict matching for destructive, privacy-sensitive and power actions.
 - Recheck focused-window identity before typing or submitting text.
+- Reading's temporary X11 clipboard owner must have an independent expiry,
+  even if the reading helper is killed. Never restore the prior clipboard or
+  replace a selection copied afterwards. Keep the owner outside the reading
+  lock and test forced helper death and later-copy preservation as well as the
+  normal Speech Note handoff. Use foreground `xclip -quiet` with stderr
+  suppressed; `-silent` forks away from supervision. Before ending the owner,
+  explicitly clear only its verified X11 window/process. Keep that check and
+  clear atomic in the X server, with no blocking child wait or clipboard read
+  during the server grab. Owner disappearance alone lets Cinnamon restore its
+  cached text. Fixtures must model that cache, same-text later copies and
+  forced helper death; retain the native isolated-X11 regression as well.
 - Introduce no public listener. The owner-approved dedicated Jarvis Ollama may
   bind only 127.0.0.1:11435; existing general Ollama remains unchanged. All Jarvis
   model calls use the selected fixed endpoint, with no fallback between instances.
@@ -171,6 +182,9 @@ If any one of these layers is missing, the command change is incomplete.
   separate retention; never claim system-wide zero logging or automatic erasure.
   Empty diagnostics are not proof of health; preserve missing-collector and
   limited-reason evidence instead of silently declaring success.
+- Health-check success is based on the doctor's zero-failure exit status.
+  Keep warning details visible, clear previous success styling when rerunning,
+  and never let a failure retain a green result or imply passed network tests.
 
 ## Change discipline
 
@@ -201,6 +215,11 @@ If any one of these layers is missing, the command change is incomplete.
     against the retained wheel when adding another standalone helper. Plugins
     loaded normally in the core do not use this adapter. New helper roles still
     require their own reviewed isolation policy and deployment changes.
+11. Retire a temporary public repair only after checking supported upgrade and
+    recovery paths, documentation links and its regression references. Raw
+    GitHub URLs are repository content, not a separate store. Laptop test-folder
+    cleanup must use an explicit owner-reviewed inventory; never broadly remove
+    Jarvis folders, active isolation candidates or deployment recovery data.
 
 ## Required validation
 
