@@ -1,0 +1,83 @@
+name: Publish owner-authorised Jarvis 4.4.4
+
+on:
+  push:
+    branches: [work/publish-installer-compatibility]
+    paths:
+      - .github/workflows/publish-installer-compatibility.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-installer-compatibility
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/work/publish-installer-compatibility'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: Verify exact source and successful validation runs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: evok3dx/OVOS-Commands
+        run: |
+          set -euo pipefail
+          test "$(id -u)" -ne 0
+          source_sha=bc95c18f3b9de25c21d01bcda79963cd2c47f450
+          for run_id in 38082938947 38082938945; do
+            gh api "repos/$GH_REPO/actions/runs/$run_id" \
+              --jq '[.head_sha, .status, .conclusion] | @tsv' | \
+              grep -Fx "$source_sha"$'\tcompleted\tsuccess'
+          done
+          gh api "repos/$GH_REPO/git/ref/heads/main" --jq '.object.sha' | \
+            grep -Fx "$source_sha"
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          artifact-ids: '11681581678'
+          run-id: '38082938945'
+          merge-multiple: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: ${{ runner.temp }}/assets
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          artifact-ids: '11681411960'
+          run-id: '38082938945'
+          merge-multiple: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: ${{ runner.temp }}/notes
+      - name: Publish validated stable assets and verify public bytes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: evok3dx/OVOS-Commands
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/assets"
+          sha256sum --check SHA256SUMS
+          test "$(find . -maxdepth 1 -type f | wc -l)" -eq 11
+          source_sha=bc95c18f3b9de25c21d01bcda79963cd2c47f450
+          gh release create v4.4.4 --target "$source_sha" \
+            --title 'Jarvis 4.4.4' --draft \
+            --notes-file "$RUNNER_TEMP/notes/release-notes.md"
+          gh release upload v4.4.4 \
+            ovos-commands-4.4.4.tar.gz ovos-commands-4.4.4.tar.gz.sha256 \
+            ovos_skill_jarvis_dispatcher-4.4.4-py3-none-any.whl \
+            ovos_skill_jarvis_media-0.3.5-py3-none-any.whl \
+            jarvis_file_search_skill-0.3.0-py3-none-any.whl \
+            jarvis-runtime-linux-x86_64-py311.zip jarvis-runtime-linux-x86_64-py311.zip.sha256 \
+            third-party-licenses.json espeak-ng-COPYING RUNTIME-NOTICES.md SHA256SUMS
+          gh release edit v4.4.4 --draft=false --prerelease=false --latest
+          mkdir -m 700 "$RUNNER_TEMP/public-download"
+          gh release download v4.4.4 --dir "$RUNNER_TEMP/public-download"
+          cd "$RUNNER_TEMP/public-download"
+          sha256sum --check SHA256SUMS
+          cmp SHA256SUMS "$RUNNER_TEMP/assets/SHA256SUMS"
+          test "$(find . -maxdepth 1 -type f | wc -l)" -eq 11
+          gh api "repos/$GH_REPO/git/ref/tags/v4.4.4" \
+            --jq '.object.sha' | grep -Fx "$source_sha"
+          gh release view v4.4.4 --json url,isPrerelease,isDraft
