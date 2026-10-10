@@ -20,6 +20,29 @@ never turns model output into a shell command.
 
 ## Get started
 
+### Before you install
+
+- Use the reviewed Linux Mint **X11, x86_64** desktop with a working microphone
+  and audio output. See [Requirements and stack](#requirements-and-stack).
+- Install and start **Ollama** using its [Linux setup guide](https://docs.ollama.com/linux).
+  Jarvis reuses an existing installation; it does not install Ollama.
+- Allow internet access for the initial runtime and model downloads. Selected
+  isolation is applied afterwards; it leaves general Ollama unchanged.
+- Run Jarvis setup as your desktop user. Fresh system preparation and selected
+  isolation may request bounded administrator approval. OVOS setup is offered
+  when missing; Speech Note is optional for reading and dictation.
+
+For a **new installation**, check local Ollama and download the required model
+before continuing. Already downloaded models are reused:
+
+```bash
+OLLAMA_HOST=http://127.0.0.1:11434 ollama list
+OLLAMA_HOST=http://127.0.0.1:11434 ollama pull qwen3:4b-instruct-2507-q4_K_M
+```
+
+If a download fails, resolve the connection issue or retry later before
+installing. Existing users should follow the [upgrade procedure](docs/07-installer-updates.md#upgrading-an-isolated-installation).
+
 Download the archive and matching `.sha256` from
 [Releases](https://github.com/evok3dx/OVOS-Commands/releases/latest):
 
