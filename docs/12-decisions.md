@@ -231,3 +231,20 @@ this desktop-control release until there is an actual integration requirement.
 - Preserve the tested production code and dependency closure. Finalise short
   public release notes, exact archive/wheel payload and checksum verification,
   with resolved investigations retained in history.
+
+
+## Installer compatibility, 10 October 2026
+
+- **VERIFIED source/CI policy; live fresh install pending:** check the exact
+  hash-reviewed runtime interpreter and selected native authorisation backend
+  before model preparation or deployment changes. Do not replace OS Python,
+  silently disable isolation or substitute a broad legacy Polkit grant.
+- Prepare only absent, fixed user-space OVOS baseline files and defer activation
+  until the reviewed runtime is staged. Existing or partial data requires review.
+  Keep controlling-terminal handoff and bounded installer-child cancellation.
+- Verify the manifest addressed by the selected Ollama inventory plus all copied
+  layers, retaining regular-file and size bounds. Support storage-format changes
+  without accepting corrupt bytes or following arbitrary manifest links.
+- Failed-install recovery may skip only explicitly absent, stopped, process-free
+  user units. Unknown state, live workers and strict ordinary Stop remain blocking.
+  See [4.4.4 release evidence](releases.md#444-published-stable-10-october-2026-utc).

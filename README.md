@@ -193,7 +193,7 @@ are separate. Checksums verify bytes; production signing remains future work.
 - [Media and filename search](docs/10-media-files.md)
 - [Troubleshooting](docs/troubleshooting.md) and [maintenance](docs/maintenance.md)
 - [Security](docs/security-and-updates.md), [decisions](docs/12-decisions.md) and [release record](docs/releases.md)
-- [V4.4.0 release notes](docs/release-v4.4.0.md) and [service isolation](docs/core-isolation.md)
+- [V4.4.0 release notes](docs/release-v4.4.4.md) and [service isolation](docs/core-isolation.md)
 - [Contributor and AI-agent rules](AGENTS.md)
 
 ## Licence and thanks

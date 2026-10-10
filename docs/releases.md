@@ -7,7 +7,7 @@ acceptance work. Durable design choices belong in
 under [`history/`](history/README.md). Other current documents link here rather
 than repeating release narratives.
 
-## 4.4.4 (candidate, 10 October 2026 UTC)
+## 4.4.4 (published stable, 10 October 2026 UTC)
 
 Check the selected isolation backend and the managed runtime's exact CPython
 3.11.16 before model preparation, service stops or native writes. Mint 21.3's
@@ -33,11 +33,30 @@ failed and rollback ran. Current Ollama reported an inventory manifest different
 from its legacy named file. These observations identify compatibility defects,
 not a completed fresh installation or passed isolation test on that host.
 
-**PLANNED validation and publication:** full ordinary-user CI, final clean
-archive checks and public byte verification are required before publication.
-The owner will upgrade the older OS before live fresh-install acceptance.
-Runtime wheels, separate plugins, model choice and native network policy are
-unchanged. No owner laptop installation or OS upgrade was performed here.
+**VERIFIED automated release:** source
+`bc95c18f3b9de25c21d01bcda79963cd2c47f450` passed ordinary-user
+[Python 3.10–3.13, security and native X11/GTK CI](https://github.com/evok3dx/OVOS-Commands/actions/runs/38082938947).
+[Release preparation](https://github.com/evok3dx/OVOS-Commands/actions/runs/38082938945)
+reverified the retained 296-wheel runtime, built first-party wheels once, scanned
+source/history and actual archive contents, and reran the complete suite and
+policy benchmark from the final clean archive. New cases cover current/legacy
+manifest copying, corruption and link refusal, first-install recovery, early
+host refusal, terminal handoff and bounded child-group cancellation.
+
+**VERIFIED publication:** the owner-authorised
+[publication job](https://github.com/evok3dx/OVOS-Commands/actions/runs/38083277799)
+published stable [4.4.4](https://github.com/evok3dx/OVOS-Commands/releases/tag/v4.4.4),
+verified its exact source tag, then downloaded all 11 assets and checked their
+bytes against the validated SHA256SUMS. Source archive SHA-256:
+`591bbd4b8916ce79b506e0f60b1ee88c351523b65b2b10379b281c585af97343`.
+The runtime archive, plugin implementations, model choice and native network
+policy remain unchanged; independently packaged plugin wheel bytes were
+verified against their source.
+
+**PLANNED live acceptance:** the owner will upgrade the older OS before a
+fresh installation. Automated fixtures do not establish live microphone,
+service authorisation or network enforcement on that host. No owner laptop
+installation or OS upgrade was performed here.
 
 ## 4.4.1 (published stable, 6 October 2026 UTC)
 
