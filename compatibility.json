@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "release_version": "4.4.1",
+  "release_version": "4.4.4",
   "validated_on": "2026-09-28",
   "support": {
     "operating_system": "Linux",
@@ -15,7 +15,13 @@
     "architectures": [
       "x86_64"
     ],
-    "python": ">=3.11"
+    "python": ">=3.11",
+    "managed_runtime_python": "3.11.16",
+    "isolation": {
+      "recommended_distribution": "Linux Mint 22.x",
+      "requires": "Polkit JavaScript rules backend and systemd IP filtering",
+      "unsupported_legacy_backend": "Polkit 0.105"
+    }
   },
   "ovos": {
     "deployment_method": "virtualenv",

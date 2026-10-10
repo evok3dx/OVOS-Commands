@@ -12,9 +12,20 @@ archive's installer as the desktop user for that first migration.
 
 ## Supported target
 
-The fully tested desktop target is Linux Mint on X11, x86_64 and Python 3.11.
+The reviewed desktop target is Linux Mint 22.3 on X11 and x86_64. The managed
+voice runtime requires CPython 3.11.16, as recorded in
+[`runtime-linux-x86_64-py311.json`](../voice/runtime-linux-x86_64-py311.json).
+Package-level Python 3.10–3.13 checks do not establish installer compatibility.
+Keep at least 8 GiB free on the staging/rollback filesystem, with additional
+space for voice and Qwen models in their respective storage locations.
 Ubuntu and Debian are compatible families, but require local acceptance testing.
 Wayland and containerised desktop control are not supported.
+
+For native isolation, use Mint 22.x with Polkit's JavaScript rules backend and
+systemd network filtering. Mint 21.3's Polkit 0.105 cannot load the current
+isolation permission rule. Creating `rules.d` alone does not enable that backend.
+Use the [supported Mint upgrade](https://linuxmint-user-guide.readthedocs.io/en/latest/upgrade-to-mint-22.html)
+instead of replacing the OS authorisation daemon or granting broad service control.
 
 Run the read-only preflight before installation:
 
@@ -27,6 +38,23 @@ OVOS APIs, voice entry points and the current capability profile. It changes no
 installed file.
 
 ## Fresh installation
+
+### Preparing Python
+
+If CPython 3.11.16 is missing, use a separate user-managed installation. Install
+`uv` through its [official instructions](https://docs.astral.sh/uv/getting-started/installation/),
+then run as the desktop user:
+
+```bash
+UV_PYTHON_INSTALL_DIR="$HOME/.local/share/jarvis/python" \
+  uv python install --no-bin cpython@3.11.16
+```
+
+This keeps OS Python and its aliases unchanged. Jarvis detects that fixed
+private interpreter location when preparing an absent OVOS baseline. See
+[uv's Python guide](https://docs.astral.sh/uv/guides/install-python/) for the
+separate interpreter download. An existing OVOS environment with a different
+Python version needs reviewed migration; do not delete it to force setup.
 
 A fresh setup performs these bounded steps:
 
@@ -42,9 +70,26 @@ A fresh setup performs these bounded steps:
 Missing operating-system tools, system preparation explicitly requested by the
 official OVOS installer, and selected native isolation service data are the
 bounded administrator operations.
-Jarvis downloads and extracts the pinned upstream installer in private
-user-owned state and launches it as the desktop user; only the upstream system
-step may elevate. Normal installation, updates and daily use remain user-space.
+Jarvis 4.4.4 prepares an absent OVOS baseline using the already available
+CPython 3.11.16 interpreter. It creates only a user virtual environment, a
+loopback messagebus configuration and six fixed user service files. Existing
+or partial service/configuration data requires review and is never overwritten.
+Baseline preparation does not start or enable services; the staged installer
+then installs the complete hash-verified runtime before normal activation.
+It does not run the whole upstream installer as root or replace system Python.
+
+The installation child keeps its controlling terminal, so an interactive OS
+package prompt can work without reading passwords in Python. Noninteractive
+updates need their OS prerequisites prepared in a terminal first. Isolation
+compatibility and interpreter checks run before model preparation and the
+native installation transaction; unsupported isolation is never downgraded.
+
+**HISTORICAL 4.4.1 limitations:** automatic fresh OVOS setup invoked a
+root-requiring upstream entry point as an ordinary user; its detached managed
+child also could not obtain a new sudo password from the terminal. The revised
+user baseline and terminal handoff address those separate failures. A failed
+first installation can recover with genuinely absent user units, while unknown
+unit state or surviving processes still blocks recovery.
 
 The reviewed package set is recorded in
 [`voice/reviewed-stack.json`](../voice/reviewed-stack.json). Exact voice pins,

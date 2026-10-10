@@ -100,7 +100,9 @@ def main():
             answer = input(f"Download required Jarvis model {MODEL} with Ollama now? [y/N] ")
             if answer.strip().lower() not in ("y", "yes"):
                 parser.error("Model download declined; no Jarvis files changed")
-        subprocess.run(["ollama", "pull", MODEL], check=True)
+        pulled = subprocess.run(["ollama", "pull", MODEL], check=False)
+        if pulled.returncode:
+            parser.exit(1, "Required model download did not finish. Check connectivity and free space in Ollama's model storage, then retry before installing. No router settings changed.\n")
         stages, ollama, model, saved, path = inspect(Path.home())
         if not model:
             parser.error("Ollama did not report the downloaded model")

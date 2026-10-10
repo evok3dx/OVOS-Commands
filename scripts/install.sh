@@ -249,177 +249,8 @@ confirm_default_no() {
   esac
 }
 
-cleanup_ovos_download() {
-  local path="$1"
-  case "$path" in
-    "$state_root"/bootstrap.*) ;;
-    *)
-      echo "Refusing to clean unexpected OVOS download path: $path" >&2
-      return 0
-      ;;
-  esac
-  # Downloads, extraction and upstream temporary files remain user-owned.
-  rm -rf -- "$path"
-}
-
-run_official_ovos_archive() {
-  local archive="$1"
-  local expected_sha256="$2"
-  local workspace
-  workspace="$(dirname "$archive")/workspace"
-  mkdir -m 0700 -- "$workspace"
-  bash -s -- "$archive" "$expected_sha256" "$workspace" <<'INSTALLER_SCRIPT'
-set -euo pipefail
-
-archive="$1"
-expected_sha256="$2"
-workspace="$3"
-trap 'exit 130' INT
-trap 'exit 143' TERM
-
-actual_sha256="$(sha256sum "$archive" | awk '{print $1}')"
-if [[ "$actual_sha256" != "$expected_sha256" ]]; then
-  echo "The OVOS installer archive changed before privileged execution." >&2
-  exit 1
-fi
-
-installer_root="$workspace/source"
-installer_tmp="$workspace/tmp"
-mkdir -p "$installer_root" "$installer_tmp"
-tar -xzf "$archive" --strip-components=1 -C "$installer_root"
-[[ -f "$installer_root/setup.sh" ]] || {
-  echo "The verified OVOS installer archive does not contain setup.sh." >&2
-  exit 1
-}
-
-cd "$installer_root"
-TMPDIR="$installer_tmp" bash setup.sh
-INSTALLER_SCRIPT
-}
-
-install_official_ovos() {
-  local installer_repository installer_commit installer_archive_sha256
-  local installer_archive_url installer_parent installer_archive
-  local scenario_dir scenario_path scenario_backup installer_status
-  for command in python3 tar bash; do
-    command -v "$command" >/dev/null 2>&1 || {
-      echo "Cannot prepare OVOS because '$command' is unavailable." >&2
-      return 1
-    }
-  done
-
-  installer_repository="$(read_compatibility_value upstream.installer_repository)"
-  installer_commit="$(read_compatibility_value upstream.installer_reference_commit)"
-  installer_archive_sha256="$(read_compatibility_value upstream.installer_archive_sha256)"
-  installer_archive_url="${installer_repository%.git}/archive/${installer_commit}.tar.gz"
-  mkdir -p "$state_root"
-  chmod 0700 "$state_root"
-  installer_parent="$(mktemp -d "$state_root/bootstrap.XXXXXX")"
-  installer_archive="$installer_parent/ovos-installer.tar.gz"
-  scenario_dir="$jarvis_home/.config/ovos-installer"
-  scenario_path="$scenario_dir/scenario.yaml"
-  scenario_backup="$installer_parent/scenario.yaml.previous"
-
-  printf 'Downloading the reviewed Open Voice OS installer...\n'
-  if ! python3 - "$installer_archive_url" "$installer_archive" \
-      "$installer_archive_sha256" <<'PY'
-import hashlib
-import sys
-import urllib.request
-from pathlib import Path
-
-url, destination, expected = sys.argv[1:]
-request = urllib.request.Request(url, headers={"User-Agent": "OVOS-Commands/3.9.0"})
-digest = hashlib.sha256()
-try:
-    with urllib.request.urlopen(request, timeout=60) as response, Path(destination).open("wb") as output:
-        while chunk := response.read(1024 * 1024):
-            digest.update(chunk)
-            output.write(chunk)
-except Exception as error:
-    Path(destination).unlink(missing_ok=True)
-    raise SystemExit(f"Could not download the OVOS installer: {error}")
-
-actual = digest.hexdigest()
-if actual != expected:
-    Path(destination).unlink(missing_ok=True)
-    raise SystemExit(
-        "The downloaded OVOS installer failed its pinned SHA-256 check.\n"
-        f"Expected: {expected}\nActual:   {actual}"
-    )
-PY
-  then
-    cleanup_ovos_download "$installer_parent"
-    return 1
-  fi
-
-  # The official installer uses Git for its version label and OVOS intent
-  # cache. Minimal Linux Mint installations do not always include it.
-  if ! command -v git >/dev/null 2>&1; then
-    if ! command -v apt-get >/dev/null 2>&1; then
-      echo "The official OVOS installer requires Git." >&2
-      echo "Automatic Git setup currently supports Linux Mint, Ubuntu and Debian." >&2
-      cleanup_ovos_download "$installer_parent"
-      return 1
-    fi
-    printf '%s\n' \
-      "Installing Git, a command-line prerequisite required by Open Voice OS." \
-      "No desktop applications are being installed."
-    if ! sudo apt-get update || \
-        ! sudo apt-get install --no-install-recommends git; then
-      echo "Git could not be installed, so OVOS setup cannot continue." >&2
-      cleanup_ovos_download "$installer_parent"
-      return 1
-    fi
-    command -v git >/dev/null 2>&1 || {
-      echo "Git installation completed but the git command is still unavailable." >&2
-      cleanup_ovos_download "$installer_parent"
-      return 1
-    }
-  fi
-
-  mkdir -p "$scenario_dir"
-  if [[ -f "$scenario_path" ]]; then
-    cp -a "$scenario_path" "$scenario_backup"
-  fi
-  install -m 0600 /dev/stdin "$scenario_path" <<'EOF'
----
-uninstall: false
-method: virtualenv
-channel: testing
-profile: ovos
-features:
-  skills: true
-  extra_skills: false
-  llm: false
-raspberry_pi_tuning: false
-share_telemetry: false
-share_usage_telemetry: false
-EOF
-
-  printf '%s\n' \
-    "Starting the reviewed official Open Voice OS installer." \
-    "It may request your administrator password only for system preparation." \
-    "Downloads and temporary work remain private and user-owned."
-  installer_status=0
-  run_official_ovos_archive "$installer_archive" \
-    "$installer_archive_sha256" || installer_status=$?
-
-  if [[ -f "$scenario_backup" ]]; then
-    install -m 0600 "$scenario_backup" "$scenario_path"
-  else
-    rm -f -- "$scenario_path"
-  fi
-  cleanup_ovos_download "$installer_parent"
-
-  if ((installer_status != 0)); then
-    echo "The official OVOS installer did not complete successfully." >&2
-    return "$installer_status"
-  fi
-  [[ -x "$ovos_python" ]] || {
-    echo "OVOS completed but its virtualenv Python was not found: $ovos_python" >&2
-    return 1
-  }
+prepare_ovos_baseline() {
+  "$desktop_python" "$repo_root/scripts/prepare_voice_baseline.py"
 }
 
 collect_missing_prerequisites() {
@@ -810,6 +641,7 @@ PY
 fi
 
 if [[ "${JARVIS_TEST_MODE:-0}" != 1 ]]; then
+  "$desktop_python" "$repo_root/scripts/install_prerequisites.py"
   if [[ ! -x "$ovos_python" ]]; then
     if "$check_only"; then
       echo "OVOS virtualenv Python not found: $ovos_python" >&2
@@ -818,11 +650,11 @@ if [[ "${JARVIS_TEST_MODE:-0}" != 1 ]]; then
     fi
     printf '%s\n' \
       "Open Voice OS is not installed at $ovos_python." \
-      "Jarvis can prepare the reviewed official OVOS virtualenv baseline." \
-      "This uses administrator access once for OVOS system preparation." \
+      "Jarvis can prepare an ordinary-user OVOS baseline with the required Python." \
+      "CPython 3.11.16 must already be installed; system Python stays unchanged." \
       "Jarvis remains user-space and no desktop applications are installed."
     if "$bootstrap" || confirm_default_yes "Set up Open Voice OS now?"; then
-      install_official_ovos
+      prepare_ovos_baseline
     else
       echo "OVOS setup was declined; no Jarvis files were installed." >&2
       exit 1
@@ -1711,8 +1543,12 @@ elif [[ "$speechnote_choice" == install ]] || \
   fi
 fi
 
-printf '%s\n' \
-  "Installed Jarvis commands successfully." \
+if [[ -n "${JARVIS_ISOLATION_TRANSACTION:-}" ]]; then
+  echo "Managed Jarvis files prepared; isolation activation and readiness remain pending."
+else
+  echo "Installed Jarvis commands successfully."
+fi
+printf '%s\n'  \
   "Configuration: $current_mode" \
   "Setup: jarvis-setup --gui" \
   "Doctor: jarvis-health-check" \

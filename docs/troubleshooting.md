@@ -1,5 +1,28 @@
 # Troubleshooting Jarvis
 
+## Fresh-install prerequisites and recovery
+
+Jarvis 4.4.4 checks the exact managed-runtime Python and the selected isolation
+backend before preparing models or changing deployment state. Use CPython
+3.11.16 and Mint 22.x for current native isolation. Mint 21.3's Polkit 0.105
+cannot load the JavaScript rule; creating `rules.d` is insufficient. Upgrade
+the OS rather than adding a broad legacy grant. See
+[installer prerequisites](07-installer-updates.md#supported-target).
+
+4.4.1 could fail at fresh OVOS setup or a child sudo prompt. 4.4.4 prepares only
+absent user baseline data and retains the controlling terminal. Failed-install
+recovery skips only explicitly absent, stopped, process-free user units; unknown
+state and surviving workers still block. Preserve any recovery journal and use
+the [recorded recovery procedure](07-installer-updates.md#upgrading-an-isolated-installation).
+
+Current Ollama versions may store the inventory's model manifest as a blob
+while retaining a different legacy named manifest. 4.4.4 verifies and copies
+the inventory-addressed manifest and every layer without following manifest
+links or weakening hashes. A corrupt current manifest remains a failure.
+Model downloads need connectivity and free space in Ollama's actual storage,
+which may differ from the home filesystem. A failed pull leaves router settings
+unchanged and can be retried before installation.
+
 Start with the smallest check that matches the symptom. These commands inspect
 or restart Jarvis only. They do not reinstall the voice stack, replace models,
 change shortcuts or overwrite personal commands.

@@ -22,15 +22,23 @@ never turns model output into a shell command.
 
 ### Before you install
 
-- Use the reviewed Linux Mint **X11, x86_64** desktop with a working microphone
-  and audio output. See [Requirements and stack](#requirements-and-stack).
+- Use **Linux Mint 22.x on X11, x86_64**, with a working microphone and audio
+  output. Mint 22.3 is the reviewed desktop target. The current isolation setup
+  requires Polkit's JavaScript rules backend; Mint 21.3's Polkit 0.105 is not
+  supported for isolation. See [Requirements and stack](#requirements-and-stack).
+- Have **CPython 3.11.16** available for the OVOS virtual environment, the exact Python
+  version required by the reviewed runtime. A newer system Python does not
+  replace this requirement; do not replace the operating system's Python. See
+  [preparing Python](docs/07-installer-updates.md#preparing-python).
+- Keep at least **8 GiB free** on the filesystem used for OVOS staging and
+  rollback, plus room for voice models and Ollama's model storage. Ollama may
+  store downloads on the root filesystem even when your home has free space.
 - Install and start **Ollama** using its [Linux setup guide](https://docs.ollama.com/linux).
   Jarvis reuses an existing installation; it does not install Ollama.
 - Allow internet access for the initial runtime and model downloads. Selected
   isolation is applied afterwards; it leaves general Ollama unchanged.
 - Run Jarvis setup as your desktop user. Fresh system preparation and selected
-  isolation may request bounded administrator approval. OVOS setup is offered
-  when missing; Speech Note is optional for reading and dictation.
+  isolation may request bounded administrator approval. An absent OVOS baseline is prepared in user space; Speech Note is optional for reading and dictation.
 
 For a **new installation**, check local Ollama and download the required model
 before continuing. Already downloaded models are reused:
@@ -47,7 +55,7 @@ Download the archive and matching `.sha256` from
 [Releases](https://github.com/evok3dx/OVOS-Commands/releases/latest):
 
 ```bash
-version=4.4.1
+version=4.4.4
 sha256sum --check "ovos-commands-$version.tar.gz.sha256"
 tar -xzf "ovos-commands-$version.tar.gz"
 cd "ovos-commands-$version"
@@ -55,9 +63,11 @@ bash scripts/install.sh --check
 bash scripts/install.sh
 ```
 
-`--check` is read-only. A fresh setup may request administrator access once
-for the official OVOS installer and missing system tools. Jarvis itself,
-normal updates and daily use run as your desktop user.
+`--check` is read-only. Fresh setup prepares absent OVOS user services and an
+ordinary-user virtual environment using the required interpreter. Missing OS
+tools and selected isolation need bounded administrator approval. Jarvis itself,
+normal updates and daily use run as your desktop user. See
+[fresh installation](docs/07-installer-updates.md#fresh-installation).
 Selected network isolation needs bounded administrator approval for service
 data and a dedicated local model. Existing choices are preserved; see the
 [upgrade procedure](docs/07-installer-updates.md#upgrading-an-isolated-installation)
@@ -75,7 +85,11 @@ flowchart TD
 
 ## Requirements and stack
 
-The reviewed workstation target is Linux Mint, X11, x86_64 and Python 3.11.
+The reviewed workstation target is Linux Mint 22.3, X11 and x86_64. Use Mint
+22.x for the current native isolation setup, with a JavaScript-capable Polkit
+backend and systemd network filtering. The release's managed voice runtime
+requires CPython 3.11.16; its exact interpreter requirement is recorded in
+[`voice/runtime-linux-x86_64-py311.json`](voice/runtime-linux-x86_64-py311.json).
 Setup checks the machine, prepares the pinned OVOS/voice environment and reuses
 an existing local Ollama installation. It asks before downloading a missing
 reviewed Qwen model. Exact versions and hashes
@@ -91,8 +105,9 @@ live in [`compatibility.json`](compatibility.json) and
 | Speak | PhōnNX/Bella, with optional Speech Note reading and dictation |
 | Manage | Combined tray, Control Centre, staged updates and rollback |
 
-The Python package is also checked against Python 3.10–3.13, but that does not
-replace full desktop and voice acceptance testing.
+The Python package is also checked against Python 3.10–3.13. Those package
+checks do not change the managed runtime's exact Python requirement or replace
+full desktop and voice acceptance testing.
 
 ## Everyday controls
 

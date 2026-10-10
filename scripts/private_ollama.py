@@ -96,12 +96,29 @@ def digest_file(path):
     return digest.hexdigest()
 
 
+def source_manifest(store, expected=None):
+    """Select only the inventory-addressed blob or the legacy named manifest."""
+    if expected is not None:
+        if not isinstance(expected, str) or not re.fullmatch('[a-f0-9]{64}', expected):
+            raise ValueError('Invalid model inventory digest')
+        blob = store / 'blobs' / ('sha256-' + expected)
+        # New Ollama stores the current manifest as a content-addressed blob.
+        # Its legacy downgrade anchor can have different bytes and extra layers.
+        # Never follow manifests-v2 links or accept an unverified fallback.
+        if blob.exists() or blob.is_symlink():
+            return blob
+    return store / MANIFEST
+
+
 def model_files(store, expected=None):
-    manifest = store / MANIFEST
+    manifest = source_manifest(store, expected)
     info = regular_path(manifest)
     if info.st_size > 65536:
         raise ValueError('Oversized model manifest')
-    raw = manifest.read_bytes()
+    with manifest.open('rb') as stream:
+        raw = stream.read(65537)
+    if len(raw) > 65536:
+        raise ValueError('Oversized model manifest')
     if expected and hashlib.sha256(raw).hexdigest() != expected:
         raise ValueError('Model manifest does not match Ollama inventory')
     data = json.loads(raw)
@@ -182,7 +199,8 @@ def prepare_models(home, report=print):
         stage = Path(temporary) / 'models'
         stage.mkdir(mode=0o700)
         for index, (name, (expected_digest, size)) in enumerate(files.items(), 1):
-            old, new = source / name, stage / name
+            old = source_manifest(source, expected) if name == MANIFEST else source / name
+            new = stage / name
             if regular_path(old).st_size != size:
                 raise ValueError('Source model size changed')
             new.parent.mkdir(mode=0o700, parents=True, exist_ok=True)

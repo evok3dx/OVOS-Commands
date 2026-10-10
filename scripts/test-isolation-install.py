@@ -75,7 +75,7 @@ print('PASS: actual Python -I worker imports and real interrupted-install guard 
 
 # A failed worker may be restored during recovery only when the actual worker
 # and any control process are gone. Missing/unknown state fails closed.
-stopped = {'ActiveState': 'failed', 'SubState': 'failed', 'MainPID': '0', 'ControlPID': '0'}
+stopped = {'LoadState': 'loaded', 'ActiveState': 'failed', 'SubState': 'failed', 'MainPID': '0', 'ControlPID': '0'}
 for isolated in (False, True):
     with patch.object(install, 'properties', return_value=stopped), \
          patch.object(install, 'LOGICAL', services.LOGICAL), \
@@ -326,7 +326,8 @@ for failure in (None, 'ready', 'port', 'stop'):
                     generated.write_text('generated packaging output')
             return Mock(returncode=0)
 
-        with patch.object(Path, 'home', return_value=home), \
+        with patch.object(install, 'check_prerequisites'), \
+             patch.object(Path, 'home', return_value=home), \
              patch.object(install.pwd, 'getpwuid', return_value=account), \
              patch.object(install, 'active', return_value=True), \
              patch.object(install, 'native_snapshot', return_value=(units, rule, '/usr/bin/ollama')), \

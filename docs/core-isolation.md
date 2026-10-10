@@ -13,6 +13,13 @@ rejects external IPv4 and IPv6 traffic. Temporary feasibility alone is not proof
 of actual-service enforcement. The version-3 collector remains available for
 future diagnostics; no repeat is requested for this release.
 
+The current permission rule requires Polkit's JavaScript rules backend. Use
+Linux Mint 22.x for this setup; Mint 21.3's Polkit 0.105 is unsupported for
+native isolation. A missing `rules.d` directory is not fixed by creating it
+when the daemon cannot read the rule format. Systemd IP filtering must also be
+available, and actual network tests remain separate from policy inspection.
+See [installer prerequisites](07-installer-updates.md#supported-target).
+
 ## Process boundaries
 
 | Component | Ownership | Remaining evidence |

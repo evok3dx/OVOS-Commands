@@ -113,6 +113,18 @@ If any one of these layers is missing, the command change is incomplete.
 - Run normal build, install, update, test and repair work as the desktop user.
   Never run the repository, pip, tar extraction or a whole upstream installer
   with `sudo`, and never use a root-owned checkout or temporary directory.
+- Fresh-install compatibility checks must precede model downloads, service
+  stops and native writes. Check the release's exact runtime interpreter and
+  the selected isolation backend; do not silently disable isolation on an
+  unsupported host. Baseline preparation may create only absent, reviewed
+  user data and must not replace system Python or run the whole upstream
+  installer as root. Retain terminal handoff and process-group cancellation
+  regressions for the managed installer child. Keep absent-unit recovery
+  separate from strict ordinary Stop and unknown/contradictory service state.
+- Model storage formats may change independently of the model name. Verify
+  the manifest identified by the selected Ollama inventory and every copied
+  layer; never follow arbitrary manifest links, fall back from corrupt bytes,
+  or weaken integrity checks merely to accept a new store layout.
 - A protected polkit directory alone must not require administrator authentication
   for routine deployment. Check the exact five native workers and dedicated
   model identity through

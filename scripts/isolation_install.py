@@ -25,6 +25,7 @@ import tempfile
 from isolation_services import COMPONENTS, LOGICAL, active, regular
 from prepare_core_isolation import render, private_file, properties, owned_paths
 import private_ollama as model
+from install_prerequisites import check as check_prerequisites
 
 ROOT = Path(__file__).resolve().parents[1]
 CHOICE = Path('.config/jarvis/network-isolation.json')
@@ -303,7 +304,26 @@ def stop_workers(home, was_active, record=None, *, recovery=False):
         # Keep the ordinary GUI Stop path strict about shutdown failures.
         from control_runtime import operation_lock, run, UNITS
         with operation_lock():
-            run(['systemctl', '--user', 'stop', *reversed(UNITS)], timeout=45)
+            to_stop = list(reversed(UNITS))
+            if not was_active:
+                # A first install can fail before the user units are written.
+                # Skip only an explicitly absent, inactive, process-free unit.
+                present = []
+                for name in to_stop:
+                    state = properties('--user', name,
+                                       'LoadState,ActiveState,SubState,MainPID,ControlPID,FragmentPath,DropInPaths')
+                    if state.get('LoadState') == 'not-found':
+                        if (state.get('ActiveState') != 'inactive' or state.get('SubState') != 'dead'
+                                or state.get('MainPID') != '0' or state.get('ControlPID') != '0'
+                                or state.get('FragmentPath') != '' or state.get('DropInPaths') != ''):
+                            raise RuntimeError('Absent recovery unit state needs review; workers remain stopped')
+                    elif state.get('LoadState') in {'loaded', 'masked'}:
+                        present.append(name)
+                    else:
+                        raise RuntimeError('Recovery unit availability needs review; workers remain stopped')
+                to_stop = present
+            if to_stop:
+                run(['systemctl', '--user', 'stop', *to_stop], timeout=45)
             names = [f'jarvis-v4-{os.getuid()}-{part}.service' for part in COMPONENTS] if was_active else list(LOGICAL)
             scope = '--system' if was_active else '--user'
             for name in names:
@@ -340,7 +360,22 @@ def installation_lock(home):
 
 
 def run_child(command, environment):
-    child = subprocess.Popen(command, env=environment, start_new_session=True)
+    # A separate process group keeps cancellation bounded while retaining the
+    # controlling terminal used by sudo. setsid() silently breaks its prompt.
+    child = subprocess.Popen(command, env=environment, preexec_fn=os.setpgrp)
+    terminal = None
+    foreground = None
+    try:
+        terminal = os.open('/dev/tty', os.O_RDWR | os.O_NOCTTY)
+        foreground = os.tcgetpgrp(terminal)
+        if foreground == os.getpgrp():
+            os.tcsetpgrp(terminal, child.pid)
+            # A very early terminal read may have stopped the new process group.
+            os.killpg(child.pid, signal.SIGCONT)
+        else:
+            foreground = None
+    except (OSError, ProcessLookupError):
+        pass  # Noninteractive launch: cached sudo or preinstalled OS tools only.
     try:
         return child.wait()
     except BaseException:
@@ -352,6 +387,15 @@ def run_child(command, environment):
             os.killpg(child.pid, signal.SIGKILL)
             child.wait(timeout=10)
         raise
+    finally:
+        if terminal is not None:
+            previous = signal.signal(signal.SIGTTOU, signal.SIG_IGN)
+            try:
+                if foreground is not None:
+                    os.tcsetpgrp(terminal, foreground)
+            finally:
+                signal.signal(signal.SIGTTOU, previous)
+                os.close(terminal)
 
 
 def finish_desktop(home, desired):
@@ -651,6 +695,7 @@ def run_install(arguments, home):
     enabled, saved = select(home, existing, explicit)
     if (home / JOURNAL).exists() or (home / JOURNAL).is_symlink():
         raise RuntimeError('An interrupted installation journal remains. Use the recorded recovery transaction; do not delete the guard.')
+    check_prerequisites(home, forwarded, enabled)
     if not enabled:
         from isolation_services import guard_deployment
         guard_deployment('install', home)

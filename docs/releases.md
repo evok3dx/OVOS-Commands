@@ -7,6 +7,38 @@ acceptance work. Durable design choices belong in
 under [`history/`](history/README.md). Other current documents link here rather
 than repeating release narratives.
 
+## 4.4.4 (candidate, 10 October 2026 UTC)
+
+Check the selected isolation backend and the managed runtime's exact CPython
+3.11.16 before model preparation, service stops or native writes. Mint 21.3's
+legacy Polkit backend is unsupported for the current JavaScript grant; the
+recommended target is Mint 22.x. Never downgrade protection automatically.
+Prepare only an absent ordinary-user OVOS baseline, without running the whole
+root-requiring upstream installer or replacing OS Python. Keep the managed
+child in a cancellable process group with foreground terminal handoff and
+restoration, so interactive OS package authorisation remains usable.
+
+Support Ollama's inventory-addressed current manifest blob while retaining
+manifest/layer hash verification, bounded regular-file copying and independent
+private model storage. Recovery skips only explicitly absent, inactive,
+process-free user units; strict Stop and unknown-state refusal remain intact.
+New regressions keep executable release permissions. Model pull failure has
+concise retry/storage feedback, and managed-file completion no longer claims
+final isolated installation success before activation/readiness.
+
+**VERIFIED owner observations:** a legacy host reported Polkit 0.105; its
+isolation rule could not be installed. Interpreter preparation and a manually
+prepared user baseline allowed staging and health checks, but final isolation
+failed and rollback ran. Current Ollama reported an inventory manifest different
+from its legacy named file. These observations identify compatibility defects,
+not a completed fresh installation or passed isolation test on that host.
+
+**PLANNED validation and publication:** full ordinary-user CI, final clean
+archive checks and public byte verification are required before publication.
+The owner will upgrade the older OS before live fresh-install acceptance.
+Runtime wheels, separate plugins, model choice and native network policy are
+unchanged. No owner laptop installation or OS upgrade was performed here.
+
 ## 4.4.1 (published stable, 6 October 2026 UTC)
 
 Add a small independent supervisor for reading's foreground X11

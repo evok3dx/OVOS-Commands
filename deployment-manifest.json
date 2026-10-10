@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "release_version": "4.4.1",
+  "release_version": "4.4.4",
   "package_modules": [
     "__init__.py",
     "agents.py",
@@ -121,7 +121,12 @@
       "scripts/appearance_settings.py",
       "scripts/private_reports.py",
       "scripts/isolation_check.py",
-      "scripts/read_activity.py"
+      "scripts/read_activity.py",
+      "scripts/install_prerequisites.py",
+      "scripts/prepare_voice_baseline.py",
+      "scripts/test-install-prerequisites.py",
+      "scripts/test-ollama-manifest-layout.py",
+      "scripts/test-first-install-recovery.py"
     ],
     "plugin_rollback_preflight": [
       "scripts/check-plugin-rollback.py"

@@ -89,28 +89,15 @@ assert re.fullmatch(
 )
 installer_source = (ROOT / "scripts/install.sh").read_text(encoding="utf-8")
 for required_bootstrap_fragment in (
-    "read_compatibility_value upstream.installer_repository",
-    "read_compatibility_value upstream.installer_reference_commit",
-    "read_compatibility_value upstream.installer_archive_sha256",
-    'installer_archive_url="${installer_repository%.git}/archive/${installer_commit}.tar.gz"',
-    "hashlib.sha256()",
-    "if actual != expected:",
-    'installer_parent="$(mktemp -d "$state_root/bootstrap.XXXXXX")"',
-    'workspace="$(dirname "$archive")/workspace"',
-    'actual_sha256="$(sha256sum "$archive"',
-    'tar -xzf "$archive" --strip-components=1 -C "$installer_root"',
-    'TMPDIR="$installer_tmp" bash setup.sh',
-    'cleanup_ovos_download "$installer_parent"',
-    "sudo apt-get install --no-install-recommends git",
-    "No desktop applications are being installed.",
-    "share_telemetry: false",
-    "share_usage_telemetry: false",
-    "extra_skills: false",
+    '"$desktop_python" "$repo_root/scripts/prepare_voice_baseline.py"',
+    '"$desktop_python" "$repo_root/scripts/install_prerequisites.py"',
+    "CPython 3.11.16 must already be installed; system Python stays unchanged.",
     "Jarvis remains user-space and no desktop applications are installed.",
 ):
     assert required_bootstrap_fragment in installer_source, (
         f"Installer bootstrap safety check is missing: {required_bootstrap_fragment}"
     )
+assert 'bash setup.sh' not in installer_source
 assert 'for command in git sudo bash' not in installer_source
 assert "sudo -n rm -rf" not in installer_source
 assert '(cd "$installer_root" && sudo bash setup.sh)' not in installer_source
