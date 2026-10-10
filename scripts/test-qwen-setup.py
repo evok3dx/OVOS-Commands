@@ -6,7 +6,7 @@ import io
 import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 spec = importlib.util.spec_from_file_location("qwen_setup", Path(__file__).with_name("qwen-setup.py"))
 module = importlib.util.module_from_spec(spec)
@@ -67,8 +67,27 @@ with TemporaryDirectory() as tmp:
               (True, True, False, {}, path),
               (True, True, True, {}, path),
           ]),
-          patch.object(module.subprocess, "run") as pull,
+          patch.object(module.subprocess, "run", return_value=Mock(returncode=0)) as pull,
           patch("sys.argv", ["qwen-setup.py", "--prepare", "--yes"])):
         module.main()
-    pull.assert_called_once_with(["ollama", "pull", module.MODEL], check=True)
+    pull.assert_called_once_with(["ollama", "pull", module.MODEL], check=False)
+    for code in (1, 130):
+        before = path.read_bytes()
+        feedback = io.StringIO()
+        with (patch.object(module.os, "geteuid", return_value=1000),
+              patch.object(module.Path, "home", return_value=home),
+              patch.object(module.shutil, "which", return_value="/usr/bin/ollama"),
+              patch.object(module, "inspect", return_value=(True, True, False, {}, path)),
+              patch.object(module.subprocess, "run", return_value=Mock(returncode=code)),
+              patch("sys.argv", ["qwen-setup.py", "--prepare", "--yes"]),
+              contextlib.redirect_stderr(feedback)):
+            try:
+                module.main()
+            except SystemExit as error:
+                assert error.code == 1
+            else:
+                raise AssertionError("Failed model pull was accepted")
+        assert path.read_bytes() == before
+        assert "No router settings changed" in feedback.getvalue()
+        assert "Traceback" not in feedback.getvalue()
 print("PASS: local model gate, existing preference preservation and private atomic settings")

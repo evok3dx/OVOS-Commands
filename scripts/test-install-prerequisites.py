@@ -154,4 +154,68 @@ finally:
         os.kill(pid, signal.SIGKILL)
         _, status = os.waitpid(pid, 0)
 assert os.waitstatus_to_exitcode(status) == 0
-print('PASS: isolation/Python preflight, absent-only quiet baseline, refusal/recovery and real terminal handoff')
+
+# Cancel the real coordinator while its installer and grandchild are alive.
+# An unrelated process outside that group must remain running.
+with tempfile.TemporaryDirectory() as directory:
+    root = Path(directory)
+    marker = root / 'children.json'
+    sentinel = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(30)'])
+    coordinator = os.fork()
+    if coordinator == 0:
+        def cancel(*_):
+            raise InterruptedError('fixture cancellation')
+        signal.signal(signal.SIGTERM, cancel)
+        try:
+            install.run_child([sys.executable, '-c',
+                'import json, os, subprocess, sys, time; '
+                'from pathlib import Path; '
+                'p=subprocess.Popen([sys.executable,"-c","import time; time.sleep(30)"]); '
+                'Path(sys.argv[1]).write_text(json.dumps([os.getpid(),p.pid])); '
+                'time.sleep(30)', str(marker)], dict(os.environ))
+            os._exit(1)
+        except InterruptedError:
+            os._exit(0)
+        except BaseException:
+            os._exit(1)
+    children = []
+    completed = 0
+    try:
+        deadline = time.monotonic() + 10
+        while not marker.exists() and time.monotonic() < deadline:
+            time.sleep(0.02)
+        import json
+        children = json.loads(marker.read_text())
+        os.kill(coordinator, signal.SIGTERM)
+        completed = 0
+        while time.monotonic() < deadline:
+            completed, status = os.waitpid(coordinator, os.WNOHANG)
+            if completed:
+                break
+            time.sleep(0.02)
+        assert completed and os.waitstatus_to_exitcode(status) == 0
+        for child in children:
+            state = Path(f'/proc/{child}/stat')
+            deadline = time.monotonic() + 3
+            while time.monotonic() < deadline:
+                try:
+                    alive = state.read_text().split(') ', 1)[1].split()[0] != 'Z'
+                except (FileNotFoundError, ProcessLookupError):
+                    alive = False
+                if not alive:
+                    break
+                time.sleep(0.02)
+            assert not alive, 'Installer descendant survived cancellation'
+        assert sentinel.poll() is None, 'Cancellation reached an unrelated process'
+    finally:
+        sentinel.terminate()
+        sentinel.wait(timeout=3)
+        if not completed:
+            os.kill(coordinator, signal.SIGKILL)
+            os.waitpid(coordinator, 0)
+        for child in children:
+            try:
+                os.kill(child, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+print('PASS: isolation/Python preflight, absent-only quiet baseline, refusal/recovery, terminal handoff and bounded group cancellation')
