@@ -67,9 +67,8 @@ A fresh setup performs these bounded steps:
 6. Install the combined tray, Control Centre, menu entry and user services.
 7. Start the services and run the health check.
 
-Missing operating-system tools, system preparation explicitly requested by the
-official OVOS installer, and selected native isolation service data are the
-bounded administrator operations.
+Missing operating-system tools and selected native isolation service data are
+the bounded administrator operations.
 Jarvis 4.4.4 prepares an absent OVOS baseline using the already available
 CPython 3.11.16 interpreter. It creates only a user virtual environment, a
 loopback messagebus configuration and six fixed user service files. Existing

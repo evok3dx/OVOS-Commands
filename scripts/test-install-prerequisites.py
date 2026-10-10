@@ -119,15 +119,17 @@ if pid == 0:
     try:
         group = os.tcgetpgrp(0)
         command = [sys.executable, '-c',
-                   'import os; f=open("/dev/tty","r+"); '
-                   'assert os.tcgetpgrp(f.fileno()) == os.getpgrp(); '
+                   'import os; f=os.open("/dev/tty",os.O_RDWR); '
+                   'assert os.tcgetpgrp(f) == os.getpgrp(); '
                    'print("TTY_READY", flush=True); '
-                   'assert f.readline().strip() == "fixture"']
+                   'assert os.read(f,256).strip() == b"fixture"; os.close(f)']
         assert install.run_child(command, dict(os.environ)) == 0
         assert os.tcgetpgrp(0) == group
         print('TTY_RESTORED', flush=True)
         os._exit(0)
     except BaseException:
+        import traceback
+        traceback.print_exc()
         os._exit(1)
 output = b''
 deadline = time.monotonic() + 15
@@ -146,7 +148,7 @@ try:
             output += chunk
             if b'TTY_READY' in output and b'TTY_READY' not in previous:
                 os.write(descriptor, b'fixture\n')
-    assert b'TTY_RESTORED' in output, 'Controlling terminal handoff failed'
+    assert b'TTY_RESTORED' in output, 'Controlling terminal handoff failed: ' + repr(output)
 finally:
     os.close(descriptor)
     completed, status = os.waitpid(pid, 0 if b'TTY_RESTORED' in output else os.WNOHANG)

@@ -6,4 +6,4 @@
 - Recover a failed first installation when OVOS services are absent.
 - Clarify Mint, Python and model-storage prerequisites.
 
-Release verification and live-install limits are recorded in the [release record](releases.md).
+Release verification and live-install limits are recorded in the [release record](https://github.com/evok3dx/OVOS-Commands/blob/main/docs/releases.md).
