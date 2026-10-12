@@ -7,7 +7,7 @@ acceptance work. Durable design choices belong in
 under [`history/`](history/README.md). Other current documents link here rather
 than repeating release narratives.
 
-## 4.5.0 (candidate, 12 October 2026 UTC)
+## 4.5.0 (published stable, 12 October 2026 UTC)
 
 Read the complete X11 `WM_CLASS` property for fixed app integrations,
 discovered apps and system-default mail. Proton Mail's spaced class can no
@@ -21,8 +21,23 @@ ElectronMail, Bitwarden, ONLYOFFICE and Telegram class pairs were also supplied
 for regression coverage. These observations do not establish a passed live
 installation of the new helper.
 
-**PLANNED automated verification:** ordinary-user full CI, native X11 property
-discovery, exact runtime closure, clean final archive and public asset bytes.
+**VERIFIED automated release:** source
+`d9eb5f4158d88e7fac1b7f9b512c883aeeb22c22` passed ordinary-user
+[Python 3.10–3.13, security and native X11/GTK CI](https://github.com/evok3dx/OVOS-Commands/actions/runs/38293101053).
+Real X11 windows establish that the full spaced Proton Mail class is recognised
+and a browser title cannot impersonate it. Native Standard Notes discovery
+and the existing clipboard/GTK checks also pass.
+[Release preparation](https://github.com/evok3dx/OVOS-Commands/actions/runs/38293100803)
+reverified the retained 296-wheel runtime, built current first-party wheels,
+scanned source/history and the final archive, and reran the complete suite and
+policy benchmark from its clean extracted copy.
+
+**VERIFIED publication:** the owner-authorised
+[publication job](https://github.com/evok3dx/OVOS-Commands/actions/runs/38293633771)
+published stable [Jarvis 4.5](https://github.com/evok3dx/OVOS-Commands/releases/tag/v4.5.0),
+verified its exact source tag, downloaded all 11 public assets and checked their
+bytes against the validated SHA256SUMS. Source archive SHA-256:
+`c37d5bce7fc7eada47f3337a841f222f44fab17f8a2ae82c204f1ec0ef8523a4`.
 
 **PLANNED live acceptance:** owner checks Proton Mail opening/focus and its
 existing mail shortcuts after upgrade. Intermittent “Please repeat” after
