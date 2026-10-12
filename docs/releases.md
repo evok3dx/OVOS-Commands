@@ -7,6 +7,28 @@ acceptance work. Durable design choices belong in
 under [`history/`](history/README.md). Other current documents link here rather
 than repeating release narratives.
 
+## 4.5.0 (candidate, 12 October 2026 UTC)
+
+Read the complete X11 `WM_CLASS` property for fixed app integrations,
+discovered apps and system-default mail. Proton Mail's spaced class can no
+longer be lost in a whitespace-split `wmctrl` field. Compare literal identities
+and reject title-only/partial matches and generic executable-wrapper identity.
+Keep existing focus checks, launch choices, settings, models and isolation.
+
+**VERIFIED owner observation:** Proton Mail opens but the previous helper
+reports failure; its full class pair matches the existing reviewed signature.
+ElectronMail, Bitwarden, ONLYOFFICE and Telegram class pairs were also supplied
+for regression coverage. These observations do not establish a passed live
+installation of the new helper.
+
+**PLANNED automated verification:** ordinary-user full CI, native X11 property
+discovery, exact runtime closure, clean final archive and public asset bytes.
+
+**PLANNED live acceptance:** owner checks Proton Mail opening/focus and its
+existing mail shortcuts after upgrade. Intermittent “Please repeat” after
+interrupting reading could not be reproduced. Reading, microphone and
+transcription behaviour remain unchanged pending captured evidence.
+
 ## 4.4.4 (published stable, 10 October 2026 UTC)
 
 Check the selected isolation backend and the managed runtime's exact CPython

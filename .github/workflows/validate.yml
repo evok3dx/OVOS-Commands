@@ -15,7 +15,9 @@ jobs:
       - name: Prepare native GTK test prerequisites
         run: |
           sudo apt-get update
-          sudo apt-get install --no-install-recommends python3-gi gir1.2-gtk-3.0 adwaita-icon-theme xvfb xauth xclip libxres1
+          sudo apt-get install --no-install-recommends python3-gi gir1.2-gtk-3.0 adwaita-icon-theme xvfb xauth xclip libxres1 wmctrl x11-utils
+      - name: Test real application WM_CLASS on isolated X11
+        run: JARVIS_ISOLATED_X11_TEST=1 xvfb-run --auto-servernum /usr/bin/python3 scripts/test-window-identity-x11.py
       - name: Test native X11 reading clipboard ownership as ordinary user
         run: JARVIS_ISOLATED_X11_TEST=1 xvfb-run --auto-servernum /usr/bin/python3 scripts/test-reading-clipboard-x11.py
       - name: Test real GTK default-app picker as ordinary user
@@ -87,6 +89,7 @@ jobs:
       - name: Test desktop regressions
         run: |
           bash scripts/test-window-matching.sh
+          python3 scripts/test-application-window-identity.py
           bash scripts/test-focused-navigation.sh
           python3 scripts/test-reading-clipboard-expiry.py
       - name: Check shell syntax

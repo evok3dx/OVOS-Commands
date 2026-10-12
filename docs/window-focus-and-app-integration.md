@@ -1,6 +1,6 @@
 # Window focus and application integration
 
-**Validated:** 16 September 2026  
+**Historical focus validation:** 16 September 2026  
 **Platform:** Linux Mint 22.3 / Cinnamon X11
 
 This document records the exact window-focus behaviour used by Jarvis desktop integrations and the troubleshooting process validated across the reference system and a second laptop.
@@ -96,23 +96,18 @@ while a separate check simultaneously showed Standard Notes was already the acti
 
 ## Correct design
 
-`window_match` remains an allowlisted `|`-separated list of literal X11 signatures. `find_window()` must split that value first and compare each candidate independently.
+For 4.5, read both complete `WM_CLASS` components with `xprop`, after
+obtaining validated window IDs from `wmctrl -l`. Do not split the class at
+whitespace: Proton Mail and Standard Notes both use names containing spaces.
+Compare fixed alternatives literally against the resource, class or complete
+resource/class signature; Standard Notes retains its explicit reviewed pairs.
+Never identify an app from a title, a partial substring or a generic launch
+wrapper such as `flatpak`. Discovered apps and the system-default mail helper
+use the same full-property approach with enabled local desktop metadata.
 
-The matcher deliberately does **not** pass the values to an unrestricted regular-expression engine. The alternatives are fixed strings maintained in the helper, not profile-supplied commands.
-
-This lets package variants coexist safely:
-
-```text
-pattern A | pattern B | pattern C
-```
-
-means:
-
-```text
-match A OR match B OR match C
-```
-
-not one literal string.
+The source correction and verification status are in the
+[release record](releases.md). A Flatpak package alone does not cause this
+failure; the significant detail is the real X11 class property.
 
 ## Why the reference system worked while the laptop failed
 
@@ -225,20 +220,27 @@ If they still fail, inspect OVOS transcription and intent matching. Do not patch
 
 ## Proton Mail impact
 
-Proton Mail uses the same generic `jarvis-app-window` focus path before its own shortcuts:
+An owner-observed Proton Mail window reported the complete pair
+`"proton mail", "Proton Mail"`. The previous helper compared only the third
+whitespace-separated field of `wmctrl -lx`, so it could launch the app yet
+report that no window existed. The 4.5 correction reads the actual property
+and recognises the complete signature. Its existing shortcuts remain:
 
 ```text
 new email   → N
 search mail → /
 ```
 
-The multi-pattern fix is generic and therefore protects Proton Mail and future integrations if they acquire several reviewed X11 class variants. A Standard Notes failure does not automatically prove Proton is broken, because each application has its own window signatures.
+ElectronMail, Bitwarden, ONLYOFFICE and Telegram have also supplied complete
+class pairs for regression coverage. Their supplied pairs contain no spaces;
+this does not establish compatibility with every packaging variant. Capture
+and review a new class instead of broadening a title match.
 
 ## Adding a new application or packaging variant
 
 Before adding another X11 signature:
 
-1. Capture the actual `wmctrl -lx` and `WM_CLASS` output on the target machine.
+1. Capture the actual window ID and complete `WM_CLASS` output on the target machine.
 2. Add only the minimum reviewed literal signature needed.
 3. Use `|` only for independent fixed alternatives.
 4. Verify `jarvis-app-window focus <integration>` on every known packaging variant.

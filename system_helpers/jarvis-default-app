@@ -50,20 +50,36 @@ def window_needles(identifier: str, path: Path) -> set[str]:
         section.get("StartupWMClass", ""),
         section.get("Name", ""),
     }
-    executable = section.get("Exec", "").strip().split(maxsplit=1)
-    if executable:
-        values.add(Path(executable[0]).name)
+    # Exec may be a generic Flatpak/Python wrapper. It is launch metadata,
+    # not a window identity; never accept it or a title as proof of the app.
     return {value.lower() for value in values if len(value.strip()) >= 3}
 
 
 def find_window(needles: set[str]) -> str | None:
     result = subprocess.run(
-        ["wmctrl", "-lx"], check=False, capture_output=True, text=True, timeout=5,
+        ["wmctrl", "-l"], check=False, capture_output=True, text=True, timeout=5,
     )
+    deadline = time.monotonic() + 1
     for line in result.stdout.splitlines():
-        lower = line.lower()
-        if any(needle in lower for needle in needles):
-            return line.split(maxsplit=1)[0]
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            break
+        fields = line.split(maxsplit=1)
+        if not fields or not re.fullmatch(r"0x[0-9a-fA-F]+", fields[0]):
+            continue
+        try:
+            properties = subprocess.run(
+                ["xprop", "-id", fields[0], "WM_CLASS"], check=True,
+                capture_output=True, text=True, timeout=min(1, remaining),
+            ).stdout.strip()
+        except (OSError, subprocess.SubprocessError):
+            continue
+        pair = re.fullmatch(r'WM_CLASS\(STRING\) = "([^"\\]*)", "([^"\\]*)"', properties)
+        if pair is None:
+            continue
+        instance, class_name = (part.lower() for part in pair.groups())
+        if needles.intersection({instance, class_name, instance + "." + class_name}):
+            return fields[0]
     return None
 
 

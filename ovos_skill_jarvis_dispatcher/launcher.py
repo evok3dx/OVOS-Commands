@@ -10,10 +10,12 @@ import argparse
 import configparser
 import json
 import os
+import re
 from pathlib import Path
 import shlex
 import shutil
 import subprocess
+import time
 import uuid
 
 from ._ovos_launcher import ApplicationLauncherSkill
@@ -136,15 +138,28 @@ def desktop_action(app_id, action):
     wm_class = selected.get('wm_class', '').casefold()
     window = None
     if wmctrl and wm_class:
-        output = subprocess.run([wmctrl, '-lx'], capture_output=True, text=True,
+        output = subprocess.run([wmctrl, '-l'], capture_output=True, text=True,
                                 timeout=3, check=True).stdout
-        import re
+        deadline = time.monotonic() + 3
         for line in output.splitlines():
-            fields = line.split(None, 4)
-            if len(fields) < 4 or not re.fullmatch(r'0x[0-9a-fA-F]+', fields[0]):
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                break
+            fields = line.split(None, 1)
+            if not fields or not re.fullmatch(r'0x[0-9a-fA-F]+', fields[0]):
                 continue
-            value = fields[2].casefold()
-            if value == wm_class or value.endswith('.' + wm_class):
+            try:
+                properties = subprocess.run(
+                    ['xprop', '-id', fields[0], 'WM_CLASS'], capture_output=True,
+                    text=True, timeout=min(1, remaining), check=True,
+                ).stdout.strip()
+            except (OSError, subprocess.SubprocessError):
+                continue
+            pair = re.fullmatch(r'WM_CLASS\(STRING\) = "([^"\\]*)", "([^"\\]*)"', properties)
+            if pair is None:
+                continue
+            instance, class_name = (part.casefold() for part in pair.groups())
+            if wm_class in {instance, class_name, instance + '.' + class_name}:
                 window = fields[0]
                 break
     if window:

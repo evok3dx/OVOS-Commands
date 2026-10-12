@@ -51,6 +51,10 @@ admit every Utility-category desktop entry merely to expose one notes app.
 Launch detected desktop entries through GIO so the desktop owns field codes,
 Flatpak forwarding and activation. Never parse an `Exec=` string into a shell
 command, and keep post-launch window verification on fixed reviewed classes.
+Read both complete `WM_CLASS` components for fixed, discovered and default-app
+controls. Never derive identity from a whitespace-split `wmctrl` class field,
+window title, partial class substring or generic launch wrapper. Add positive
+spaced-class and negative title/lookalike regressions for a new app variant.
 
 ## Command-system update map
 

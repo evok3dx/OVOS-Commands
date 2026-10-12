@@ -55,7 +55,7 @@ Download the archive and matching `.sha256` from
 [Releases](https://github.com/evok3dx/OVOS-Commands/releases/latest):
 
 ```bash
-version=4.4.4
+version=4.5.0
 sha256sum --check "ovos-commands-$version.tar.gz.sha256"
 tar -xzf "ovos-commands-$version.tar.gz"
 cd "ovos-commands-$version"
@@ -193,7 +193,7 @@ are separate. Checksums verify bytes; production signing remains future work.
 - [Media and filename search](docs/10-media-files.md)
 - [Troubleshooting](docs/troubleshooting.md) and [maintenance](docs/maintenance.md)
 - [Security](docs/security-and-updates.md), [decisions](docs/12-decisions.md) and [release record](docs/releases.md)
-- [V4.4.4 release notes](docs/release-v4.4.4.md) and [service isolation](docs/core-isolation.md)
+- [V4.5 release notes](docs/release-v4.5.0.md) and [service isolation](docs/core-isolation.md)
 - [Contributor and AI-agent rules](AGENTS.md)
 
 ## Licence and thanks

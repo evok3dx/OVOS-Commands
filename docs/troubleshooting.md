@@ -329,6 +329,16 @@ does not change Speech Note, other apps or global system logging.
 
 ## Application focus
 
+An app opening successfully while Jarvis reports it could not open can be a
+window-identity failure. 4.5 fixes Proton Mail's spaced X11 class and reads the
+full class property across app controls. See the [focus guide](window-focus-and-app-integration.md)
+and [release record](releases.md). Do not use window titles as identity.
+
+Reading stops when a wake word or listen hotkey starts a new command. If a
+subsequent “Stop” produces “Please repeat”, capture an occurrence with
+five-minute diagnostics before changing routing or microphone settings.
+The intermittent owner report was not reproduced; 4.5 does not change reading.
+
 The 4.2 Notes helper reads complete reviewed `WM_CLASS` pairs with `xprop`.
 This handles the spaced Debian class without trusting a window title or a
 broad `standard` match. New Note retains `Alt+Shift+N`; search retains its
