@@ -48,6 +48,12 @@ jobs:
           merge-multiple: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path: ${{ runner.temp }}/retained
+      - name: Verify actual private Python preparation in an isolated home
+        run: |
+          set -euo pipefail
+          bootstrap_home="$(mktemp -d "$RUNNER_TEMP/jarvis-python-home.XXXXXX")"
+          trap 'rm -rf -- "$bootstrap_home"' EXIT
+          HOME="$bootstrap_home" python3 -I -c 'import sys; from pathlib import Path; sys.path.insert(0,sys.argv[1]); from python_bootstrap import prepare; prepare(Path.home(),"3.11.16"); assert not (Path.home()/".local/bin").exists()' "$GITHUB_WORKSPACE/scripts"
       - name: Reverify the complete runtime closure
         run: |
           python3 scripts/runtime_bundle.py stage \

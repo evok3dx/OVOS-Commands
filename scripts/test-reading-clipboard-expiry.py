@@ -217,10 +217,15 @@ for case in ('accept', 'replace', 'replace-same', 'race', 'crash', 'crash-replac
                            READING_FIXTURE=str(root), READING_CASE=case)
         process = subprocess.Popen(['bash', str(HELPER), 'selection', '1'],
                                    env=environment, stdout=subprocess.DEVNULL,
-                                   stderr=subprocess.DEVNULL, start_new_session=True)
+                                   stderr=subprocess.PIPE, text=True, start_new_session=True)
         try:
             wait_for(lambda: (root / 'owner-ready').exists(), 5, 'Owner did not start')
-            wait_for(lambda: (root / 'received.json').exists(), 5, 'Reader did not receive request')
+            try:
+                wait_for(lambda: (root / 'received.json').exists(), 5, 'Reader did not receive request')
+            except AssertionError as error:
+                status = process.poll()
+                detail = process.stderr.read() if status is not None else 'helper is still running'
+                raise AssertionError(f'{case}: {error}; helper status={status}; {detail}') from error
             assert json.loads((root / 'received.json').read_text()) == 'Selected test text'
             assert not list(temporary.iterdir()), 'Captured files persisted into reader startup'
             lock = home / '.local/state/jarvis/reading-speed.lock'
@@ -270,5 +275,6 @@ for case in ('accept', 'replace', 'replace-same', 'race', 'crash', 'crash-replac
             if process.poll() is None:
                 process.kill()
                 process.wait(timeout=2)
+            process.stderr.close()
 
 print('PASS: cached-manager cleanup, later copies and independent expiry')
