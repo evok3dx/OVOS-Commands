@@ -252,7 +252,7 @@ this desktop-control release until there is an actual integration requirement.
 
 ## Fresh-install simplification, 21 October 2026
 
-- **VERIFIED owner direction; candidate CI pending:** prepare a missing exact
+- **VERIFIED owner direction and 4.8 CI:** prepare a missing exact
   private Python using checksum-pinned uv, without OS Python/alias changes.
   Keep Ollama/model preparation explicit in the README and `--check` read-only.
 - Start first-install support dependencies through the ordinary user manager

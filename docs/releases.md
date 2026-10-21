@@ -7,7 +7,7 @@ acceptance work. Durable design choices belong in
 under [`history/`](history/README.md). Other current documents link here rather
 than repeating release narratives.
 
-## 4.8.0 (candidate, 21 October 2026)
+## 4.8.0 (published stable, 21 October 2026 UTC)
 
 Prepare missing private CPython 3.11.16 automatically using checksum-pinned uv
 0.13.4, without changing system Python, aliases or other uv installations.
@@ -39,12 +39,30 @@ stage benchmark establishes its cause. Earlier owner lookup measurements
 identified a much faster IPv4 provider path. These are live observations,
 separate from the combined candidate's automated validation.
 
-**PLANNED release validation:** ordinary-user Python 3.10–3.13, security and
-native X11/GTK CI; complete runtime revalidation; current first-party wheels;
-source/history and actual archive scanning; full clean-archive tests and policy
-benchmark. Automatic private-Python setup has not yet passed live acceptance.
+**VERIFIED automated release:** source
+`0a73e9e97951869100239a2deed15358c5b417db` passed ordinary-user
+[Python 3.10–3.13, security and native X11/GTK CI](https://github.com/evok3dx/OVOS-Commands/actions/runs/39638356678).
+[Release preparation](https://github.com/evok3dx/OVOS-Commands/actions/runs/39638356793)
+installed the exact private interpreter in an isolated CI home, reverified the
+retained runtime, built current first-party wheels, scanned source/history and
+the actual archive, and reran the full suite and 350-case non-executing policy
+benchmark from its clean extracted copy. Initial checks caught an older uv
+catalogue missing the required interpreter and a Python fixture peer exceeding
+the native clipboard read budget. The pinned bootstrap and fixture allowance
+were corrected; production clipboard timing and independent expiry stayed intact.
+
+**VERIFIED publication:** the owner-authorised
+[publication job](https://github.com/evok3dx/OVOS-Commands/actions/runs/39639329764)
+published stable [Jarvis 4.8](https://github.com/evok3dx/OVOS-Commands/releases/tag/v4.8.0),
+verified the exact source tag, downloaded all 11 assets and checked their bytes
+against the validated SHA256SUMS. Source archive SHA-256:
+`2737ce8c05116dcd7b202f967d63f488950e7fc90d3513a148c2701ae466461e`.
+
+**PLANNED live acceptance:** a complete fresh Mint setup using automatic Python
+preparation and Media 0.3.6 playback after upgrade. Real CI interpreter setup and
+the owner-tested earlier private corrections are distinct from those checks.
 The original per-user Speech Note menu-entry failure remains unexplained;
-guidance is not a claimed fix for that desktop issue. No 4.8 release is published.
+guidance is not a claimed fix for that desktop issue.
 
 ## 4.5.0 (published stable, 12 October 2026 UTC)
 
