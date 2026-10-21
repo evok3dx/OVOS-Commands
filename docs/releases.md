@@ -10,7 +10,7 @@ than repeating release narratives.
 ## 4.8.0 (candidate, 21 October 2026)
 
 Prepare missing private CPython 3.11.16 automatically using checksum-pinned uv
-0.12.3, without changing system Python, aliases or other uv installations.
+0.13.4, without changing system Python, aliases or other uv installations.
 Keep the exact 296-wheel voice runtime and native isolation policy unchanged.
 Require host compatibility before preparing Python or models; existing OVOS
 Python mismatches still require review and `--check` stays read-only.

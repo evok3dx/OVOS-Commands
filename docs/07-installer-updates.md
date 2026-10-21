@@ -42,7 +42,7 @@ installed file.
 ### Preparing Python
 
 Jarvis 4.8 prepares missing CPython 3.11.16 in its private user directory using
-the release's checksum-pinned `uv` 0.12.3 binary. It extracts only that binary
+the release's checksum-pinned `uv` 0.13.4 binary. It extracts only that binary
 from the verified HTTPS archive, disables external uv configuration and invokes
 an exact managed-Python install with `--no-bin`. System Python, aliases and
 other uv installations remain unchanged. The temporary uv binary is removed

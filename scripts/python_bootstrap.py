@@ -11,10 +11,10 @@ import tempfile
 import time
 import urllib.request
 
-UV_VERSION = '0.12.3'
+UV_VERSION = '0.13.4'
 UV_ARCHIVE = 'uv-x86_64-unknown-linux-gnu.tar.gz'
 UV_URL = f'https://github.com/astral-sh/uv/releases/download/{UV_VERSION}/{UV_ARCHIVE}'
-UV_SHA256 = '600cf9a742aca00d292673b16b5acffaa7b8c269a364ad0c2e79498dcb1fe101'
+UV_SHA256 = '2b428396f12572d4429cf210ca234dd599a33b3af0958a4d5ed569d63e3f344f'
 MAX_DOWNLOAD = 64 * 1024 * 1024
 
 
