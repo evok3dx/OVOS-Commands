@@ -5,6 +5,7 @@ import importlib.util
 import contextlib
 import io
 import json
+import time
 import types
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -172,7 +173,7 @@ with TemporaryDirectory() as tmp:
                  if isinstance(node, ast.FunctionDef) and node.name == 'settings']
         nodes += [node for node in runtime_class.body
                   if isinstance(node, ast.FunctionDef) and node.name in ('propose', 'valid')]
-        scope = {'Path': Path, 'json': json,
+        scope = {'Path': Path, 'json': json, 'time': time,
                  'classify': Mock(side_effect=AssertionError('Disabled AI reached the model'))}
         exec(compile(ast.Module(body=nodes, type_ignores=[]), 'production-ai-off-guards', 'exec'), scope)
         skill = types.SimpleNamespace(_message_generation=0)
@@ -180,7 +181,8 @@ with TemporaryDirectory() as tmp:
                                         busy=lambda owner: False, epoch=0)
         assert scope['settings']() is False
         assert scope['propose'](runtime, 'open Firefox') is None
-        assert not scope['valid'](runtime, {'epoch': 0, 'generation': 0}, skill)
+        assert not scope['valid'](runtime, {'epoch': 0, 'generation': 0,
+                                           'expires': time.monotonic() + 60}, skill)
         scope['classify'].assert_not_called()
         before = path.read_bytes()
         inspect_gate.return_value = (True, False, False, off, path)
