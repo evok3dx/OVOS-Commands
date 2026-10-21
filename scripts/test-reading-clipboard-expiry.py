@@ -211,6 +211,17 @@ for case in ('accept', 'replace', 'replace-same', 'race', 'crash', 'crash-replac
             peer = peers / name
             peer.write_text('#!' + sys.executable + '\n' + PEER)
             peer.chmod(0o700)
+        # The fixture's xclip is a Python process with imports and file-backed
+        # IPC. Its cold startup can exceed the production native xclip's 100ms
+        # read budget, particularly on the 3.10 CI host. Allow just that fake
+        # read to start; retain production helper/supervisor deadlines and the
+        # real native-X11 regression without this shim.
+        timeout_peer = peers / 'timeout'
+        timeout_peer.write_text('#!/bin/sh\n'
+                                'if [ "$1" = "0.1" ] && [ "$2" = "xclip" ]; then\n'
+                                '  shift\n  exec /usr/bin/timeout 1 "$@"\nfi\n'
+                                'exec /usr/bin/timeout "$@"\n')
+        timeout_peer.chmod(0o700)
         environment = dict(os.environ)
         environment.update(HOME=str(home), TMPDIR=str(temporary),
                            PATH=str(peers) + os.pathsep + os.environ['PATH'],
