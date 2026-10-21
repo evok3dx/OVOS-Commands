@@ -30,6 +30,7 @@ from install_prerequisites import check as check_prerequisites
 ROOT = Path(__file__).resolve().parents[1]
 CHOICE = Path('.config/jarvis/network-isolation.json')
 JOURNAL = Path('.local/state/jarvis/isolation-install/current.json')
+SUPPORT = ('ovos.service', 'ovos-messagebus.service', 'ovos-phal.service')
 EXPLANATION = ('Recommended. Administrator approval is needed to block internet access '
                'for Jarvis voice processing and its dedicated local model. '
                'Weather and music stay online.')
@@ -345,6 +346,80 @@ def restore_running(desired):
         wait_ready(desired, print, timeout=180)
 
 
+def recorded_support(journal):
+    """Accept only a fixed, ordered subset recorded before fresh startup."""
+    names = journal.get('started_support', [])
+    if (not isinstance(names, list) or any(not isinstance(name, str) for name in names)
+            or names != [name for name in SUPPORT if name in names]
+            or ('ovos.service' in names and names != list(SUPPORT))):
+        raise ValueError('Fresh-install support recovery state needs review')
+    return names
+
+
+def start_fresh_support(home, journal, desired, *, existing):
+    """Start the user dependencies skipped by direct native-worker control."""
+    if existing or not desired:
+        return
+    if set(desired) != set(LOGICAL) or len(desired) != len(LOGICAL):
+        raise ValueError('Fresh startup requires the complete requested voice set')
+    if recorded_support(journal):
+        raise RuntimeError('Fresh-install support startup was already attempted')
+    newly_started = []
+    for name in SUPPORT:
+        value = properties('--user', name, 'Id,LoadState,ActiveState,SubState,MainPID,ControlPID')
+        if (value.get('Id') != name or value.get('LoadState') != 'loaded'
+                or value.get('ControlPID') != '0'):
+            raise RuntimeError('Fresh-install support availability needs review')
+        if (value.get('ActiveState') == 'inactive' and value.get('SubState') == 'dead'
+                and value.get('MainPID') == '0'):
+            newly_started.append(name)
+        elif not (value.get('ActiveState') == 'active'
+                  and ((name == 'ovos.service' and value.get('SubState') == 'exited'
+                        and value.get('MainPID') == '0')
+                       or (name != 'ovos.service' and value.get('SubState') == 'running'
+                           and value.get('MainPID', '').isdigit() and int(value['MainPID']) > 0))):
+            raise RuntimeError('Fresh-install support state needs review')
+    # Stopping a newly started meta unit also stops its PartOf workers. Refuse
+    # an inconsistent baseline rather than later stopping pre-existing support.
+    if 'ovos.service' in newly_started and newly_started != list(SUPPORT):
+        raise RuntimeError('Existing support is running without its OVOS meta unit; review before setup')
+    journal['started_support'] = newly_started
+    atomic(home / JOURNAL, journal)  # Crash recovery must know before any start.
+    print('Starting the messagebus and desktop support for this fresh installation…')
+    # Bypass physical-worker mapping deliberately: these are ordinary user
+    # dependencies. The meta unit starts only the already-installed relays.
+    subprocess.run(['/usr/bin/systemctl', '--user', 'start', *SUPPORT], check=True, timeout=45)
+
+
+def stop_fresh_support(journal):
+    """Stop only support introduced by this transaction, before code rollback."""
+    names = recorded_support(journal)
+    present = []
+    for name in names:
+        value = properties('--user', name,
+                           'Id,LoadState,ActiveState,SubState,MainPID,ControlPID,FragmentPath,DropInPaths')
+        if value.get('Id') != name:
+            raise RuntimeError('Support recovery identity needs review')
+        if value.get('LoadState') == 'not-found':
+            if (value.get('ActiveState') != 'inactive' or value.get('SubState') != 'dead'
+                    or value.get('MainPID') != '0' or value.get('ControlPID') != '0'
+                    or value.get('FragmentPath') != '' or value.get('DropInPaths') != ''):
+                raise RuntimeError('Absent support recovery state needs review')
+        elif value.get('LoadState') in {'loaded', 'masked'}:
+            present.append(name)
+        else:
+            raise RuntimeError('Support recovery availability needs review')
+    if present:
+        subprocess.run(['/usr/bin/systemctl', '--user', 'stop', *reversed(present)],
+                       check=True, timeout=45)
+    for name in names:
+        value = properties('--user', name, 'ActiveState,SubState,MainPID,ControlPID')
+        if (value.get('ActiveState') not in {'inactive', 'failed'}
+                or value.get('SubState') not in {'dead', 'failed'}
+                or value.get('MainPID') != '0' or value.get('ControlPID') != '0'):
+            raise RuntimeError('Support processes remain; rollback stays blocked')
+
+
 @contextlib.contextmanager
 def installation_lock(home):
     state = home / JOURNAL
@@ -518,6 +593,7 @@ def record_backup(home, backup):
 
 
 def recover_transaction(home, journal, native):
+    recorded_support(journal)
     account = pwd.getpwuid(os.getuid())
     deployment = home / '.local/src/ovos-skill-jarvis-dispatcher'
     binary = journal['binary']
@@ -547,6 +623,7 @@ def recover_transaction(home, journal, native):
     atomic(state, journal)
     try:
         stop_workers(home, active(home), recovery=True)
+        stop_fresh_support(journal)
         if native_started:
             stop_native_for_recovery(native, units, originals)
             # Remove only unchanged new files; restore only exact reviewed originals.
@@ -647,6 +724,7 @@ def _resume_recovery(home):
         raise ValueError('Recovery state needs review')
     if any(unit not in LOGICAL for unit in journal['previous_desired']):
         raise ValueError('Recovery cannot start an unreviewed service')
+    recorded_support(journal)
     model.verify_executable(journal['binary'])
     journal.update(pid=os.getpid(), process_start=process_start(os.getpid()),
                    token=secrets.token_urlsafe(32), phase='recovering')
@@ -695,7 +773,7 @@ def run_install(arguments, home):
     enabled, saved = select(home, existing, explicit)
     if (home / JOURNAL).exists() or (home / JOURNAL).is_symlink():
         raise RuntimeError('An interrupted installation journal remains. Use the recorded recovery transaction; do not delete the guard.')
-    check_prerequisites(home, forwarded, enabled)
+    check_prerequisites(home, forwarded, enabled, prepare=True)
     if not enabled:
         from isolation_services import guard_deployment
         guard_deployment('install', home)
@@ -733,7 +811,7 @@ def run_install(arguments, home):
                    'binary': binary, 'original_binary': original_binary,
                    'original_tree': tree_identity(deployment)}
         journal.update(original_router=old_router_text, original_choice=read_choice(home),
-                       previous_desired=[], native_started=False)
+                       previous_desired=[], native_started=False, started_support=[])
         atomic(state, journal)
         environment = {**os.environ, 'JARVIS_ISOLATION_COORDINATED': '1',
                        'JARVIS_ISOLATION_TRANSACTION': str(state), 'JARVIS_ISOLATION_TOKEN': token}
@@ -792,6 +870,7 @@ def run_install(arguments, home):
                             'start', model.unit_name()], check=True)
             model.wait_model()
             subprocess.run([sys.executable, str(deployment / 'scripts/qwen-setup.py'), '--enable'], check=True)
+            start_fresh_support(home, journal, desired, existing=existing)
             restore_running(desired)
             if '--no-restart' in forwarded or not desired:
                 subprocess.run(['/usr/bin/systemctl', '--system', '--no-ask-password',

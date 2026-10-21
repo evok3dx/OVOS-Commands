@@ -7,6 +7,45 @@ acceptance work. Durable design choices belong in
 under [`history/`](history/README.md). Other current documents link here rather
 than repeating release narratives.
 
+## 4.8.0 (candidate, 21 October 2026)
+
+Prepare missing private CPython 3.11.16 automatically using checksum-pinned uv
+0.12.3, without changing system Python, aliases or other uv installations.
+Keep the exact 296-wheel voice runtime and native isolation policy unchanged.
+Require host compatibility before preparing Python or models; existing OVOS
+Python mismatches still require review and `--check` stays read-only.
+
+Fix valid systemd baseline paths and first isolated startup: start the user
+messagebus/PHAL dependency transaction, record newly started support before
+launch, and stop that support before rollback replaces code. Preserve stopped
+and muted upgrades, unknown settings and fail-closed interrupted recovery.
+Private model preparation can refresh only a short-lived copy child's already
+approved Ollama group access; retain inventory/manifest/layer verification and
+reverify the completed private copy as the original user. No account membership,
+source permissions or worker groups are changed.
+
+Media 0.3.6 uses IPv4 for YouTube lookups with its existing pacing and browser
+controls. General networking and VPN IPv6 settings remain unchanged. README
+prerequisites cover manual Ollama/model setup, download storage and the observed
+VPN IPv6 refusal. Speech Note setup reuses either Flatpak scope, defaults to
+Software Manager guidance and explains voice selection and explicit external
+action permission. Existing explicit per-user installation controls remain.
+
+**VERIFIED owner acceptance:** private first-start/model-access corrections
+completed a fresh installation. Speech Note reading worked after enabling
+external actions; wake-word/command input worked after selecting a physical
+microphone instead of a speaker monitor. The older laptop remains slower; no
+stage benchmark establishes its cause. Earlier owner lookup measurements
+identified a much faster IPv4 provider path. These are live observations,
+separate from the combined candidate's automated validation.
+
+**PLANNED release validation:** ordinary-user Python 3.10–3.13, security and
+native X11/GTK CI; complete runtime revalidation; current first-party wheels;
+source/history and actual archive scanning; full clean-archive tests and policy
+benchmark. Automatic private-Python setup has not yet passed live acceptance.
+The original per-user Speech Note menu-entry failure remains unexplained;
+guidance is not a claimed fix for that desktop issue. No 4.8 release is published.
+
 ## 4.5.0 (published stable, 12 October 2026 UTC)
 
 Read the complete X11 `WM_CLASS` property for fixed app integrations,

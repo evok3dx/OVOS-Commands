@@ -1,5 +1,9 @@
 # Jarvis Media plugin history
 
+## 0.3.6 — bundled with Jarvis 4.8.0
+
+- Use IPv4 for YouTube title lookups; preserve playback pacing and browser controls.
+
 ## 0.3.5 — bundled with Jarvis 4.0.0
 
 - Acknowledge immediately before lookup without waiting for speech to finish.

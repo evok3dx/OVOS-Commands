@@ -134,3 +134,113 @@ with tempfile.TemporaryDirectory() as folder:
         rejected(prepare, source, home, digest)
     assert not (model.private_root(home) / "models").exists()
 print("PASS: invalid identities, current-blob corruption and copy-time changes fail closed")
+
+
+# A fresh Ollama installation can update account membership while the desktop
+# still has the old supplementary groups. Refresh only the model-copy child.
+import errno
+import grp
+import pwd
+import shlex
+import subprocess
+from types import SimpleNamespace
+from contextlib import ExitStack
+
+with tempfile.TemporaryDirectory() as folder:
+    source, home, raw, digest, weight = fixture(Path(folder))
+    account = SimpleNamespace(pw_name="fixture-user", pw_dir=str(home))
+    group = SimpleNamespace(gr_gid=987654, gr_mem=["fixture-user"])
+    denied = PermissionError(errno.EACCES, "fixture denial", str(source / weight))
+
+    def membership(active=(), approved=True, account_home=None):
+        stack = ExitStack()
+        stack.enter_context(patch.object(pwd, "getpwuid", return_value=SimpleNamespace(
+            pw_name=account.pw_name, pw_dir=str(account_home or home))))
+        stack.enter_context(patch.object(grp, "getgrnam", return_value=SimpleNamespace(
+            gr_gid=group.gr_gid, gr_mem=group.gr_mem if approved else [])))
+        stack.enter_context(patch.object(model.os, "getgroups", return_value=list(active)))
+        stack.enter_context(patch.object(model, "source_stores", return_value=[source]))
+        return stack
+
+    with membership():
+        assert model._stale_model_group(home, denied) == group.gr_gid
+        for path in (Path(folder) / "unrelated", model.private_root(home) / "models"):
+            assert model._stale_model_group(home, PermissionError(
+                errno.EACCES, "fixture denial", str(path))) is None
+        assert model._stale_model_group(home, PermissionError()) is None
+    with membership(approved=False):
+        assert model._stale_model_group(home, denied) is None
+    with membership(active=[group.gr_gid]):
+        assert model._stale_model_group(home, denied) is None
+    with membership(account_home=Path(folder) / "other-home"):
+        assert model._stale_model_group(home, denied) is None
+    with membership(), patch.object(grp, "getgrnam", side_effect=KeyError("ollama")):
+        assert model._stale_model_group(home, denied) is None
+
+    original_prepare = model._prepare_models
+    parent_calls = []
+    child_calls = []
+    identity_before = (os.getuid(), os.getgid())
+
+    def parent_prepare(selected_home, report=print):
+        parent_calls.append(selected_home)
+        if len(parent_calls) == 1:
+            raise denied
+        # Must verify the existing private copy without the general endpoint.
+        with patch.object(model, "inventory_digest",
+                          side_effect=AssertionError("General endpoint queried after copy")):
+            return original_prepare(selected_home, report)
+
+    def copy_child(command, *, stdin, check):
+        child_calls.append(command)
+        assert command[:3] == ["/usr/bin/sg", "ollama", "-c"]
+        assert stdin is subprocess.DEVNULL and check is True
+        argv = shlex.split(command[3])
+        assert argv[0] == "exec"
+        assert argv[2:4] == ["-I", "-c"]
+        assert argv[-2:] == [str(Path(model.__file__).resolve().parent), str(home)]
+        compile(argv[4], "<model-group-bootstrap>", "exec")
+        assert "raise RuntimeError" in argv[4] and "assert " not in argv[4]
+        original_prepare(home, lambda _: None)
+        return subprocess.CompletedProcess(command, 0)
+
+    with membership(), patch.object(model, "inventory_digest", return_value=digest), \
+         patch.object(model, "verify_executable", return_value="/usr/bin/newgrp") as verified, \
+         patch.object(model, "_prepare_models", side_effect=parent_prepare), \
+         patch.object(model.subprocess, "run", side_effect=copy_child):
+        model.prepare_models(home, lambda _: None)
+    verified.assert_called_once_with("/usr/bin/sg")
+    assert len(parent_calls) == 2 and len(child_calls) == 1
+    copied = model.private_root(home) / "models"
+    assert (copied / model.MANIFEST).read_bytes() == raw
+    assert (copied / weight).read_bytes() == (source / weight).read_bytes()
+    assert (copied / weight).stat().st_ino != (source / weight).stat().st_ino
+    assert (copied / weight).stat().st_mode & 0o077 == 0
+    assert (os.getuid(), os.getgid()) == identity_before
+    model.remove_private_model(home)
+
+    with membership(), patch.object(model, "_prepare_models", side_effect=denied), \
+         patch.object(model.subprocess, "run",
+                      side_effect=subprocess.CalledProcessError(1, ["sg"])) as child:
+        try:
+            model.prepare_models(home, lambda _: None)
+        except subprocess.CalledProcessError:
+            pass
+        else:
+            raise AssertionError("Failed group copy was accepted")
+        assert child.call_count == 1
+
+    with membership(), patch.object(model, "_prepare_models", side_effect=denied), \
+         patch.object(model.subprocess, "run",
+                      return_value=subprocess.CompletedProcess(["sg"], 0)) as child:
+        rejected(model.prepare_models, home, lambda _: None)
+        assert child.call_count == 1 and not copied.exists()
+
+    with membership(approved=False), \
+         patch.object(model, "_prepare_models", side_effect=denied), \
+         patch.object(model.subprocess, "run",
+                      side_effect=AssertionError("Unapproved group was attempted")):
+        rejected(model.prepare_models, home, lambda _: None)
+
+print("PASS: stale approved model-group handoff, private-copy verification, unchanged parent identity and fail-closed refusals")
+

@@ -2,7 +2,7 @@ name: Prepare reviewed Jarvis release assets
 
 on:
   push:
-    branches: [work/release-v4.5]
+    branches: [work/release-v4.8]
   workflow_dispatch:
 
 permissions:
@@ -63,10 +63,10 @@ jobs:
           for project in . plugins/ovos-skill-jarvis-media plugins/jarvis-file-search; do
             python3 -m pip wheel --no-index --no-deps --no-build-isolation --wheel-dir "$RUNNER_TEMP/current-plugins" "$project"
           done
-      - name: Keep the reviewed runtime and separate plugins unchanged
+      - name: Keep the reviewed runtime and File Search unchanged
         run: |
           git diff --exit-code 88894a6ccfd43d625548f5691a41374aaf1bd44e HEAD -- \
-            voice extras plugins/jarvis-file-search plugins/ovos-skill-jarvis-media
+            voice extras plugins/jarvis-file-search
       - name: Fetch checksum-pinned review tools
         run: |
           set -euo pipefail

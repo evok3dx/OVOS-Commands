@@ -91,7 +91,7 @@ installer_source = (ROOT / "scripts/install.sh").read_text(encoding="utf-8")
 for required_bootstrap_fragment in (
     '"$desktop_python" "$repo_root/scripts/prepare_voice_baseline.py"',
     '"$desktop_python" "$repo_root/scripts/install_prerequisites.py"',
-    "CPython 3.11.16 must already be installed; system Python stays unchanged.",
+    "The reviewed private Python is prepared automatically; system Python stays unchanged.",
     "Jarvis remains user-space and no desktop applications are installed.",
 ):
     assert required_bootstrap_fragment in installer_source, (
@@ -364,6 +364,9 @@ for required_speechnote_fragment in (
     r"Pattern: \bhey\s*,?\s*jarvis\b\s*\.?\s*",
     "Replace with: one space",
     "If you change Jarvis's wake phrase",
+    "Allow external applications to invoke actions",
+    'flatpak info --user "$app_id"',
+    'flatpak info --system "$app_id"',
 ):
     assert required_speechnote_fragment in speechnote_setup, (
         "Speech Note user-space safety check is missing: "

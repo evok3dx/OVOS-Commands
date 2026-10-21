@@ -11,7 +11,7 @@ import subprocess
 import tempfile
 
 from install_prerequisites import reviewed_python
-from prepare_core_isolation import unit_string
+from prepare_core_isolation import environment_file_path, unit_string
 
 WORKERS = {'ovos-messagebus.service': ('ovos-messagebus', []),
            'ovos-phal.service': ('ovos_PHAL', ['ovos-messagebus.service']),
@@ -77,7 +77,7 @@ def units(home, audio):
         result[name] = ('[Unit]\nDescription=Open Voice OS user worker\nPartOf=ovos.service\n'
                         'Requires=ovos.service ' + ' '.join(dependencies) + '\nAfter=' +
                         ' '.join(dependencies) + '\n[Service]\nType=simple\n'
-                        'WorkingDirectory=' + unit_string(home / '.venvs/ovos') + '\n'
+                        'WorkingDirectory=' + environment_file_path(home / '.venvs/ovos') + '\n'
                         'ExecStart=' + unit_string(python_dir / command) + '\n'
                         'Restart=on-failure\nRestartSec=5\nTimeoutStartSec=300\n'
                         'StandardOutput=null\nStandardError=null\n[Install]\nWantedBy=ovos.service\n')

@@ -26,9 +26,9 @@ never turns model output into a shell command.
   output. Mint 22.3 is the reviewed desktop target. The current isolation setup
   requires Polkit's JavaScript rules backend; Mint 21.3's Polkit 0.105 is not
   supported for isolation. See [Requirements and stack](#requirements-and-stack).
-- Have **CPython 3.11.16** available for the OVOS virtual environment, the exact Python
-  version required by the reviewed runtime. A newer system Python does not
-  replace this requirement; do not replace the operating system's Python. See
+- Setup prepares **CPython 3.11.16** privately when needed, the exact Python
+  required by the reviewed runtime. It leaves system Python and its aliases
+  unchanged. An existing OVOS environment using another Python needs review. See
   [preparing Python](docs/07-installer-updates.md#preparing-python).
 - Keep at least **8 GiB free** on the filesystem used for OVOS staging and
   rollback, plus room for voice models and Ollama's model storage. Ollama may
@@ -40,30 +40,51 @@ never turns model output into a shell command.
 - Run Jarvis setup as your desktop user. Fresh system preparation and selected
   isolation may request bounded administrator approval. An absent OVOS baseline is prepared in user space; Speech Note is optional for reading and dictation.
 
-For a **new installation**, check local Ollama and download the required model
-before continuing. Already downloaded models are reused:
+For a **new installation**, run these prerequisites as your desktop user.
+Ollama installation and service startup may request administrator approval.
+Existing users should follow the [upgrade procedure](docs/07-installer-updates.md#upgrading-an-isolated-installation).
+
+**Prepare Ollama and Jarvis's model.** Install Ollama only if it is missing:
 
 ```bash
-OLLAMA_HOST=http://127.0.0.1:11434 ollama list
-OLLAMA_HOST=http://127.0.0.1:11434 ollama pull qwen3:4b-instruct-2507-q4_K_M
+(
+  set -euo pipefail
+  if ! command -v ollama >/dev/null 2>&1; then
+    curl --proto '=https' --tlsv1.2 -LsSf https://ollama.com/install.sh | sh
+  fi
+  sudo systemctl start ollama
+  OLLAMA_HOST=http://127.0.0.1:11434 \
+    ollama pull qwen3:4b-instruct-2507-q4_K_M
+)
 ```
 
-If a download fails, resolve the connection issue or retry later before
-installing. Existing users should follow the [upgrade procedure](docs/07-installer-updates.md#upgrading-an-isolated-installation).
+Continue after the model download succeeds. Jarvis reuses it and prepares its
+private Python automatically with checksum-pinned `uv`; no manual Python
+installation is required. Ollama and model downloads are separate from the
+release's hash-verified voice runtime. If a VPN connection reports an IPv6
+connection refusal during the pull, check its IPv6 tunnel setting and retry.
+See [model download and storage](docs/troubleshooting.md#model-download-and-storage).
+
+For optional reading and dictation, install **Speech Note** through Software
+Manager. In Speech Note, choose a TTS voice and enable **Settings → Accessibility
+→ Allow external applications to invoke actions**. Jarvis reuses an existing
+user or system Flatpak; see its Voice setup guide.
+
+### Install Jarvis
 
 Download the archive and matching `.sha256` from
 [Releases](https://github.com/evok3dx/OVOS-Commands/releases/latest):
 
 ```bash
-version=4.5.0
+version=4.8.0
 sha256sum --check "ovos-commands-$version.tar.gz.sha256"
 tar -xzf "ovos-commands-$version.tar.gz"
 cd "ovos-commands-$version"
-bash scripts/install.sh --check
 bash scripts/install.sh
 ```
 
-`--check` is read-only. Fresh setup prepares absent OVOS user services and an
+An optional `bash scripts/install.sh --check` is read-only; it reports missing
+prerequisites without downloading them. Fresh setup prepares absent OVOS user services and an
 ordinary-user virtual environment using the required interpreter. Missing OS
 tools and selected isolation need bounded administrator approval. Jarvis itself,
 normal updates and daily use run as your desktop user. See
@@ -108,6 +129,11 @@ live in [`compatibility.json`](compatibility.json) and
 The Python package is also checked against Python 3.10–3.13. Those package
 checks do not change the managed runtime's exact Python requirement or replace
 full desktop and voice acceptance testing.
+
+The interface and desktop commands are lightweight; speech recognition, voice
+generation and local Qwen routing use more CPU and memory. Each computer runs
+those models locally. Older hardware and initial model loading can increase
+response time; a remote workstation is not used automatically.
 
 ## Everyday controls
 

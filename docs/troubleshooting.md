@@ -1,5 +1,56 @@
 # Troubleshooting Jarvis
 
+## Fresh-install readiness after baseline preparation
+
+**VERIFIED symptom/source and owner-tested private correction:** a newly prepared
+4.5.0 baseline can have quoted `WorkingDirectory=` values that systemd rejects.
+After correcting those values, an isolated first startup can still time out
+because direct native-worker starts omit the user messagebus and PHAL
+dependencies. A loaded, inactive unit with no start timestamp is not a crashed
+process. Older journal parser errors do not prove the repaired unit still fails.
+
+The 4.8 candidate corrects the path renderer and starts support only for a first
+full startup, recording cleanup before the start so recovery stops newly
+introduced support before code replacement. Preserve the recovery journal and
+isolation policy; increasing the readiness timeout or deleting the guard does
+not repair this dependency gap. See [release verification](releases.md).
+
+## Speech Note rejects reading actions
+
+**VERIFIED cause and owner-tested remedy:** Speech Note 4.8.4 can have
+a selected TTS voice while refusing Jarvis's CLI/D-Bus request with “Action
+invocation is not enabled in settings.” In Speech Note, open **Settings →
+Accessibility** and enable **Allow external applications to invoke actions**,
+then retry the fixed-text reading test before testing Jarvis's selection read.
+This is an explicit user permission; preserve existing choices rather than
+silently editing it. Installing another Flatpak copy does not enable the
+setting. Source: [upstream setting](https://github.com/mkiol/dsnote/blob/v4.8.4/desktop/qml/SettingsAccessebilityPage.qml).
+
+## Model download and storage
+
+Before a new setup, prepare Ollama and pull the exact model shown in the
+[README prerequisites](../README.md#before-you-install). A connection refusal
+to a signed model-storage URL is a download/network failure, not evidence that
+Jarvis generated a different model URL. One owner VPN path refused IPv6 until
+its IPv6 tunnel option was enabled; other connections worked. Review the VPN
+configuration before retrying rather than disabling network protection.
+
+Ollama's model storage may use the root filesystem even when home has space.
+Use its documented storage configuration if needed. On fresh installations the
+account's approved Ollama group can be newer than the current session; 4.8
+refreshes that group only in the bounded model-copy child, retaining all hashes
+and the original worker identity. Do not loosen model-store permissions or
+remove integrity checks to bypass a copy failure.
+
+## Jarvis wakes but hears no command
+
+**VERIFIED owner-tested remedy:** a default source ending in `.monitor`
+captured speaker output rather than microphone speech. In desktop **Sound →
+Input**, select the physical microphone, verify its level moves when speaking
+and restart Jarvis. A running listener or successful hotkey does not prove that
+it captures the correct input. Preserve explicit device choices; do not change
+wake-word thresholds or disable isolation to work around an input-selection issue.
+
 ## Fresh-install prerequisites and recovery
 
 Jarvis 4.4.4 checks the exact managed-runtime Python and the selected isolation

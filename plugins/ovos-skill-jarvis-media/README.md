@@ -1,4 +1,7 @@
-# Jarvis Media skill 0.3.5
+# Jarvis Media skill 0.3.6
+
+YouTube title lookups use IPv4 to avoid the observed slow IPv6 lookup path on
+some VPN connections. Browser playback and system/VPN IPv6 settings are unchanged.
 
 This source package is included in Jarvis 4.0.0. Use the main
 [`scripts/install.sh`](../../scripts/install.sh) for a managed install, upgrade

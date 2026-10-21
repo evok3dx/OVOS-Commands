@@ -414,7 +414,7 @@ class ControlCenter:
         self.audio_volume.set_value_pos(Gtk.PositionType.RIGHT);background.pack_start(self.audio_volume,False,False,0)
         background.pack_start(label('20% is recommended. Raise it if speakers become inaudible; lower it if recognition suffers.','jarvis-subtitle'),False,False,0)
         self.action(background,'Save background audio','document-save-symbolic',lambda _:self.voice('audio',[self.audio_duck.get_active(),int(round(self.audio_volume.get_value()/5)*5)]))
-        speech_note=self.card(parent,'Speech Note','Local reading and dictation. Existing models, voices, settings and rules remain untouched.')
+        speech_note=self.card(parent,'Speech Note','Local reading and dictation. Select a voice and allow external actions in Speech Note → Settings → Accessibility. Existing settings and models remain untouched.')
         speech_note.pack_start(label('Continuous dictation needs the wake-filter rule shown by setup. If you change the wake phrase, update that Speech Note rule too.','jarvis-subtitle'),False,False,0)
         self.action(speech_note,'Open Speech Note','audio-x-generic-symbolic',self.speech_note)
         self.action(speech_note,'Setup guide…','help-browser-symbolic',self.speech_note_guide)

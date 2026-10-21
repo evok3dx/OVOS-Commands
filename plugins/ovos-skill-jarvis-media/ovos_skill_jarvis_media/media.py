@@ -88,7 +88,7 @@ def first_result(payload: str) -> tuple[str, str]:
 def search_command(python: str, query: str) -> list[str]:
     executable = str(Path(python).with_name("yt-dlp"))
     prefix = [executable] if Path(executable).is_file() else [python, "-m", "yt_dlp"]
-    return [*prefix, "--flat-playlist", "--playlist-end", "1",
+    return [*prefix, "--force-ipv4", "--flat-playlist", "--playlist-end", "1",
             "--dump-single-json", "--no-warnings", "--", "ytsearch1:" + query]
 
 

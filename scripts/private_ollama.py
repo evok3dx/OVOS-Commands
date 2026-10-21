@@ -10,6 +10,7 @@ from pathlib import Path
 import re
 import shutil
 import socket
+import sys
 import stat
 import subprocess
 import tempfile
@@ -161,7 +162,74 @@ def source_stores(home):
     return roots
 
 
+
+def _stale_model_group(home, error):
+    """Return an already-approved group only for unreadable source storage."""
+    import grp
+    import pwd
+
+    if os.getuid() == 0 or not error.filename:
+        return None
+    account = pwd.getpwuid(os.getuid())
+    if Path(home) != Path(account.pw_dir):
+        return None
+    try:
+        group = grp.getgrnam('ollama')
+    except KeyError:
+        return None
+    if (account.pw_name not in group.gr_mem
+            or group.gr_gid in {os.getgid(), *os.getgroups()}):
+        return None
+    failed = Path(error.filename)
+    if not failed.is_absolute() or not any(
+            failed == store or failed.is_relative_to(store)
+            for store in source_stores(Path(home))):
+        return None
+    # A private-destination denial must never trigger a group handoff.
+    if failed == private_root(home) or failed.is_relative_to(private_root(home)):
+        return None
+    return group.gr_gid
+
+
 def prepare_models(home, report=print):
+    """Verify/copy locally, refreshing only stale approved source-read access."""
+    try:
+        _prepare_models(home, report)
+        return
+    except PermissionError as error:
+        if _stale_model_group(home, error) is None:
+            raise
+    import shlex
+
+    group_tool = '/usr/bin/sg'
+    verify_executable(group_tool)
+    # sg can be a symlink to newgrp; its invocation name selects -c handling.
+    # Verify the resolved trusted binary, but retain the reviewed sg argv[0].
+    # sg changes only this short-lived child's group. It neither adds account
+    # membership nor gives the installer or long-lived workers extra groups.
+    bootstrap = (
+        "import grp,os,pwd,sys\nfrom pathlib import Path\n"
+        "account=pwd.getpwuid(os.getuid()); group=grp.getgrnam('ollama')\n"
+        "if (os.getuid()==0 or account.pw_name not in group.gr_mem or "
+        "os.getgid()!=group.gr_gid or Path(sys.argv[2])!=Path(account.pw_dir)):\n"
+        "    raise RuntimeError('Unapproved model-copy group or account')\n"
+        "sys.path.insert(0,sys.argv[1])\n"
+        "import private_ollama\nprivate_ollama._prepare_models(Path(account.pw_dir))\n"
+    )
+    command = shlex.join([
+        str(Path(sys.executable).resolve()), '-I', '-c', bootstrap,
+        str(Path(__file__).resolve().parent), str(Path(home)),
+    ])
+    report("Preparing the private model with the account's approved Ollama group…")
+    subprocess.run([group_tool, 'ollama', '-c', 'exec ' + command],
+                   stdin=subprocess.DEVNULL, check=True)
+    if not (private_root(home) / 'models' / MANIFEST).is_file():
+        raise RuntimeError('Private model preparation did not finish')
+    # Verify the completed copy again as the original desktop user.
+    _prepare_models(home, report)
+
+
+def _prepare_models(home, report=print):
     """Copy this one content-addressed model without modifying its source."""
     home = Path(home)
     destination = private_root(home) / 'models'

@@ -10,6 +10,10 @@ import subprocess
 ROOT = Path(__file__).resolve().parents[1]
 
 
+class MissingPython(RuntimeError):
+    pass
+
+
 def expected_python():
     return json.loads((ROOT / 'voice/runtime-linux-x86_64-py311.json').read_text())['python_full_version']
 
@@ -35,7 +39,7 @@ def reviewed_python(home, ovos_python=None):
         if candidate.is_file() and os.access(candidate, os.X_OK):
             if python_version(candidate) == expected:
                 return candidate
-    raise RuntimeError(f'Prepare CPython {expected} before Jarvis setup. See README prerequisites; do not replace system Python.')
+    raise MissingPython(f'CPython {expected} is not prepared. Normal Jarvis setup can prepare it privately; --check does not download or change files.')
 
 
 def isolation_support():
@@ -50,7 +54,7 @@ def isolation_support():
         raise RuntimeError('The Polkit rules directory is unavailable; review OS authorisation support before isolation setup. No native files changed.')
 
 
-def check(home, arguments, isolated):
+def check(home, arguments, isolated, *, prepare=False):
     executable = None
     if '--ovos-python' in arguments:
         index = arguments.index('--ovos-python')
@@ -59,14 +63,22 @@ def check(home, arguments, isolated):
         executable = arguments[index + 1]
     if isolated:
         isolation_support()
-    return reviewed_python(home, executable or os.environ.get('OVOS_PYTHON'))
+    try:
+        return reviewed_python(home, executable or os.environ.get('OVOS_PYTHON'))
+    except MissingPython:
+        if not prepare:
+            raise
+        from python_bootstrap import prepare as prepare_python
+        prepare_python(home, expected_python())
+        return reviewed_python(home, executable or os.environ.get('OVOS_PYTHON'))
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--isolation', action='store_true')
+    parser.add_argument('--prepare', action='store_true')
     args = parser.parse_args()
     try:
-        print('Reviewed Python:', check(Path.home(), [], args.isolation))
+        print('Reviewed Python:', check(Path.home(), [], args.isolation, prepare=args.prepare))
     except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
         parser.exit(1, str(error) + '\n')

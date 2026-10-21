@@ -125,10 +125,25 @@ If any one of these layers is missing, the command change is incomplete.
   installer as root. Retain terminal handoff and process-group cancellation
   regressions for the managed installer child. Keep absent-unit recovery
   separate from strict ordinary Stop and unknown/contradictory service state.
+  A fresh isolated full startup must also start the ordinary-user messagebus
+  and PHAL dependencies. Record newly started support before the operation,
+  and stop it before rollback replaces code. Never start the meta unit during
+  a muted/stopped upgrade or `--no-restart`; its Wants includes the listener.
+  Test generated systemd path settings with the real parser, including spaces
+  and literal percent signs, rather than relying on Python string assertions.
+  Missing interpreter preparation uses the checksum-pinned private uv path;
+  never replace system Python, modify aliases or run a remote installer shell.
+  `--check` remains read-only and an existing mismatched OVOS interpreter still
+  stops for review. Revalidate bootstrap pins and refusal/cancellation behaviour
+  when changing its version or download path.
 - Model storage formats may change independently of the model name. Verify
   the manifest identified by the selected Ollama inventory and every copied
   layer; never follow arbitrary manifest links, fall back from corrupt bytes,
   or weaken integrity checks merely to accept a new store layout.
+  A fresh Ollama install may add account membership before the desktop session
+  refreshes it. Only an already-approved, inactive Ollama group may be used by
+  a short-lived model-copy child. Reverify the private copy as the original
+  user; never change account membership, source permissions or worker groups.
 - A protected polkit directory alone must not require administrator authentication
   for routine deployment. Check the exact five native workers and dedicated
   model identity through
@@ -198,6 +213,9 @@ If any one of these layers is missing, the command change is incomplete.
   separate retention; never claim system-wide zero logging or automatic erasure.
   Empty diagnostics are not proof of health; preserve missing-collector and
   limited-reason evidence instead of silently declaring success.
+  Speech Note setup must reuse either existing Flatpak scope, explain voice
+  selection and guide explicit external-action permission. Never silently
+  enable that permission or create a duplicate installation to fix reading.
 - Health-check success is based on the doctor's zero-failure exit status.
   Keep warning details visible, clear previous success styling when rerunning,
   and never let a failure retain a green result or imply passed network tests.

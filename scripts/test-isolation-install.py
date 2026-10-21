@@ -508,3 +508,127 @@ with patch.object(Path, 'exists', lambda path: path.name in old), \
 print('PASS: native recovery retry stops only still-present exact reviewed services')
 
 print('PASS: complete steady upgrade and failed-readiness recovery preserve source, native policy, private settings and muted microphone without administrator prompts')
+
+# Direct native starts omit the baseline user dependencies. Only a first full
+# startup may request the meta unit, whose Wants also starts the microphone.
+with patch.object(install, 'properties') as inspected, patch.object(install.subprocess, 'run') as invoked:
+    for existing, desired in ((True, list(install.LOGICAL)),
+                              (True, ['ovos-core.service', 'ovos-audio.service']),
+                              (False, [])):
+        install.start_fresh_support(Path.home(), {}, desired, existing=existing)
+    rejects(install.start_fresh_support, Path.home(), {}, ['ovos-core.service'], existing=False)
+    assert not inspected.called and not invoked.called
+
+def support_state(name, running=False):
+    return {'Id': name, 'LoadState': 'loaded', 'ActiveState': 'active' if running else 'inactive',
+            'SubState': ('exited' if name == 'ovos.service' else 'running') if running else 'dead',
+            'MainPID': '42' if running and name != 'ovos.service' else '0', 'ControlPID': '0',
+            'FragmentPath': '/reviewed/' + name, 'DropInPaths': ''}
+
+for running in ((), install.SUPPORT, install.SUPPORT[:2]):
+    for fail_start in (False, True):
+        with tempfile.TemporaryDirectory() as folder:
+            home = Path(folder)
+            journal = {'phase': 'checking', 'started_support': []}
+            states = {name: support_state(name, name in running) for name in install.SUPPORT}
+            expected = [name for name in install.SUPPORT if name not in running]
+            commands = []
+
+            def support_command(command, **kwargs):
+                commands.append(command)
+                assert command[:2] == ['/usr/bin/systemctl', '--user']
+                assert kwargs == {'check': True, 'timeout': 45}
+                if command[2] == 'start':
+                    assert command[3:] == list(install.SUPPORT)
+                    # The persisted cleanup list precedes even a partial start.
+                    assert json.loads((home / install.JOURNAL).read_text())['started_support'] == expected
+                    for name in command[3:]:
+                        states[name] = support_state(name, True)
+                    if fail_start:
+                        raise subprocess.CalledProcessError(1, command)
+                else:
+                    assert command[2] == 'stop' and command[3:] == list(reversed(expected))
+                    for name in command[3:]:
+                        states[name] = support_state(name)
+
+            with patch.object(install, 'properties', side_effect=lambda scope, name, *keys: states[name]), \
+                 patch.object(install.subprocess, 'run', side_effect=support_command), \
+                 contextlib.redirect_stdout(io.StringIO()):
+                try:
+                    install.start_fresh_support(home, journal, list(install.LOGICAL), existing=False)
+                except subprocess.CalledProcessError:
+                    assert fail_start
+                else:
+                    assert not fail_start
+                # Reload the real disk journal, as after a killed coordinator.
+                install.stop_fresh_support(json.loads((home / install.JOURNAL).read_text()))
+                assert all(states[name]['ActiveState'] == ('active' if name in running else 'inactive')
+                           for name in install.SUPPORT)
+                assert len(commands) == (2 if expected else 1)
+
+for unsafe in ({}, {'LoadState': 'bad-setting'}, {'ControlPID': '15'},
+               {'ActiveState': 'activating'}, {'ActiveState': 'failed'}, {'MainPID': '15'}):
+    with patch.object(install, 'properties', return_value=dict(support_state('ovos.service'), **unsafe) if unsafe else {}), \
+         patch.object(install, 'atomic') as persisted, patch.object(install.subprocess, 'run') as invoked:
+        rejects(install.start_fresh_support, Path.home(), {}, list(install.LOGICAL), existing=False)
+        assert not persisted.called and not invoked.called
+with patch.object(install, 'properties', side_effect=lambda scope, name, *keys: support_state(name, name != 'ovos.service')), \
+     patch.object(install, 'atomic') as persisted, patch.object(install.subprocess, 'run') as invoked:
+    rejects(install.start_fresh_support, Path.home(), {}, list(install.LOGICAL), existing=False)
+    assert not persisted.called and not invoked.called
+for names in (None, 'ovos.service', ['other.service'], ['ovos.service'],
+              ['ovos-phal.service', 'ovos-phal.service'], [False], list(reversed(install.SUPPORT))):
+    with patch.object(install, 'properties') as inspected, patch.object(install.subprocess, 'run') as invoked:
+        rejects(install.stop_fresh_support, {'started_support': names})
+        assert not inspected.called and not invoked.called
+assert install.recorded_support({}) == []  # Existing journals remain compatible.
+print('PASS: fresh full startup persists support recovery before start; existing, muted and no-restart paths stay untouched')
+
+# Failure recovery must stop newly introduced support before replacing code.
+# A support process that refuses to stop blocks rollback and retains the guard.
+for stuck in (False, True):
+    with tempfile.TemporaryDirectory() as folder:
+        home = Path(folder)
+        deployment = home / '.local/src/ovos-skill-jarvis-dispatcher'
+        deployment.mkdir(parents=True)
+        source = deployment / 'fixture.py'
+        source.write_text('original')
+        original_tree = install.tree_identity(deployment)
+        source.write_text('candidate')
+        backup = home / '.local/state/jarvis/backups/fixture'
+        backup.mkdir(parents=True)
+        journal = {'binary': '/usr/bin/ollama', 'original_binary': None, 'was_active': False,
+                   'previous_desired': [], 'token': 'x' * 40, 'original_router': None,
+                   'original_choice': None, 'original_tree': original_tree, 'backup': str(backup),
+                   'started_support': list(install.SUPPORT)}
+        states = {name: support_state(name, True) for name in install.SUPPORT}
+        events = []
+
+        def recovery_command(command, **kwargs):
+            if command[0] == 'bash':
+                assert events == ['workers', 'support'], events
+                events.append('rollback')
+                source.write_text('original')
+            else:
+                assert command == ['/usr/bin/systemctl', '--user', 'stop', *reversed(install.SUPPORT)]
+                events.append('support')
+                if not stuck:
+                    states.update({name: support_state(name) for name in install.SUPPORT})
+            return Mock(returncode=0)
+
+        with patch.object(install, 'active', return_value=False), \
+             patch.object(install, 'stop_workers', side_effect=lambda *args, **kwargs: events.append('workers')), \
+             patch.object(install, 'properties', side_effect=lambda scope, name, *keys: states[name]), \
+             patch.object(install.subprocess, 'run', side_effect=recovery_command), \
+             patch.object(install, 'restore_running') as restarted, \
+             contextlib.redirect_stderr(io.StringIO()):
+            if stuck:
+                rejects(install.recover_transaction, home, journal, Mock())
+                assert source.read_text() == 'candidate' and not restarted.called
+                assert json.loads((home / install.JOURNAL).read_text())['phase'] == 'blocked'
+            else:
+                install.recover_transaction(home, journal, Mock())
+                assert events == ['workers', 'support', 'rollback']
+                assert not (home / install.JOURNAL).exists()
+                restarted.assert_called_once_with([])
+print('PASS: partial/crashed support startup cleans up before code rollback; remaining processes retain the recovery guard')

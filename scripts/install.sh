@@ -62,7 +62,7 @@ Options:
   --runtime-bundle PATH  Use the separate code-pinned V4 wheel archive locally
   --runtime-source-build  Explicit reviewed source-build experiment; does not satisfy the V4 hash release gate
   --speechnote         Install the optional Speech Note Flatpak for this user
-  --no-speechnote      Do not offer the optional Speech Note add-on
+  --no-speechnote      Skip the optional Speech Note setup guidance
   --check              Run preflight checks without changing files
   --no-restart         Fixture-only; live privacy activation requires a restart
   --no-health-check    Do not enable periodic read-only health/update timers
@@ -641,7 +641,9 @@ PY
 fi
 
 if [[ "${JARVIS_TEST_MODE:-0}" != 1 ]]; then
-  "$desktop_python" "$repo_root/scripts/install_prerequisites.py"
+  prerequisite_arguments=()
+  if ! "$check_only"; then prerequisite_arguments+=(--prepare); fi
+  "$desktop_python" "$repo_root/scripts/install_prerequisites.py" "${prerequisite_arguments[@]}"
   if [[ ! -x "$ovos_python" ]]; then
     if "$check_only"; then
       echo "OVOS virtualenv Python not found: $ovos_python" >&2
@@ -651,7 +653,7 @@ if [[ "${JARVIS_TEST_MODE:-0}" != 1 ]]; then
     printf '%s\n' \
       "Open Voice OS is not installed at $ovos_python." \
       "Jarvis can prepare an ordinary-user OVOS baseline with the required Python." \
-      "CPython 3.11.16 must already be installed; system Python stays unchanged." \
+      "The reviewed private Python is prepared automatically; system Python stays unchanged." \
       "Jarvis remains user-space and no desktop applications are installed."
     if "$bootstrap" || confirm_default_yes "Set up Open Voice OS now?"; then
       prepare_ovos_baseline
@@ -1523,15 +1525,14 @@ if [[ "${JARVIS_TEST_MODE:-0}" != 1 && "$restart" == true && -z "${JARVIS_ISOLAT
 fi
 
 if command -v flatpak >/dev/null 2>&1 && \
-   flatpak info net.mkiol.SpeechNote >/dev/null 2>&1; then
+   { flatpak info --user net.mkiol.SpeechNote >/dev/null 2>&1 ||
+     flatpak info --system net.mkiol.SpeechNote >/dev/null 2>&1; }; then
   printf '%s\n' \
     "Speech Note detected; Jarvis will use its existing models and settings." \
     "Review it later from Jarvis → Voice → Open Speech Note and setup guide." \
+    "Enable Speech Note → Settings → Accessibility → Allow external applications to invoke actions." \
     "For continuous dictation, follow that guide to filter the wake phrase from Speech Note output."
-elif [[ "$speechnote_choice" == install ]] || \
-     { [[ "$speechnote_choice" == ask ]] && \
-       command -v flatpak >/dev/null 2>&1 && \
-       confirm_default_no "Install optional Speech Note locally for this user?"; }; then
+elif [[ "$speechnote_choice" == install ]]; then
   printf '%s\n' \
     "Speech Note is a sizeable Flatpak and its language/voice models are separate downloads." \
     "It will be installed for this user only; no administrator access is used."
@@ -1541,6 +1542,11 @@ elif [[ "$speechnote_choice" == install ]] || \
   else
     echo "Warning: optional Speech Note setup did not complete; Jarvis remains installed." >&2
   fi
+elif [[ "$speechnote_choice" != skip ]] && ! "$existing_deployment"; then
+  printf '%s\n' \
+    "For optional reading and dictation, install Speech Note through Software Manager." \
+    "Then open Jarvis → Voice → Setup guide to select models and allow external actions." \
+    "Jarvis reuses either an existing user or system Flatpak installation."
 fi
 
 if [[ -n "${JARVIS_ISOLATION_TRANSACTION:-}" ]]; then

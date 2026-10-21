@@ -169,6 +169,7 @@ python3 "$repo_root/scripts/test-isolation-install.py"
 python3 "$repo_root/scripts/test-first-install-recovery.py"
 python3 "$repo_root/scripts/test-ollama-manifest-layout.py"
 python3 "$repo_root/scripts/test-install-prerequisites.py"
+python3 "$repo_root/scripts/test-python-bootstrap.py"
 python3 "$repo_root/scripts/test-boot-readiness.py"
 python3 "$repo_root/scripts/test-runtime-provenance.py"
 python3 "$repo_root/scripts/test-runtime-bundle.py"
@@ -882,7 +883,11 @@ if [[ \"${1:-}\" == info && \"${2:-}\" == --show-version ]]; then
   [[ -f \"$FAKE_STATE\" ]] || exit 1
   echo 4.8.4
 elif [[ \"${1:-}\" == info ]]; then
-  [[ -f \"$FAKE_STATE\" ]]
+  if [[ -n \"${FAKE_SCOPE:-}\" ]]; then
+    [[ \"${2:-}\" == \"--$FAKE_SCOPE\" ]]
+  else
+    [[ -f \"$FAKE_STATE\" ]]
+  fi
 elif [[ \"${1:-}\" == remotes ]]; then
   :
 elif [[ \"${1:-}\" == remote-add ]]; then
@@ -899,6 +904,17 @@ FAKE_STATE="$fake_state" FAKE_LOG="$fake_log" PATH="$fake_bin:$PATH" \
   "$fresh_home/.local/bin/jarvis-speechnote-setup" --install --yes
 grep -q '^remote-add --user --if-not-exists flathub ' "$fake_log"
 grep -q '^install --user --noninteractive flathub net.mkiol.SpeechNote$' "$fake_log"
+for scope in user system; do
+  : > "$fake_log"
+  FAKE_SCOPE="$scope" FAKE_STATE="$fake_state" FAKE_LOG="$fake_log" PATH="$fake_bin:$PATH" \
+    "$fresh_home/.local/bin/jarvis-speechnote-setup" --install --yes
+  if grep -q '^install ' "$fake_log"; then
+    echo 'An existing Speech Note installation was duplicated' >&2
+    exit 1
+  fi
+done
+"$fresh_home/.local/bin/jarvis-speechnote-setup" --guide > "$test_root/speech-note-guide.txt"
+grep -Fq 'Allow external applications to invoke actions' "$test_root/speech-note-guide.txt"
 
 # Normal setup cannot enable private agents, while an existing named reference system
 # profile retains its already-customised extension during migration only.

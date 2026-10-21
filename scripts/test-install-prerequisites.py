@@ -112,6 +112,29 @@ for problem in (None, 'partial', 'link', 'loaded', 'space', 'reload'):
                 assert not (home / '.config/systemd/user/default.target.wants').exists()
                 rejects(baseline.prepare, home)
 
+# Parse actual generated directory settings with systemd, including spaces
+# and literal percent signs. Do not start a service or require OVOS binaries.
+with tempfile.TemporaryDirectory() as directory:
+    root = Path(directory)
+    for suffix in ('plain', 'home with spaces', 'home-100%'):
+        home = root / suffix
+        (home / '.venvs/ovos').mkdir(parents=True)
+        body = baseline.units(home, 'pulseaudio.socket')['ovos-core.service']
+        setting = next(line for line in body.splitlines()
+                       if line.startswith('WorkingDirectory='))
+        probe = root / 'jarvis-baseline-directory.service'
+        probe.write_text('[Unit]\nDefaultDependencies=no\n[Service]\n'
+                         'Type=oneshot\n' + setting + '\nExecStart=/bin/true\n')
+        parsed = subprocess.run(['/usr/bin/systemd-analyze', '--user', 'verify', str(probe)],
+                                capture_output=True, text=True, timeout=15)
+        assert parsed.returncode == 0, parsed.stderr
+        broken = 'WorkingDirectory=' + baseline.unit_string(home / '.venvs/ovos')
+        probe.write_text(probe.read_text().replace(setting, broken))
+        rejected_parse = subprocess.run(
+            ['/usr/bin/systemd-analyze', '--user', 'verify', str(probe)],
+            capture_output=True, text=True, timeout=15)
+        assert rejected_parse.returncode != 0, 'Quoted directory unexpectedly accepted'
+
 # An actual PTY verifies /dev/tty access in the foreground and restoration to
 # the coordinator. No sudo command, password or desktop service is involved.
 pid, descriptor = pty.fork()

@@ -249,3 +249,17 @@ this desktop-control release until there is an actual integration requirement.
 - Failed-install recovery may skip only explicitly absent, stopped, process-free
   user units. Unknown state, live workers and strict ordinary Stop remain blocking.
   See [4.4.4 release evidence](releases.md#444-published-stable-10-october-2026-utc).
+
+## Fresh-install simplification, 21 October 2026
+
+- **VERIFIED owner direction; candidate CI pending:** prepare a missing exact
+  private Python using checksum-pinned uv, without OS Python/alias changes.
+  Keep Ollama/model preparation explicit in the README and `--check` read-only.
+- Start first-install support dependencies through the ordinary user manager
+  only for a full requested start. Persist cleanup before starting; preserve
+  existing stopped/muted choices and stop new support before code rollback.
+- Reuse an existing user or system Speech Note Flatpak. Guide Software Manager,
+  voice selection and explicit external-action permission; preserve settings.
+- Restrict the approved IPv4 preference to Media's yt-dlp lookup. Do not change
+  general networking, VPN IPv6 or existing playback pacing. See the
+  [4.8 release record](releases.md).

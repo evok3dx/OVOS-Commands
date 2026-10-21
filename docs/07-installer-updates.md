@@ -41,20 +41,14 @@ installed file.
 
 ### Preparing Python
 
-If CPython 3.11.16 is missing, use a separate user-managed installation. Install
-`uv` through its [official instructions](https://docs.astral.sh/uv/getting-started/installation/),
-then run as the desktop user:
-
-```bash
-UV_PYTHON_INSTALL_DIR="$HOME/.local/share/jarvis/python" \
-  uv python install --no-bin cpython@3.11.16
-```
-
-This keeps OS Python and its aliases unchanged. Jarvis detects that fixed
-private interpreter location when preparing an absent OVOS baseline. See
-[uv's Python guide](https://docs.astral.sh/uv/guides/install-python/) for the
-separate interpreter download. An existing OVOS environment with a different
-Python version needs reviewed migration; do not delete it to force setup.
+Jarvis 4.8 prepares missing CPython 3.11.16 in its private user directory using
+the release's checksum-pinned `uv` 0.12.3 binary. It extracts only that binary
+from the verified HTTPS archive, disables external uv configuration and invokes
+an exact managed-Python install with `--no-bin`. System Python, aliases and
+other uv installations remain unchanged. The temporary uv binary is removed
+afterward. The read-only `--check` never downloads or prepares an interpreter.
+An existing OVOS environment with a different Python version needs reviewed
+migration; do not delete it to force setup.
 
 A fresh setup performs these bounded steps:
 
@@ -69,7 +63,7 @@ A fresh setup performs these bounded steps:
 
 Missing operating-system tools and selected native isolation service data are
 the bounded administrator operations.
-Jarvis 4.4.4 prepares an absent OVOS baseline using the already available
+Jarvis prepares an absent OVOS baseline using the exact reviewed
 CPython 3.11.16 interpreter. It creates only a user virtual environment, a
 loopback messagebus configuration and six fixed user service files. Existing
 or partial service/configuration data requires review and is never overwritten.
@@ -115,6 +109,13 @@ transaction permits only that installation/recovery while keeping native IP
 policy in place. Rollback and uninstall outside that coordinator retain their
 native-data guard; use reviewed removal first. Never bypass a remaining journal
 or policy check.
+
+**Fresh-install model access (candidate):** Ollama can add the account to its
+model-storage group before the current desktop session sees that membership.
+The candidate uses only that already-approved group in a short-lived model-copy
+child, then verifies every private file again as the original user. It does not
+require logout, change source permissions or give workers additional groups.
+Ordinary-user behavioural CI and live acceptance are pending.
 
 ## Upgrading an isolated installation
 
@@ -212,6 +213,11 @@ termination; closing the window offers the same recovery after confirmation.
 Jarvis preserves Speech Note rather than editing its opaque rules. The Voice
 page explains the optional additive regex that removes the wake phrase during
 continuous dictation. If the wake phrase changes, that rule must change too.
+Install the optional app through Software Manager, choose and download its TTS
+voice, and explicitly enable **Settings → Accessibility → Allow external
+applications to invoke actions**. Detection accepts either existing Flatpak
+scope. The retained `--speechnote` option and GUI confirmation install per-user
+only when explicitly requested; ordinary setup gives guidance instead.
 
 Automated tests do not prove microphone, speaker, GPU or third-party website
 behavior. After installing, verify the wake word and hotkey, volume restoration,

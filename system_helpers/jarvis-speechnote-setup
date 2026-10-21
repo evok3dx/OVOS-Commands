@@ -38,7 +38,8 @@ done
 
 have_speechnote() {
   command -v flatpak >/dev/null 2>&1 && \
-    flatpak info "$app_id" >/dev/null 2>&1
+    { flatpak info --user "$app_id" >/dev/null 2>&1 ||
+      flatpak info --system "$app_id" >/dev/null 2>&1; }
 }
 
 confirm_install() {
@@ -96,6 +97,16 @@ show_dictation_rule_guide() {
     "This prevents the wake phrase used to stop dictation from being inserted into the document."
 }
 
+show_reading_guide() {
+  printf '%s\n' \
+    "Reading and dictation permission:" \
+    "  Open Speech Note → Settings → Accessibility." \
+    "  Enable: Allow external applications to invoke actions." \
+    "  This lets Jarvis request local Speech Note actions; Jarvis does not enable it for you." \
+    "Choose and download a TTS voice in Models, then test reading inside Speech Note." \
+    "If Jarvis wakes but hears nothing, select a physical microphone in Sound → Input, not a speaker monitor."
+}
+
 show_status() {
   if ! have_speechnote; then
     echo "Speech Note is not installed."
@@ -110,6 +121,7 @@ show_status() {
     "Jarvis connects through Speech Note's supported local D-Bus/CLI actions." \
     "Existing Speech Note settings are preserved."
   show_dictation_rule_guide
+  show_reading_guide
 }
 
 show_installation() {
@@ -120,6 +132,7 @@ show_installation() {
     "Jarvis will connect through Speech Note's supported local D-Bus/CLI actions." \
     "Existing Speech Note settings are preserved."
   show_dictation_rule_guide
+  show_reading_guide
 }
 
 open_speechnote() {
@@ -133,6 +146,7 @@ open_speechnote() {
     "For a new setup, download an English STT model and a TTS voice in Models." \
     "A Whisper model and a Kokoro or Piper voice are good local starting points."
   show_dictation_rule_guide
+  show_reading_guide
   printf '%s\n' \
     "On X11, insertion into the focused window works without extra permissions." \
     "Choose acceleration inside Speech Note only after it detects your hardware."
@@ -142,6 +156,7 @@ case "$action" in
   guide)
     printf '%s\n' "Models" "Choose an English STT model and a local TTS voice in Speech Note's Models tab." "Continuous dictation"
     show_dictation_rule_guide
+    show_reading_guide
     printf '%s\n' "Reading" "If fresh lines fade in or out, check Settings → Text to Speech → Normalise audio."
     ;;
   install)
