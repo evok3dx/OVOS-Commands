@@ -7,7 +7,7 @@ acceptance work. Durable design choices belong in
 under [`history/`](history/README.md). Other current documents link here rather
 than repeating release narratives.
 
-## 4.8.5 (candidate, 21 October 2026 UTC)
+## 4.8.5 (published stable, 21 October 2026 UTC)
 
 Add AI fallback On/Off and the reviewed model label to General. Change only the
 private router setting, gate enabling on the existing model/pipeline and let
@@ -27,9 +27,27 @@ loads, with the final readiness event less than one second after initial loading
 completed. The owner accepts cold-start latency. The private bounded-HTTP trial
 did not resolve it and is not included in this release; restore it before updating.
 
-**PLANNED validation/publication:** ordinary-user CI, native GTK/privacy checks,
-retained-runtime verification and final clean-archive checks before publication.
-GUI interaction with the new switch on an actual workstation remains live acceptance.
+**VERIFIED automated release:** source
+`5ddc795f68a34e553c5ae345ec684dcf7e7bb414` passed ordinary-user
+[Python 3.10–3.13, security and native X11/GTK CI](https://github.com/evok3dx/OVOS-Commands/actions/runs/39661710416).
+[Release preparation](https://github.com/evok3dx/OVOS-Commands/actions/runs/39661710285)
+reverified the retained 296-wheel runtime, privacy and helper lifecycle, built
+current first-party wheels, scanned history and archive contents, and reran the
+full suite and all 350 non-executing policy cases from the clean release archive.
+The new pending-proposal fixture was corrected before the final passing runs.
+These checks do not establish live microphone or real-model routing accuracy.
+
+**VERIFIED publication:** the owner-authorised
+[publication job](https://github.com/evok3dx/OVOS-Commands/actions/runs/39662420523)
+published stable [Jarvis 4.8.5](https://github.com/evok3dx/OVOS-Commands/releases/tag/v4.8.5),
+verified its exact source tag and downloaded all 11 assets to compare their bytes
+with the validated SHA256SUMS. Source archive SHA-256:
+`272e5f458aa5c89dfcb6711051d967808afaebabbd795d7cac86900df6d83ff8`.
+
+**PLANNED live acceptance:** use the new switch on an actual workstation,
+confirm native commands with AI off and check that an update keeps that choice.
+Native GTK simulation and saved-setting regressions passed; they are separate
+from this owner acceptance. Restore the private startup trial before updating.
 
 ## 4.8.0 (published stable, 21 October 2026 UTC)
 
