@@ -176,6 +176,14 @@ If any one of these layers is missing, the command change is incomplete.
 
 ## Control Centre and privacy contract
 
+- General owns AI fallback On/Off and its reviewed model label. The switch may
+  change only private router settings, preserving unknown fields. Enabling
+  checks the existing model/pipeline; disabling must work without a model reply.
+  Neither action may download a model, start/restart services, change isolation
+  or unmute. Preserve an explicit Off preference in ordinary and isolated
+  installer paths. Keep model-independent native commands and post-generation
+  cancellation/setting checks. Logging controls belong in Maintenance; moving
+  them must preserve No logs and independent five-minute expiry.
 - Keep Dashboard and tray on the shared service-state path. When isolation is
   active, inspect/control the actual mapped system workers, not inactive user
   relays. Distinguish stopped, starting, paused and failed states; never hide a

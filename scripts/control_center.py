@@ -14,7 +14,8 @@ from isolation_check import policy_status as isolation_policy_status
 from control_runtime import (service_action, microphone_action, speech_stop, status,
                              maintenance, voice_setting, read_json, update_status,
                              speech_note_status, speech_note_action, audio_settings,
-                             uninstall_jarvis, relaunch_control_center)
+                             uninstall_jarvis, relaunch_control_center,
+                             ai_fallback_status, set_ai_fallback)
 
 CSS = b'''
 .jarvis-root { background-color: @theme_bg_color; }
@@ -191,7 +192,7 @@ class ControlCenter:
         self.pages={}
         overview=self.page('overview','Dashboard','Your local voice assistant, at a glance.','view-grid-symbolic')
         self.build_overview(overview)
-        general=self.page('general','General','Appearance and what starts when you sign in.','preferences-system-symbolic')
+        general=self.page('general','General','Appearance, local AI and login options.','preferences-system-symbolic')
         self.build_general(general)
         app_page=self.page('apps','Apps & Commands','Choose what Jarvis can open and what you say.','applications-other-symbolic',scroll=False)
         app_page.pack_start(notebook,True,True,0)
@@ -218,6 +219,7 @@ class ControlCenter:
             GLib.timeout_add(120,self.tick)
             self.poll()
             self.refresh_startup()
+            self.refresh_ai_fallback()
             self.refresh_logging()
             GLib.timeout_add_seconds(1,self.logging_tick)
 
@@ -482,6 +484,7 @@ class ControlCenter:
         return value
 
     def build_maintenance(self,parent):
+        self.build_logging(parent)
         isolation=self.card(parent,'Isolation','Network restrictions for Jarvis only. Weather and music can stay online.')
         row=Gtk.Box(spacing=10);isolation.pack_start(row,False,False,0)
         self.isolation_led=label('●','jarvis-off');row.pack_start(self.isolation_led,False,False,0)
@@ -655,15 +658,18 @@ class ControlCenter:
         self.theme_picker.set_active_id(getattr(self,'selected_theme','light'))
         self.theme_picker.connect('changed',self.change_theme)
         appearance.pack_start(self.theme_picker,False,False,0)
-        logging_card=self.card(parent,'Logging','Diagnostics capture technical events for five minutes, then clear automatically. Spoken and written content is excluded.')
-        self.logging_picker=Gtk.ComboBoxText()
-        self.logging_picker.append('off','No logs')
-        self.logging_picker.append('diagnostics','Diagnostics for 5 minutes')
-        self.logging_picker.set_active_id('off')
-        self.logging_picker.connect('changed',self.change_logging)
-        logging_card.pack_start(self.logging_picker,False,False,0)
-        self.logging_note=label('No logs','jarvis-subtitle')
-        logging_card.pack_start(self.logging_note,False,False,0)
+        ai=self.card(parent,'Local AI fallback','Helps with varied command wording and general questions. Turn it off to use standard command phrases only.')
+        row=Gtk.Box(spacing=16);ai.pack_start(row,False,False,0)
+        row.pack_start(label('AI fallback','jarvis-default-label'),True,True,0)
+        self.ai_fallback_switch=Gtk.Switch();self.ai_fallback_switch.set_valign(Gtk.Align.CENTER)
+        self.ai_fallback_switch.get_accessible().set_name('AI fallback')
+        self.ai_fallback_switch.set_sensitive(False)
+        self.ai_fallback_switch.connect('state-set',self.change_ai_fallback)
+        row.pack_end(self.ai_fallback_switch,False,False,0);self.buttons.append(self.ai_fallback_switch)
+        self.ai_fallback_model=label('Model: checking…','jarvis-subtitle')
+        self.ai_fallback_note=label('Checking AI settings…','jarvis-subtitle')
+        ai.pack_start(self.ai_fallback_model,False,False,0)
+        ai.pack_start(self.ai_fallback_note,False,False,0)
         card=self.card(parent,'Startup')
         self.startup_switches={}
         for component,title,detail in (
@@ -681,6 +687,40 @@ class ControlCenter:
             self.startup_switches[component]=switch;self.buttons.append(switch)
         self.startup_note=label('Checking login settings…','jarvis-subtitle')
         card.pack_start(self.startup_note,False,False,0)
+
+    def refresh_ai_fallback(self):
+        self.updating_ai_fallback=True
+        try:
+            value=ai_fallback_status()
+            self.ai_fallback_switch.set_active(value['enabled'])
+            self.ai_fallback_switch.set_sensitive(not self.state['busy'] and not self.busy)
+            self.ai_fallback_model.set_text('Model: '+value['model'])
+            self.ai_fallback_note.set_text('On: local AI is available when standard commands do not match.'
+                                          if value['enabled'] else 'Off: use standard command phrases. The model stays installed.')
+        except (OSError,ValueError,RuntimeError):
+            self.ai_fallback_switch.set_sensitive(False)
+            self.ai_fallback_model.set_text('Model: unavailable')
+            self.ai_fallback_note.set_text('AI settings need review. See Maintenance for checks.')
+        finally:self.updating_ai_fallback=False
+
+    def change_ai_fallback(self,_switch,enabled):
+        if getattr(self,'updating_ai_fallback',False):return False
+        if self.state['busy'] or self.busy:return True
+        self.task('Saving AI fallback',lambda:set_ai_fallback(bool(enabled)),
+                  on_success=lambda value:('AI fallback enabled.' if value['enabled'] else 'AI fallback disabled.'),
+                  on_finish=lambda:GLib.idle_add(self.refresh_ai_fallback))
+        return True
+
+    def build_logging(self,parent):
+        card=self.card(parent,'Logging','Diagnostics capture technical events for five minutes, then clear automatically. Spoken and written content is excluded.')
+        self.logging_picker=Gtk.ComboBoxText()
+        self.logging_picker.append('off','No logs')
+        self.logging_picker.append('diagnostics','Diagnostics for 5 minutes')
+        self.logging_picker.set_active_id('off')
+        self.logging_picker.connect('changed',self.change_logging)
+        card.pack_start(self.logging_picker,False,False,0)
+        self.logging_note=label('No logs','jarvis-subtitle')
+        card.pack_start(self.logging_note,False,False,0)
 
     def change_logging(self,picker):
         if getattr(self,'updating_logging',False):return

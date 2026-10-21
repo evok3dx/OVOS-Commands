@@ -3,6 +3,7 @@ import concurrent.futures
 import contextlib
 import fcntl
 from functools import wraps
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -57,6 +58,53 @@ def exclusive(function):
 
 def save_with_lock(work):
     with operation_lock():return work()
+
+
+def _qwen_settings_module():
+    spec = importlib.util.spec_from_file_location('jarvis_qwen_settings',
+                                                  Path(__file__).with_name('qwen-setup.py'))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def ai_fallback_status():
+    """Read the saved AI preference without contacting or starting a model."""
+    module = _qwen_settings_module()
+    saved = module.read_saved(Path.home() / '.config/jarvis/router.json')
+    if saved.get('mode') not in (None, 'on', 'off'):
+        raise ValueError('AI fallback settings need review')
+    if saved.get('model') not in (None, module.MODEL):
+        raise ValueError('A different AI model is configured; review its settings first')
+    if saved.get('mode') == 'on' and saved.get('model') != module.MODEL:
+        raise ValueError('AI fallback model setup is incomplete')
+    if saved.get('timeout_seconds', 8) != 8:
+        raise ValueError('AI fallback timeout needs review')
+    return {'enabled': saved.get('mode') == 'on' and saved.get('model') == module.MODEL,
+            'model': module.MODEL}
+
+
+@exclusive
+def set_ai_fallback(enabled):
+    """Change only the AI preference; never start services or download models."""
+    if type(enabled) is not bool:
+        raise ValueError('AI fallback choice must be on or off')
+    from isolation_install import installation_blocked
+    if installation_blocked():
+        raise RuntimeError('Finish installation recovery before changing AI fallback')
+    module = _qwen_settings_module()
+    path = Path.home() / '.config/jarvis/router.json'
+    saved = module.read_saved(path)
+    if enabled:
+        if saved.get('timeout_seconds', 8) != 8:
+            raise ValueError('AI fallback timeout needs review')
+        stages, _available, model, _saved, _path = module.inspect(Path.home())
+        if not (stages and model):
+            raise RuntimeError('AI fallback is unavailable. Start Jarvis and check its model setup, then try again.')
+        module.enable(path, saved)
+    else:
+        module.disable(path, saved)
+    return ai_fallback_status()
 
 
 def run(args, timeout=15, check=True):
@@ -463,7 +511,7 @@ def maintenance(action, cancel_event=None, progress=None):
     if action == 'logs':
         from privacy_logging import mode
         if not mode()['enabled']:
-            return 'No logs. Enable Diagnostics for 5 minutes in General before reproducing the issue.'
+            return 'No logs. Enable Diagnostics for 5 minutes in Maintenance before reproducing the issue.'
         result = run([Path.home()/'.venvs/ovos/bin/python',
                       Path(__file__).with_name('diagnostic_reader.py')], timeout=10)
         return result.stdout.strip() or 'No diagnostic events available.'

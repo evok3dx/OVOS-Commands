@@ -1,20 +1,18 @@
 # Jarvis · Voice control for Linux Mint
 
-Jarvis makes everyday desktop control feel natural while keeping execution
-predictable. Exact OVOS commands run first. A local Qwen model can interpret
-more relaxed wording, but it may choose only enabled, reviewed actions. It
-never turns model output into a shell command.
+Jarvis lets you control your Linux desktop by voice. Standard commands run
+first. Optional local AI helps with varied wording and can use only the
+actions and apps you have enabled.
 
 ## Why Jarvis
 
 - **Local by default.** Wake word, speech recognition, routing and speech
   output run on your machine.
-- **Natural without being unrestricted.** Say “open notes”, “look this up in
-  Firefox” or “play Get Lucky” without giving an AI arbitrary computer access.
+- **Simple commands.** Say “open notes”, “search Firefox” or “play Get Lucky”.
 - **Personal.** Choose the apps behind Browser, Notes, Mail, Calendar and
   Office, add spoken names and keep your own commands.
-- **Recoverable.** Updates stage and validate changes, preserve the working
-  environment and retain rollback.
+- **Recoverable.** Updates check changes, preserve your settings and keep a
+  rollback copy.
 - **Visible.** One tray icon and a Light/Dark Control Centre show services,
   microphone, updates and private session activity.
 
@@ -22,23 +20,20 @@ never turns model output into a shell command.
 
 ### Before you install
 
-- Use **Linux Mint 22.x on X11, x86_64**, with a working microphone and audio
-  output. Mint 22.3 is the reviewed desktop target. The current isolation setup
-  requires Polkit's JavaScript rules backend; Mint 21.3's Polkit 0.105 is not
-  supported for isolation. See [Requirements and stack](#requirements-and-stack).
-- Setup prepares **CPython 3.11.16** privately when needed, the exact Python
-  required by the reviewed runtime. It leaves system Python and its aliases
-  unchanged. An existing OVOS environment using another Python needs review. See
-  [preparing Python](docs/07-installer-updates.md#preparing-python).
-- Keep at least **8 GiB free** on the filesystem used for OVOS staging and
-  rollback, plus room for voice models and Ollama's model storage. Ollama may
-  store downloads on the root filesystem even when your home has free space.
+- Use **Linux Mint 22.x, X11 and x86_64**, with a working microphone and speakers.
+  Mint 22.3 is the tested desktop target. See [Requirements and stack](#requirements-and-stack).
+- Setup prepares its own **Python 3.11.16** when needed. System Python stays
+  unchanged. See [Python setup](docs/07-installer-updates.md#preparing-python)
+  if you already have an OVOS environment using another Python version.
+- Keep at least **8 GiB free** for installation and rollback, plus room for
+  voice and AI models. Check the filesystem holding Ollama's model storage;
+  free space in your home directory may not cover those downloads.
 - Install and start **Ollama** using its [Linux setup guide](https://docs.ollama.com/linux).
   Jarvis reuses an existing installation; it does not install Ollama.
-- Allow internet access for the initial runtime and model downloads. Selected
-  isolation is applied afterwards; it leaves general Ollama unchanged.
-- Run Jarvis setup as your desktop user. Fresh system preparation and selected
-  isolation may request bounded administrator approval. An absent OVOS baseline is prepared in user space; Speech Note is optional for reading and dictation.
+- Internet access is needed for initial downloads. Optional isolation is
+  applied afterwards and leaves your general Ollama instance unchanged.
+- Run setup **without sudo**. It asks for administrator approval only when
+  needed for system prerequisites or isolation.
 
 For a **new installation**, run these prerequisites as your desktop user.
 Ollama installation and service startup may request administrator approval.
@@ -58,11 +53,9 @@ Existing users should follow the [upgrade procedure](docs/07-installer-updates.m
 )
 ```
 
-Continue after the model download succeeds. Jarvis reuses it and prepares its
-private Python automatically with checksum-pinned `uv`; no manual Python
-installation is required. Ollama and model downloads are separate from the
-release's hash-verified voice runtime. If a VPN connection reports an IPv6
-connection refusal during the pull, check its IPv6 tunnel setting and retry.
+Continue after the model download succeeds. Jarvis reuses it and sets up Python
+automatically. If the download reports an IPv6 connection refusal while using
+a VPN, check the VPN's IPv6 tunnel setting and retry.
 See [model download and storage](docs/troubleshooting.md#model-download-and-storage).
 
 For optional reading and dictation, install **Speech Note** through Software
@@ -76,25 +69,20 @@ Download the archive and matching `.sha256` from
 [Releases](https://github.com/evok3dx/OVOS-Commands/releases/latest):
 
 ```bash
-version=4.8.0
+version=4.8.5
 sha256sum --check "ovos-commands-$version.tar.gz.sha256"
 tar -xzf "ovos-commands-$version.tar.gz"
 cd "ovos-commands-$version"
 bash scripts/install.sh
 ```
 
-An optional `bash scripts/install.sh --check` is read-only; it reports missing
-prerequisites without downloading them. Fresh setup prepares absent OVOS user services and an
-ordinary-user virtual environment using the required interpreter. Missing OS
-tools and selected isolation need bounded administrator approval. Jarvis itself,
-normal updates and daily use run as your desktop user. See
-[fresh installation](docs/07-installer-updates.md#fresh-installation).
-Selected network isolation needs bounded administrator approval for service
-data and a dedicated local model. Existing choices are preserved; see the
-[upgrade procedure](docs/07-installer-updates.md#upgrading-an-isolated-installation)
-before using the full installer or updater.
-For an isolated 4.0.1/4.2.0 GUI upgrade, first apply the
-[reviewed updater repair](docs/troubleshooting.md#isolated-gui-update-lock-conflict).
+Setup checks prerequisites, installs OVOS and offers network isolation.
+Isolation is recommended and needs administrator approval. Existing isolation
+choices are preserved. Reading and dictation use optional Speech Note.
+
+For a read-only preflight, run `bash scripts/install.sh --check`.
+For Jarvis **4.5 or later**, update through **Updates** in the Control Centre.
+See the [installation and upgrade guide](docs/07-installer-updates.md) for details.
 
 ```mermaid
 flowchart TD
@@ -106,16 +94,12 @@ flowchart TD
 
 ## Requirements and stack
 
-The reviewed workstation target is Linux Mint 22.3, X11 and x86_64. Use Mint
-22.x for the current native isolation setup, with a JavaScript-capable Polkit
-backend and systemd network filtering. The release's managed voice runtime
-requires CPython 3.11.16; its exact interpreter requirement is recorded in
-[`voice/runtime-linux-x86_64-py311.json`](voice/runtime-linux-x86_64-py311.json).
-Setup checks the machine, prepares the pinned OVOS/voice environment and reuses
-an existing local Ollama installation. It asks before downloading a missing
-reviewed Qwen model. Exact versions and hashes
-live in [`compatibility.json`](compatibility.json) and
-[`voice/reviewed-stack.json`](voice/reviewed-stack.json), not in this overview.
+The tested target is **Linux Mint 22.3 on X11, x86_64**. Wayland is not supported.
+Isolation needs Mint 22.x's supported Polkit and systemd network filtering.
+Setup checks compatibility and prepares its own Python 3.11.16 environment.
+Exact package versions and hashes are listed in
+[`compatibility.json`](compatibility.json) and
+[`voice/reviewed-stack.json`](voice/reviewed-stack.json).
 
 | Layer | Local component |
 |---|---|
@@ -126,14 +110,10 @@ live in [`compatibility.json`](compatibility.json) and
 | Speak | PhōnNX/Bella, with optional Speech Note reading and dictation |
 | Manage | Combined tray, Control Centre, staged updates and rollback |
 
-The Python package is also checked against Python 3.10–3.13. Those package
-checks do not change the managed runtime's exact Python requirement or replace
-full desktop and voice acceptance testing.
-
-The interface and desktop commands are lightweight; speech recognition, voice
-generation and local Qwen routing use more CPU and memory. Each computer runs
-those models locally. Older hardware and initial model loading can increase
-response time; a remote workstation is not used automatically.
+Desktop command matching is lightweight. Speech recognition, voice generation
+and local AI need more CPU and memory. Startup can take longer on older
+computers. Each computer processes voice locally; a remote machine is not used
+automatically. Turn off **General → AI fallback** if local AI is too slow.
 
 ## Everyday controls
 
@@ -148,23 +128,21 @@ response time; a remote workstation is not used automatically.
 | Files | “Find {filename}”, “Search my documents” | File Search plugin |
 | Voice | Wake phrase, hotkeys and background-audio level | Voice |
 | Startup | Start the app minimised and/or voice services at login; Run/Stop this session | General / Dashboard |
+| Local AI | AI fallback On/Off and the configured model | General |
 | Status | Speech, Listener and Commands; green health-check success, isolation policy and explicit network checks | Dashboard / Maintenance |
-| Privacy | No logs by default, or Diagnostics for 5 minutes | General |
+| Privacy | No logs by default, or Diagnostics for 5 minutes | Maintenance |
 | Activity | Recent completed action labels, with Refresh; no transcripts | Dashboard |
 | Updates | Installed version, release date, check and install | Updates |
 
-Fresh setup offers **Recommended**, **All** and **Custom** application modes.
-Only detected and enabled applications enter the voice catalogue, Whisper
-hints or Qwen action list. Changing a default never permits an unrelated app
-or an arbitrary executable.
+Fresh setup offers **Recommended**, **All** and **Custom** app choices. Jarvis
+uses only detected and enabled apps. With AI fallback off, use the standard
+phrases shown in Commands. Your choice is kept across updates.
 
 ## What updates preserve
 
 Jarvis preserves your OVOS configuration, downloaded models, selected apps,
 default roles, spoken names, personal commands, shortcuts, listening sound,
-and unlisted private helpers. The managed runtime uses the release's reviewed
-versions and hashes. The previous Jarvis deployment
-and OVOS virtual environment remain available for rollback:
+and private helpers. The previous installation remains available for rollback:
 
 ```bash
 jarvis-health-check
@@ -173,8 +151,7 @@ jarvis-update rollback
 ```
 
 Settings export is a separate, private backup. It may contain credentials, so
-inspect it and keep it private. It is not yet a redacted portable export or an
-automatic cross-machine import.
+inspect it and keep it private. Automatic cross-machine import is not available.
 
 ## Security boundary
 
@@ -182,7 +159,7 @@ automatic cross-machine import.
 - Risky controls stay strict; writing rechecks focus and refuses terminal windows.
 - Discovered applications launch through their reviewed desktop entries.
 - Configuration writes are private and atomic.
-- General offers No logs or five-minute diagnostics with fixed failure reasons; spoken and
+- Maintenance offers No logs or five-minute diagnostics with fixed failure reasons; spoken and
   written content is excluded. Diagnostics expire and clear even with the GUI
   closed. See the [logging limits](docs/security-and-updates.md#application-logging-in-43).
 - Temporary reading text is cleared; the previous clipboard is never restored.
@@ -194,11 +171,9 @@ automatic cross-machine import.
 - Maintenance shows configured isolation policy. **Check isolation** tests the
   current workers and private model; a policy indicator alone is not proof of
   blocked network access. See [GUI status and checks](docs/core-isolation.md#control-centre-status-and-checks).
-- The [guided isolation installer](docs/core-isolation.md#guided-installer-401)
-  offers isolation recommended for new installs and preserves existing choices.
-  Its dedicated loopback model instance leaves general Ollama unchanged.
-  [Live checks](docs/releases.md) verify local generation and the tested
-  IPv4/IPv6 network restrictions.
+- The [isolation setup](docs/core-isolation.md) preserves existing choices and
+  leaves general Ollama unchanged. Network-test reports distinguish passed,
+  untested and inconclusive results; see the [release record](docs/releases.md).
 
 Recent Activity is a separate, temporary list of reviewed action labels. It
 works with No logs selected and displays the last five minutes. Existing logs,
@@ -219,7 +194,7 @@ are separate. Checksums verify bytes; production signing remains future work.
 - [Media and filename search](docs/10-media-files.md)
 - [Troubleshooting](docs/troubleshooting.md) and [maintenance](docs/maintenance.md)
 - [Security](docs/security-and-updates.md), [decisions](docs/12-decisions.md) and [release record](docs/releases.md)
-- [V4.5 release notes](docs/release-v4.5.0.md) and [service isolation](docs/core-isolation.md)
+- [Latest release notes](docs/release-v4.8.5.md) and [service isolation](docs/core-isolation.md)
 - [Contributor and AI-agent rules](AGENTS.md)
 
 ## Licence and thanks

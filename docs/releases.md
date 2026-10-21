@@ -7,6 +7,30 @@ acceptance work. Durable design choices belong in
 under [`history/`](history/README.md). Other current documents link here rather
 than repeating release narratives.
 
+## 4.8.5 (candidate, 21 October 2026 UTC)
+
+Add AI fallback On/Off and the reviewed model label to General. Change only the
+private router setting, gate enabling on the existing model/pipeline and let
+disabling work without model access. Preserve unknown router fields and an
+explicit Off choice in both ordinary and isolated updates. No service restart,
+model download, microphone change or isolation change comes from the switch.
+
+Move logging controls to Maintenance, keeping No logs, private technical-only
+diagnostics and their independent five-minute expiry. Update linked guidance.
+Simplify README wording and remove pre-4.5 repair instructions from the main
+install path; detailed recovery history remains available. Retain the reviewed
+runtime, both standalone plugins and startup behaviour.
+
+**VERIFIED owner observations:** native-only probes matched 20 everyday commands.
+A startup trace placed dispatcher readiness before the remaining initial skill
+loads, with the final readiness event less than one second after initial loading
+completed. The owner accepts cold-start latency. The private bounded-HTTP trial
+did not resolve it and is not included in this release; restore it before updating.
+
+**PLANNED validation/publication:** ordinary-user CI, native GTK/privacy checks,
+retained-runtime verification and final clean-archive checks before publication.
+GUI interaction with the new switch on an actual workstation remains live acceptance.
+
 ## 4.8.0 (published stable, 21 October 2026 UTC)
 
 Prepare missing private CPython 3.11.16 automatically using checksum-pinned uv

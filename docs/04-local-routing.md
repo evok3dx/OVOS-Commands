@@ -1,5 +1,19 @@
 # Local Qwen routing
 
+## Turn AI fallback on or off
+
+In **General → Local AI fallback**, use the **AI fallback** switch. The card
+shows the reviewed model. Off skips model routing and general AI answers;
+standard commands and their existing safety checks remain available. On checks
+the existing local model setup before saving. No model is downloaded and no
+service is started or microphone unmuted by this switch. The setting applies to
+subsequent requests without a restart and an explicit Off choice survives updates.
+The model stays installed and may remain resident in memory when AI is off.
+
+Native-only intent probes and the model benchmark measure different paths.
+The non-executing `routing-benchmark.py` deliberately calls Qwen even when the
+live fallback setting is off; do not use it as a native-only speed test.
+
 **VERIFIED in code:** the reviewed `qwen3:4b-instruct-2507-q4_K_M`
 model uses general Ollama on `127.0.0.1:11434` when isolation is declined.
 The 4.0.1 [guided isolation installer](core-isolation.md#guided-installer-401)

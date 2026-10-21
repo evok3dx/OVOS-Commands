@@ -18,6 +18,20 @@ STAGES = ("jarvis-qwen-pipeline", "jarvis-unmatched-pipeline",
           "jarvis-qwen-chat-pipeline")
 
 
+def read_saved(path: Path):
+    if any(item.is_symlink() for item in (path, *path.parents)):
+        raise ValueError("Router settings must not use symbolic links")
+    if not path.exists():
+        return {}
+    info = path.stat()
+    if not path.is_file() or info.st_uid != os.getuid() or info.st_mode & 0o077 or info.st_size > 4096:
+        raise ValueError("Router settings ownership, privacy or size needs review")
+    saved = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(saved, dict):
+        raise ValueError("Router settings must be an object")
+    return saved
+
+
 def inspect(home: Path):
     config_path = home / ".config/mycroft/mycroft.conf"
     try:
@@ -40,31 +54,25 @@ def inspect(home: Path):
     except (OSError, URLError, ValueError, KeyError, TypeError):
         ollama_ready = model_ready = False
     settings_path = home / ".config/jarvis/router.json"
-    try:
-        saved = json.loads(settings_path.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        saved = {}
+    saved = read_saved(settings_path)
     return stages_ready, ollama_ready, model_ready, saved, settings_path
 
 
-def enable(path: Path, saved: dict):
-    if not isinstance(saved, dict) or len(json.dumps(saved)) > 4096:
-        raise ValueError("Existing router settings need manual review")
-    if saved.get("model") not in (None, MODEL):
-        raise ValueError("A different local model is configured; keep those settings and review manually")
+def write_settings(path: Path, updated: dict):
+    content = (json.dumps(updated, indent=2) + "\n").encode("utf-8")
+    if len(content) > 4096:
+        raise ValueError("Router settings exceed their size limit")
+    if any(item.is_symlink() for item in (path, *path.parents)):
+        raise ValueError("Router settings must not use symbolic links")
     path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
-    if path.is_symlink() or (path.exists() and (not path.is_file() or path.stat().st_uid != os.getuid())):
-        raise ValueError("Router settings must be a regular file owned by this user")
-    timeout = saved.get("timeout_seconds", 8)
-    if not isinstance(timeout, (int, float)) or isinstance(timeout, bool) or not 3 <= timeout <= 60:
-        raise ValueError("Existing model timeout needs manual review")
-    updated = dict(saved, version=1, mode="on", model=MODEL,
-                   timeout_seconds=timeout)
+    if path.parent.stat().st_uid != os.getuid():
+        raise ValueError("Router directory must belong to this user")
+    if path.exists():
+        read_saved(path)
     fd, temporary = tempfile.mkstemp(prefix=".router-", dir=path.parent)
     try:
-        with os.fdopen(fd, "w", encoding="utf-8") as stream:
-            json.dump(updated, stream, indent=2)
-            stream.write("\n")
+        with os.fdopen(fd, "wb") as stream:
+            stream.write(content)
             stream.flush()
             os.fsync(stream.fileno())
         os.chmod(temporary, 0o600)
@@ -74,14 +82,45 @@ def enable(path: Path, saved: dict):
             os.unlink(temporary)
 
 
+def disable(path: Path, saved: dict):
+    if not isinstance(saved, dict):
+        raise ValueError("Existing router settings need manual review")
+    write_settings(path, dict(saved, mode="off"))
+
+
+def enable(path: Path, saved: dict):
+    if not isinstance(saved, dict) or len(json.dumps(saved)) > 4096:
+        raise ValueError("Existing router settings need manual review")
+    if saved.get("model") not in (None, MODEL):
+        raise ValueError("A different local model is configured; keep those settings and review manually")
+    timeout = saved.get("timeout_seconds", 8)
+    if not isinstance(timeout, (int, float)) or isinstance(timeout, bool) or not 3 <= timeout <= 60:
+        raise ValueError("Existing model timeout needs manual review")
+    updated = dict(saved, version=1, mode="on", model=MODEL,
+                   timeout_seconds=timeout)
+    write_settings(path, updated)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Check or enable local Jarvis Qwen routing")
-    parser.add_argument("--enable", action="store_true", help="enable only if the existing model and OVOS routing are ready")
+    change = parser.add_mutually_exclusive_group()
+    change.add_argument("--enable", action="store_true", help="enable only if the existing model and OVOS routing are ready")
+    change.add_argument("--disable", action="store_true", help="disable AI requests without changing services or models")
+    parser.add_argument("--keep-disabled", action="store_true", help="preserve an explicit off preference during installation")
     parser.add_argument("--prepare", action="store_true", help="offer to download the required model before installation")
     parser.add_argument("--yes", action="store_true", help="accept the model download in unattended setup")
     args = parser.parse_args()
     if os.geteuid() == 0:
         parser.error("run as the desktop user, without sudo")
+    path = Path.home() / ".config/jarvis/router.json"
+    saved = read_saved(path)
+    if args.disable:
+        disable(path, saved)
+        print("AI fallback disabled. Standard commands remain available.")
+        return
+    if args.enable and args.keep_disabled and saved.get("mode") == "off":
+        print("Saved AI fallback preference remains off.")
+        return
     stages, ollama, model, saved, path = inspect(Path.home())
     if args.prepare and isinstance(saved, dict) and saved.get("model") not in (None, MODEL):
         parser.error("A different model is configured; review that machine's routing before V3")

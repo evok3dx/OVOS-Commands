@@ -10,7 +10,7 @@ from privacy_logging import ROLES, display, mode, quiet_reader
 
 def read():
     if not mode()['enabled']:
-        return 'No logs. Enable Diagnostics for 5 minutes in General.'
+        return 'No logs. Enable Diagnostics for 5 minutes in Maintenance.'
     from ovos_bus_client import MessageBusClient, Message
     bus = MessageBusClient(host='127.0.0.1', port=8181, route='/core', ssl=False)
     bus.run_in_thread()

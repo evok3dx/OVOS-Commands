@@ -51,9 +51,9 @@ for the validated troubleshooting sequence.
 |---|---|
 | Dashboard | System Online/Offline, starting, paused or attention state; Speech, Listener and Commands; Run/Stop, restart commands and microphone controls. |
 | Dashboard → Recent Activity | Reviewed completed action labels from the last five minutes, with Refresh and an unavailable message if the reader cannot respond. |
-| General | Light/Dark appearance; independent tray and voice login choices; No logs or Diagnostics for 5 minutes. |
+| General | Light/Dark appearance; independent tray and voice login choices; AI fallback On/Off and its model. |
 | Maintenance → Isolation | Current core/private-model policy, Refresh status and Check isolation. Policy configuration is separate from a network-test result. |
-| Maintenance → Recent logs | Temporary diagnostics with fixed failure reasons, elapsed time and collector availability. Enable in General before reproducing a problem. |
+| Maintenance → Logging / Recent logs | No logs or Diagnostics for 5 minutes; fixed failure reasons, elapsed time and collector availability. Enable capture here before reproducing a problem. |
 | Updates | Explicit check/install controls. A successful up-to-date check uses a green button; an available update uses blue; an unavailable check remains unconfirmed. |
 
 Dashboard and tray share the same service-state reader. With isolation active,

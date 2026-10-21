@@ -2,7 +2,7 @@ name: Prepare reviewed Jarvis release assets
 
 on:
   push:
-    branches: [work/release-v4.8]
+    branches: [work/release-v4.8.5]
   workflow_dispatch:
 
 permissions:

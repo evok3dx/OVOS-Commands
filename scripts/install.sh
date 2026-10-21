@@ -1186,7 +1186,7 @@ fi
   --config "$ovos_config"
 
 if [[ "${JARVIS_TEST_MODE:-0}" != 1 && -z "${JARVIS_ISOLATION_TRANSACTION:-}" ]]; then
-  "$desktop_python" "$target_root/scripts/qwen-setup.py" --enable
+  "$desktop_python" "$target_root/scripts/qwen-setup.py" --enable --keep-disabled
 fi
 
 for helper in "${runtime_helpers[@]}"; do

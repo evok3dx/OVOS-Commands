@@ -359,7 +359,7 @@ new activity session; no persistent activity history is written.
 
 ## Five-minute diagnostics
 
-Jarvis 4.3 defaults to **General → Logging → No logs**. Choose
+Jarvis defaults to **Maintenance → Logging → No logs**. Choose
 **Diagnostics for 5 minutes**, reproduce the problem, then open
 **Maintenance → Recent logs** while capture is active. Capture stops and
 clears after five minutes independently of the GUI. Choosing No logs clears
@@ -474,7 +474,7 @@ alternative when recognition mishears `Play`.
 New weather locations can spend roughly 13 seconds in search/reverse lookup
 before the forecast request. Repeated locations reuse the lookup. The durations
 include wrapper/network/provider work, so do not assume a CPU or provider fault.
-For current builds, enable five-minute diagnostics in General before reproducing
+For current builds, enable five-minute diagnostics in Maintenance before reproducing
 the delay and inspect the fixed Weather stages in Maintenance. Earlier raw
 journal procedures are historical and may contain private content.
 

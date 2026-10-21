@@ -62,8 +62,38 @@ centre.buttons=[]
 centre.change_startup=lambda *args: True
 parent=Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 centre.build_general(parent)
+assert not hasattr(centre,'logging_picker'), 'Logging belongs in Maintenance'
+assert isinstance(centre.ai_fallback_switch,Gtk.Switch)
+assert centre.ai_fallback_switch.get_accessible().get_name()=='AI fallback'
+maintenance_parent=Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+centre.build_maintenance(maintenance_parent)
 assert centre.logging_picker.get_active_id()=='off'
 assert centre.logging_note.get_text()=='No logs'
+centre.state={'busy':False};centre.busy=False
+ai_state={'enabled':True,'model':'qwen3:4b-instruct-2507-q4_K_M'}
+ai_changes=[]
+namespace['ai_fallback_status']=lambda:dict(ai_state)
+def save_ai(enabled):
+    ai_changes.append(enabled);ai_state['enabled']=enabled
+    return dict(ai_state)
+namespace['set_ai_fallback']=save_ai
+namespace['GLib']=GLib
+centre.refresh_ai_fallback()
+assert centre.ai_fallback_switch.get_active()
+assert centre.ai_fallback_model.get_text()=='Model: '+ai_state['model']
+assert ai_changes==[], 'Reading the GUI must not write AI settings'
+def run_task(_title,work,on_success=None,on_finish=None):
+    result=work()
+    if on_finish:on_finish()
+    if on_success:on_success(result)
+centre.task=run_task
+centre.ai_fallback_switch.emit('state-set',False)
+while Gtk.events_pending():Gtk.main_iteration()
+assert ai_changes==[False] and not centre.ai_fallback_switch.get_active()
+centre.ai_fallback_switch.emit('state-set',True)
+while Gtk.events_pending():Gtk.main_iteration()
+assert ai_changes==[False,True] and centre.ai_fallback_switch.get_active()
+del centre.task
 assert set(centre.startup_switches)=={'tray','voice'}
 assert all(isinstance(switch,Gtk.Switch) for switch in centre.startup_switches.values())
 centre.install_update=Gtk.Button();centre.update_health=Gtk.Label()
@@ -100,7 +130,7 @@ for child in descendants(white_button):
         colour=child.get_style_context().get_color(child.get_state_flags())
         assert all(abs(value-1)<0.001 for value in (colour.red,colour.green,colour.blue,colour.alpha)),colour
 window.destroy()
-parent.destroy();centre.install_update.destroy();centre.update_health.destroy()
+parent.destroy();maintenance_parent.destroy();centre.install_update.destroy();centre.update_health.destroy()
 print('PASS: General independent switches; GTK update button green/blue/neutral and disabled text/icon computed white')
 
 # A host's light hover/icon rules must not leak into the app's dark sidebar.

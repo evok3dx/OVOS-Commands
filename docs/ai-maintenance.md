@@ -28,7 +28,7 @@ credentials or raw logs. Nothing is uploaded automatically.
 
 ## Optional five-minute diagnostics
 
-In **General → Logging**, select **Diagnostics for 5 minutes**, then reproduce
+In **Maintenance → Logging**, select **Diagnostics for 5 minutes**, then reproduce
 the issue. View the fixed technical events in **Maintenance → Recent logs**,
 or include the currently enabled capture in a private report:
 

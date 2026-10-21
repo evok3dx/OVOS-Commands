@@ -869,7 +869,7 @@ def run_install(arguments, home):
             subprocess.run(['/usr/bin/systemctl', '--system', '--no-ask-password',
                             'start', model.unit_name()], check=True)
             model.wait_model()
-            subprocess.run([sys.executable, str(deployment / 'scripts/qwen-setup.py'), '--enable'], check=True)
+            subprocess.run([sys.executable, str(deployment / 'scripts/qwen-setup.py'), '--enable', '--keep-disabled'], check=True)
             start_fresh_support(home, journal, desired, existing=existing)
             restore_running(desired)
             if '--no-restart' in forwarded or not desired:
