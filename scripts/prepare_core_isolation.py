@@ -22,6 +22,7 @@ SOURCES=('scripts/isolation_worker.py','scripts/isolation_services.py','scripts/
          'scripts/verify_core_isolation.py','scripts/prepare_core_isolation.py','scripts/runtime_provenance.py',
          'scripts/isolation_install.py','scripts/private_ollama.py','scripts/model_endpoint.py',
          'scripts/privacy_logging.py',
+         'scripts/voice_models.py','voice/managed-models.json',
          'ovos_skill_jarvis_dispatcher/model_endpoint.py',
          'voice/runtime-linux-x86_64-py311.json','voice/runtime-wheels-linux-x86_64-py311.txt')
 

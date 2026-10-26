@@ -69,7 +69,7 @@ Download the archive and matching `.sha256` from
 [Releases](https://github.com/evok3dx/OVOS-Commands/releases/latest):
 
 ```bash
-version=4.8.9
+version=4.9.0
 sha256sum --check "ovos-commands-$version.tar.gz.sha256"
 tar -xzf "ovos-commands-$version.tar.gz"
 cd "ovos-commands-$version"
@@ -115,6 +115,10 @@ and local AI need more CPU and memory. Startup can take longer on older
 computers. Each computer processes voice locally; a remote machine is not used
 automatically. Turn off **General → AI fallback** if local AI is too slow.
 
+Jarvis keeps required Whisper and Bella files in
+`~/.local/share/jarvis/models/`. Clearing normal caches does not remove them.
+Setup restores missing reviewed files; the health check verifies them.
+
 ## Everyday controls
 
 | Area | Examples | Configure |
@@ -149,6 +153,11 @@ jarvis-health-check
 jarvis-update check
 jarvis-update rollback
 ```
+
+Successful updates remove their temporary working files. Abandoned staging is
+removed only when Jarvis can verify it owns the folder and no recovery needs
+it. Rollback copies and shared model caches are kept; see
+[storage and cleanup](docs/troubleshooting.md#speech-model-storage-and-cleanup).
 
 Settings export is a separate, private backup. It may contain credentials, so
 inspect it and keep it private. Automatic cross-machine import is not available.
@@ -194,7 +203,7 @@ are separate. Checksums verify bytes; production signing remains future work.
 - [Media and filename search](docs/10-media-files.md)
 - [Troubleshooting](docs/troubleshooting.md) and [maintenance](docs/maintenance.md)
 - [Security](docs/security-and-updates.md), [decisions](docs/12-decisions.md) and [release record](docs/releases.md)
-- [Latest release notes](docs/release-v4.8.9.md) and [service isolation](docs/core-isolation.md)
+- [Latest release notes](docs/release-v4.9.0.md) and [service isolation](docs/core-isolation.md)
 - [Contributor and AI-agent rules](AGENTS.md)
 
 ## Licence and thanks

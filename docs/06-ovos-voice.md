@@ -6,6 +6,14 @@ machine configuration.
 
 ## Reviewed local stack
 
+Required Whisper and Bella files live in permanent Jarvis data under
+`~/.local/share/jarvis/models/hub`. Setup uses the immutable revisions and
+payload hashes in `voice/managed-models.json`; both speech worker types select
+that location before library imports. Offline workers never download missing
+models. Temporary WAVs, download metadata and a rebuilt voice catalogue may be
+discarded; required model/config/style bytes may not. See
+[storage recovery and cleanup](troubleshooting.md#speech-model-storage-and-cleanup).
+
 | Component | Reviewed state |
 |---|---|
 | OVOS Core / Workshop / plugin manager | `3.7.0a1` / `9.8.7a1` / `2.12.4a1` |

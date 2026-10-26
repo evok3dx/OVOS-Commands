@@ -494,23 +494,12 @@ PY
   printf '%s\n' "Preparing the local Hey Jarvis, small.en and Bella models..."
   "$ovos_python" - <<'PY' || return 1
 from openwakeword.utils import download_models
-from faster_whisper import WhisperModel
 
 download_models()
-WhisperModel("small.en", device="cpu", compute_type="int8", cpu_threads=8)
 PY
   "$ovos_python" "$repo_root/scripts/verify-wake-model.py" >/dev/null || return 1
-  "$ovos_python" - "$(read_compatibility_value ovos.tts.voice)" <<'PY' || return 1
-import sys
-from phoonnx.model_manager import TTSModelManager
-
-voice = sys.argv[1]
-manager = TTSModelManager()
-manager.load()
-manager.merge_default_voices()
-if not manager.download_voice_by_id(voice):
-    raise SystemExit(f"PhōnNX voice is not in the reviewed catalogue: {voice}")
-PY
+  "$ovos_python" "$repo_root/scripts/voice_models.py" \
+    --home "$jarvis_home" --prepare || return 1
 }
 
 stack_matches_target() {
@@ -722,6 +711,8 @@ stamp="$(date +%Y%m%d-%H%M%S-%N)"
 backup_root="$state_root/backups/$stamp"
 mkdir -p "$state_root"
 stage_root="$(mktemp -d "$state_root/stage.$stamp.XXXXXX")"
+"$desktop_python" "$repo_root/scripts/cleanup_artifacts.py" \
+  --home "$jarvis_home" --mark "$stage_root" --pid "$$"
 stage_release="$stage_root/release"
 configuration_source="$stage_root/capabilities.json"
 transaction_active=false
@@ -1189,6 +1180,15 @@ fi
 "$desktop_python" "$target_root/scripts/configure-microphone.py" \
   --config "$ovos_config"
 
+if [[ "${JARVIS_TEST_MODE:-0}" != 1 ]]; then
+  # Recheck even an unchanged runtime: a system cleaner may have removed the
+  # legacy download cache while every installed package still looks healthy.
+  "$ovos_python" "$target_root/scripts/voice_models.py" \
+    --home "$jarvis_home" --prepare
+  "$desktop_python" "$target_root/scripts/voice_models.py" \
+    --home "$jarvis_home" --migrate-config
+fi
+
 if [[ "${JARVIS_TEST_MODE:-0}" != 1 && -z "${JARVIS_ISOLATION_TRANSACTION:-}" ]]; then
   "$desktop_python" "$target_root/scripts/qwen-setup.py" --enable --keep-disabled
 fi
@@ -1513,6 +1513,10 @@ printf '%s\n' "$backup_root" > "$state_root/latest-backup"
 chmod 0600 "$state_root/latest-backup"
 transaction_active=false
 trap cleanup EXIT
+
+if [[ -z "${JARVIS_ISOLATION_TRANSACTION:-}" ]]; then
+  "$desktop_python" "$target_root/scripts/cleanup_artifacts.py" --home "$jarvis_home" --apply
+fi
 
 # The dynamic Whisper hints modify a third-party plugin only after its exact
 # reviewed layout is checked. This add-on has its own backup and rollback;

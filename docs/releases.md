@@ -7,6 +7,33 @@ acceptance work. Durable design choices belong in
 under [`history/`](history/README.md). Other current documents link here rather
 than repeating release narratives.
 
+## 4.9.0 (candidate, 26 October 2026 UTC)
+
+Keep required Whisper and Bella assets in permanent app data. Setup and both
+ordinary/isolated speech workers share the same location; reviewed upstream
+revisions, payload sizes and SHA-256 hashes identify every required file.
+Reuse matching prior downloads or restore missing bytes during setup. Retain
+custom model choices, privacy, microphone, routing and native network policy.
+Adopt the exact earlier Whisper repair path so dynamic hints remain compatible.
+Health checks verify actual required files, not only package entry points.
+
+Successful work removes its temporary downloads/stage. Later installs clean
+only marked, abandoned user-owned staging; pending recovery and live processes
+block cleanup. Unknown old folders, shared caches, models and rollback data
+remain intact pending an owner-reviewed inventory. No broad home-directory wipe.
+
+**VERIFIED owner evidence:** cleanup removed the prior Whisper cache and the
+Bella model/config/style. Separate Speech Note reading continued to work.
+OpenVINO returned normal short answers in about 2.6 seconds; Alpaca latency
+remains a separate, unresolved client/streaming investigation and is not claimed
+fixed by this Jarvis release. No private machine data is retained here.
+
+**PLANNED validation:** ordinary-user CI on Python 3.10–3.13, storage/migration/
+corruption/cancellation and staging-cleanup regressions, fresh install/upgrade/
+rollback, the retained runtime, actual Whisper/Bella offline inference after
+isolated cache deletion, and the final clean archive with all 350 policy cases.
+Publication and owner live wake/speech acceptance remain pending.
+
 ## 4.8.9 (published stable, 26 October 2026 UTC)
 
 Fix upgrades that kept the old wake beep after 4.8.8. Refresh the standard

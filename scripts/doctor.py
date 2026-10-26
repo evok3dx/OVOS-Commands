@@ -423,6 +423,20 @@ def check_audio_stack_config(report: Report, home: Path) -> None:
         report.fail("audio-config", "The reviewed local Jarvis audio stack is not fully configured.")
 
 
+def check_speech_models(report: Report, home: Path) -> None:
+    from voice_models import inspect
+    try:
+        missing = inspect(home)
+    except (OSError, ValueError, KeyError, TypeError):
+        report.fail('speech-model-files', 'Permanent speech model storage could not be verified. Run Jarvis setup to repair it.')
+        return
+    if missing:
+        report.fail('speech-model-files',
+                    f'{len(missing)} required speech file or revision checks failed. Run Jarvis setup to restore permanent models.')
+    else:
+        report.pass_('speech-model-files', 'Whisper and Bella model files are verified in permanent app storage.')
+
+
 def command_exists(names: Iterable[str]) -> str | None:
     for name in names:
         path = shutil.which(name)
@@ -620,6 +634,8 @@ def main() -> int:
 
     ovos_python = locate_ovos_python(home, args.ovos_python)
     check_ovos_python(report, ovos_python)
+    if not (args.test_mode or os.environ.get('JARVIS_TEST_MODE') == '1'):
+        check_speech_models(report, home)
     check_services(report, args.test_mode or os.environ.get("JARVIS_TEST_MODE") == "1")
 
     if args.json:

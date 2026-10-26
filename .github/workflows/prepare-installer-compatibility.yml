@@ -2,7 +2,7 @@ name: Prepare reviewed Jarvis release assets
 
 on:
   push:
-    branches: [work/release-v4.8.9]
+    branches: [work/release-v4.9.0]
   workflow_dispatch:
 
 permissions:
@@ -36,6 +36,7 @@ jobs:
           python3 scripts/test-qwen-safe-workflows.py
           python3 scripts/test-update-security.py
           python3 scripts/test-release-privacy.py
+          python3 scripts/test-voice-model-storage.py
           bash scripts/test-window-matching.sh
           python3 scripts/test-application-window-identity.py
           bash scripts/test-focused-navigation.sh
@@ -69,10 +70,22 @@ jobs:
           for project in . plugins/ovos-skill-jarvis-media plugins/jarvis-file-search; do
             python3 -m pip wheel --no-index --no-deps --no-build-isolation --wheel-dir "$RUNNER_TEMP/current-plugins" "$project"
           done
+      - name: Verify actual offline speech after disposable cache cleanup
+        run: |
+          set -euo pipefail
+          model_home="$(mktemp -d "$RUNNER_TEMP/jarvis-model-home.XXXXXX")"
+          trap 'rm -rf -- "$model_home"' EXIT
+          printf 'isolated speech model test\n' > "$model_home/.jarvis-model-test-home"
+          python3 -m venv --copies "$model_home/runtime"
+          "$model_home/runtime/bin/python" -m pip --isolated install --disable-pip-version-check \
+            --no-index --no-deps --only-binary=:all: --no-cache-dir --require-hashes \
+            --find-links "$RUNNER_TEMP/rechecked-wheels" -r voice/runtime-wheels-linux-x86_64-py311.txt
+          HOME="$model_home" JARVIS_ISOLATED_MODEL_TEST=1 \
+            "$model_home/runtime/bin/python" scripts/test-voice-model-runtime.py
       - name: Keep the reviewed runtime and File Search unchanged
         run: |
-          git diff --exit-code d993a6eae28f40dfab0603d84e52df563ae01ea1 HEAD -- \
-            voice extras plugins/jarvis-file-search
+          git diff --exit-code e99d8b750a1454333b46b9a080802bc08324c4db HEAD -- \
+            voice extras plugins/jarvis-file-search ':!voice/managed-models.json'
       - name: Fetch checksum-pinned review tools
         run: |
           set -euo pipefail

@@ -86,6 +86,7 @@ jobs:
           python3 scripts/test-qwen-safe-workflows.py
           python3 scripts/test-update-security.py
           python3 scripts/test-release-privacy.py
+          python3 scripts/test-voice-model-storage.py
       - name: Test desktop regressions
         run: |
           bash scripts/test-window-matching.sh

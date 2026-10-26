@@ -287,6 +287,9 @@ def main():
     args=parser.parse_args()
     worker_identity(args.component,args.uid,args.gid)
     sys.path.insert(0,str(Path(__file__).resolve().parent))
+    if args.component in {'listener','audio'}:
+        from voice_models import configure_environment
+        configure_environment(component=args.component)
     from privacy_logging import bootstrap, attach as attach_privacy
     bootstrap(args.component)
     from isolation_install import installation_blocked

@@ -898,6 +898,8 @@ def run_install(arguments, home):
             raise
         else:
             finish_desktop(home, desired)
+            from cleanup_artifacts import clean
+            clean(home, apply=True)
             return 0
         finally:
             for key, value in previous_environment.items():

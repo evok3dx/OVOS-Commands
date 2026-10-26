@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "description": "Reviewed offline Jarvis speech assets; immutable upstream revisions and SHA-256 payload identities. Downloads use TLS; upstream signatures are not independently authenticated.",
+  "repositories": [
+    {
+      "repo": "Systran/faster-whisper-small.en",
+      "revision": "d1d751a5f8271d482d14ca55d9e2deeebbae577f",
+      "files": [
+        {
+          "path": "config.json",
+          "bytes": 2657,
+          "sha256": "666a9605530ac1f61fa8177f3702b4dacec9966749e42610839fcc32661d5fae"
+        },
+        {
+          "path": "model.bin",
+          "bytes": 483545366,
+          "sha256": "62b2a45b05ee59acb4a5341b33ee35e041395d378d418a18acfe4c9e768ee37a"
+        },
+        {
+          "path": "tokenizer.json",
+          "bytes": 2128466,
+          "sha256": "929c5252409436dce1b38a75d1abbcb5e132d170d8e324e4e04ed915fa2d22df"
+        },
+        {
+          "path": "vocabulary.txt",
+          "bytes": 422309,
+          "sha256": "ff77588746d3a2595d32ab5b69ffd7b95ce2441ac57533cb66fc3eb575a115cf"
+        }
+      ]
+    },
+    {
+      "repo": "OpenVoiceOS/phoonnx-styletts2",
+      "revision": "75792949a9498a09b996fbca80ab21d287a38230",
+      "files": [
+        {
+          "path": "kokoro-82m/model.onnx",
+          "bytes": 163234740,
+          "sha256": "ba4527a874b42b21e35f468c10d326fdff3c7fc8cac1f85e9eb6c0dfc35c334a"
+        },
+        {
+          "path": "kokoro-82m/config.json",
+          "bytes": 2320,
+          "sha256": "0844a23275285af47b996396166176f2e459c5a38ce93ffb02b6ea9ba7357bf1"
+        }
+      ]
+    },
+    {
+      "repo": "onnx-community/Kokoro-82M-v1.0-ONNX",
+      "revision": "1939ad2a8e416c0acfeecc08a694d14ef25f2231",
+      "files": [
+        {
+          "path": "voices/af_bella.bin",
+          "bytes": 522240,
+          "sha256": "f69d836209b78eb8c66e75e3cda491e26ea838a3674257e9d4e5703cbaf55c8b"
+        }
+      ]
+    }
+  ]
+}

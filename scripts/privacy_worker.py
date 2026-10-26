@@ -15,6 +15,9 @@ def main():
     parser.add_argument('component', choices=LAUNCHERS)
     args = parser.parse_args()
     sys.path.insert(0, str(Path(__file__).resolve().parent))
+    if args.component in {'listener', 'audio'}:
+        from voice_models import configure_environment
+        configure_environment(component=args.component)
     from privacy_logging import bootstrap, attach
     bootstrap(args.component)
     launcher = Path(sys.prefix) / 'bin' / LAUNCHERS[args.component]

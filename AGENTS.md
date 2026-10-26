@@ -103,6 +103,19 @@ If any one of these layers is missing, the command change is incomplete.
   dispatcher merely for convenience.
 - Preserve user configuration, models, enabled apps, spoken names, personal
   commands, shortcuts and private helpers during updates.
+- Required speech weights, voice styles and model configuration belong in
+  permanent Jarvis app data, never XDG/system temporary caches. Setup and both
+  ordinary/isolated workers must use `scripts/voice_models.py` and its pinned
+  artifact policy before voice-library imports. Setup verifies/copies existing
+  bytes or downloads immutable reviewed files; offline workers never download.
+  Test real Whisper/Bella inference after deleting only an isolated cache
+  fixture, as well as fresh setup, migration, corruption and cancellation.
+  Preserve custom model configuration and shared caches. Health checks must
+  detect missing assets, not just installed packages or responding collectors.
+- Staging cleanup may remove only marked, user-owned abandoned operations with
+  verified dead process/boot identity, and must stop while recovery is pending.
+  Keep active files, rollback backups, models, unknown legacy folders and shared
+  caches. Do not infer that a directory is junk from its name, age or size.
 - The standard Jarvis wake-sound file is a managed app asset. Installation
   refreshes it from the verified packaged cue regardless of its previous bytes,
   confirmation setting or configured sound path. Do not restore a legacy-hash
