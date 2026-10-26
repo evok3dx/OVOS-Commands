@@ -67,6 +67,12 @@ restores it at record end and has a bounded emergency restore. The portable
 default is 20%, adjustable from the Voice page. Existing custom values remain
 untouched.
 
+From 4.8.8 the default cue is a soft two-note chime, played once per listening
+acknowledgement. The WAV is 325 ms; existing playback padding is unchanged.
+Updates replace only the exact old Jarvis default. Custom sounds, alternate
+paths, disabled confirmation and already-current cues are preserved. The
+normal deployment backup retains the previous sound for rollback.
+
 Empty/noisy captures are silent. A real `Pause music` request remains valid;
 Jarvis does not solve false speech by blacklisting useful commands. The
 managed Faster-Whisper setup enables its supported VAD filter and keeps cue

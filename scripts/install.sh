@@ -1154,6 +1154,11 @@ else
   # machine-owned and untouched.
   "$desktop_python" "$target_root/scripts/configure-audio-stack.py" \
     --config "$ovos_config" --migrate-managed
+  # The sound is already in this transaction's rollback backup. Replace only
+  # the exact old default; custom, disabled and already-current cues stay intact.
+  "$desktop_python" "$target_root/scripts/configure-audio-stack.py" \
+    --config "$ovos_config" --listening-sound "$listening_sound" \
+    --refresh-listening-sound "$target_root/voice/jarvis-ready.wav"
   # Repair only the known released Jarvis default in the backed-up config.
   # Custom wake engines, models and thresholds stop for manual review.
   if [[ "$(python3 - "$ovos_config" <<'PY'

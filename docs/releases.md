@@ -7,6 +7,25 @@ acceptance work. Durable design choices belong in
 under [`history/`](history/README.md). Other current documents link here rather
 than repeating release narratives.
 
+## 4.8.8 (candidate, 26 October 2026 UTC)
+
+Replace the packaged wake beep with the owner-selected soft two-note chime.
+The 325 ms WAV contains one chime; playback padding, volume settings, wake
+engine, microphone timing, speech models, routing and isolation are unchanged.
+
+On upgrade, replace only the enabled cue at the managed path whose bytes match
+the exact released old default. Preserve custom sounds, alternate paths,
+disabled confirmation and an already-installed new chime. Use atomic writes;
+the normal deployment transaction backs up and restores the previous sound.
+
+**VERIFIED preview:** the owner selected the third generated audio sample,
+played once. This is preference selection, not live installed wake-word testing.
+
+**PLANNED validation/publication:** ordinary-user release CI, sound migration
+and refusal regressions, retained-runtime checks and the complete clean-archive
+suite with the non-executing 350-case policy benchmark. Live playback after an
+installed upgrade remains owner acceptance.
+
 ## 4.8.5 (published stable, 21 October 2026 UTC)
 
 Add AI fallback On/Off and the reviewed model label to General. Change only the

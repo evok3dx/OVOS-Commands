@@ -4,8 +4,10 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
+import stat
 import tempfile
 from pathlib import Path
 
@@ -14,6 +16,8 @@ STT_MODULE = "ovos-stt-plugin-fasterwhisper"
 TTS_MODULE = "ovos-tts-plugin-phoonnx"
 VAD_MODULE = "ovos-vad-plugin-silero"
 BELLA_VOICE = "kokoro/af_bella"
+OLD_WAKE_SOUND_SHA256 = "e5d638e2e2adc1d8715a9d39fe37c4a41ef2fb5f389aa62daef08f14e98ddfeb"
+WAKE_SOUND_SHA256 = "d76bbed4fd91b74b011971f46b3d8fba3a4aa84457a55f250aa5150ce71d2e8a"
 MANAGED_OLD_LISTENER = {
     "instant_listen": True,
     "fake_barge_in": True,
@@ -88,6 +92,42 @@ def migrate_managed(config: dict[str, object]) -> tuple[dict[str, object], bool]
     return config, changed
 
 
+def migrate_listening_sound(config: dict[str, object], path: Path, source: Path) -> bool:
+    """Replace only the enabled, hash-identified old Jarvis cue."""
+    sounds = config.get("sounds", {})
+    if (config.get("confirm_listening") is not True or not isinstance(sounds, dict)
+            or sounds.get("start_listening") != str(path)):
+        return False
+    if any(item.is_symlink() for item in (path, *path.parents)) or not path.is_file():
+        return False
+    info = path.stat()
+    if info.st_uid != os.getuid() or info.st_size > 1024 * 1024:
+        return False
+    previous = path.read_bytes()
+    if hashlib.sha256(previous).hexdigest() != OLD_WAKE_SOUND_SHA256:
+        return False
+    if (source.is_symlink() or not source.is_file()
+            or source.stat().st_size > 1024 * 1024):
+        raise ValueError("Packaged listening sound needs review")
+    replacement = source.read_bytes()
+    if hashlib.sha256(replacement).hexdigest() != WAKE_SOUND_SHA256:
+        raise ValueError("Packaged listening sound failed verification")
+    descriptor, temporary_name = tempfile.mkstemp(prefix=".jarvis-ready-", dir=path.parent)
+    temporary = Path(temporary_name)
+    try:
+        with os.fdopen(descriptor, "wb") as output:
+            output.write(replacement)
+            output.flush()
+            os.fsync(output.fileno())
+        temporary.chmod(stat.S_IMODE(info.st_mode))
+        if any(item.is_symlink() for item in (path, *path.parents)) or path.read_bytes() != previous:
+            raise ValueError("Listening sound changed during installation")
+        temporary.replace(path)
+    finally:
+        temporary.unlink(missing_ok=True)
+    return True
+
+
 def atomic_write(path: Path, config: dict[str, object]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     mode = path.stat().st_mode & 0o777 if path.exists() else 0o600
@@ -118,12 +158,18 @@ def main() -> int:
         "--listening-sound", type=Path,
         default=Path.home() / ".local/share/ovos/sounds/jarvis-ready.wav",
     )
-    parser.add_argument("--migrate-managed", action="store_true")
+    migration = parser.add_mutually_exclusive_group()
+    migration.add_argument("--migrate-managed", action="store_true")
+    migration.add_argument("--refresh-listening-sound", type=Path,
+                          help="replace only the exact old Jarvis cue with the verified packaged sound")
     args = parser.parse_args()
-    if not args.migrate_managed and not args.listening_sound.is_file():
+    if not args.migrate_managed and not args.refresh_listening_sound and not args.listening_sound.is_file():
         parser.error(f"listening sound is missing: {args.listening_sound}")
     config = load_config(args.config)
-    if args.migrate_managed:
+    if args.refresh_listening_sound:
+        changed = migrate_listening_sound(config, args.listening_sound, args.refresh_listening_sound)
+        print("Updated the default wake chime." if changed else "Preserved the existing wake sound and settings.")
+    elif args.migrate_managed:
         config, changed = migrate_managed(config)
         if changed:
             atomic_write(args.config, config)

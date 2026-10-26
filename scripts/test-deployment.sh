@@ -487,6 +487,8 @@ grep -Fq '[[ "$argument" == --gui && -x "$tray" ]]' \
 grep -Fq 'nohup "$tray"' "$fresh_home/.local/bin/jarvis-setup"
 test ! -e "$fresh_home/.config/autostart/jarvis-mic-indicator.desktop"
 test -f "$fresh_home/.local/share/ovos/sounds/jarvis-ready.wav"
+cmp "$repo_root/voice/jarvis-ready.wav" \
+  "$fresh_home/.local/share/ovos/sounds/jarvis-ready.wav"
 
 # Full voice restarts avoid the message bus and start audio, listener and core
 # in a deterministic order.  This prevents duplicate skill-discovery passes.

@@ -103,6 +103,9 @@ If any one of these layers is missing, the command change is incomplete.
   dispatcher merely for convenience.
 - Preserve user configuration, models, enabled apps, spoken names, personal
   commands, shortcuts and private helpers during updates.
+- Wake-cue updates may replace only an enabled default whose file bytes match
+  the exact released legacy hash. Preserve custom, redirected, disabled and
+  already-current cues, use atomic replacement and retain rollback coverage.
 - Keep observed laptop inventory separate from a proposed runtime. Record every
   intentional dependency change, freeze the complete closure and validate its
   actual wheel hashes. V4 dependency checks reject all conflicts; do not restore
@@ -316,5 +319,5 @@ retained wheel directory; import-only checks do not establish startup behaviour.
 - Publish only the validated archive, checksum and independently versioned
   plugin wheels. Verify the public tag, commit and asset digests afterwards.
 - Preserve OVOS configuration, models, application selection, defaults, spoken
-  names, personal commands, shortcuts, listening sound and private unlisted
+  names, personal commands, shortcuts, custom listening sound and private unlisted
   helpers in both success and rollback tests.

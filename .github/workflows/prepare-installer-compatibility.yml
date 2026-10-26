@@ -2,7 +2,7 @@ name: Prepare reviewed Jarvis release assets
 
 on:
   push:
-    branches: [work/release-v4.8.5]
+    branches: [work/release-v4.8.8]
   workflow_dispatch:
 
 permissions:
@@ -72,7 +72,7 @@ jobs:
       - name: Keep the reviewed runtime and File Search unchanged
         run: |
           git diff --exit-code 88894a6ccfd43d625548f5691a41374aaf1bd44e HEAD -- \
-            voice extras plugins/jarvis-file-search
+            voice extras plugins/jarvis-file-search ':(exclude)voice/jarvis-ready.wav'
       - name: Fetch checksum-pinned review tools
         run: |
           set -euo pipefail
