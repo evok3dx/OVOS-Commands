@@ -7,7 +7,7 @@ acceptance work. Durable design choices belong in
 under [`history/`](history/README.md). Other current documents link here rather
 than repeating release narratives.
 
-## 4.8.9 (candidate, 26 October 2026 UTC)
+## 4.8.9 (published stable, 26 October 2026 UTC)
 
 Fix upgrades that kept the old wake beep after 4.8.8. Refresh the standard
 managed sound file from the verified packaged two-note chime regardless of
@@ -21,10 +21,27 @@ to replace this managed asset. Separately configured sound files stay untouched.
 file with different bytes and the standard enabled sound path. This matches
 the legacy-hash refusal branch. The active file's origin remains unverified.
 
-**PLANNED validation/publication:** ordinary-user release CI, real installer
-upgrade and rollback with unknown old cue bytes, missing-file and failure
-regressions, the retained runtime and final clean-archive suite with all 350
-non-executing policy cases. Live installed wake playback remains acceptance.
+**VERIFIED automated release:** source
+`e99d8b750a1454333b46b9a080802bc08324c4db` passed ordinary-user
+[Python 3.10–3.13, security and native X11/GTK CI](https://github.com/evok3dx/OVOS-Commands/actions/runs/40374823033).
+[Release preparation](https://github.com/evok3dx/OVOS-Commands/actions/runs/40374823131)
+reverified the retained 296-wheel runtime, privacy and helper lifecycle, built
+current first-party wheels, scanned history/archive contents and reran the full
+suite with all 350 non-executing policy cases from the clean release archive.
+Real installer tests replace unknown cue bytes and cover deployment rollback;
+focused cases cover missing files, unchanged sound settings, idempotence,
+symlink/ownership refusal, source corruption and atomic-write failures.
+The chime bytes and voice runtime remain identical to 4.8.8.
+
+**VERIFIED publication:** the owner-authorised
+[publication job](https://github.com/evok3dx/OVOS-Commands/actions/runs/40375569350)
+published stable [Jarvis 4.8.9](https://github.com/evok3dx/OVOS-Commands/releases/tag/v4.8.9),
+verified its source tag and downloaded all 11 assets to compare their bytes with
+the validated SHA256SUMS. Source archive SHA-256:
+`47d20ef85e034345e99cc5a975ab40357e17dfabde7fbdbce15a3b8dd1227560`.
+
+**PLANNED live acceptance:** confirm the new cue after a GUI upgrade on the
+owner's desktop. Automated file replacement is separate from live capture.
 
 ## 4.8.8 (published stable, 26 October 2026 UTC)
 
