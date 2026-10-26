@@ -7,7 +7,7 @@ acceptance work. Durable design choices belong in
 under [`history/`](history/README.md). Other current documents link here rather
 than repeating release narratives.
 
-## 4.8.8 (candidate, 26 October 2026 UTC)
+## 4.8.8 (published stable, 26 October 2026 UTC)
 
 Replace the packaged wake beep with the owner-selected soft two-note chime.
 The 325 ms WAV contains one chime; playback padding, volume settings, wake
@@ -21,10 +21,28 @@ the normal deployment transaction backs up and restores the previous sound.
 **VERIFIED preview:** the owner selected the third generated audio sample,
 played once. This is preference selection, not live installed wake-word testing.
 
-**PLANNED validation/publication:** ordinary-user release CI, sound migration
-and refusal regressions, retained-runtime checks and the complete clean-archive
-suite with the non-executing 350-case policy benchmark. Live playback after an
-installed upgrade remains owner acceptance.
+**VERIFIED automated release:** source
+`d993a6eae28f40dfab0603d84e52df563ae01ea1` passed ordinary-user
+[Python 3.10–3.13, security and native X11/GTK CI](https://github.com/evok3dx/OVOS-Commands/actions/runs/40370445976).
+[Release preparation](https://github.com/evok3dx/OVOS-Commands/actions/runs/40370445849)
+reverified the retained 296-wheel runtime, privacy and helper lifecycle; built
+current first-party wheels; scanned history and the archive; and reran the full
+suite plus all 350 non-executing policy cases from the clean release archive.
+The actual 4.8.5 sound passed the migration CLI in the full-history checkout.
+The clean archive reran synthetic legacy, custom/disabled/redirected cue,
+symlink, corrupt source, concurrent-change and atomic-write-failure cases;
+it skips only the Git-history fixture. These checks verify bytes and behaviour,
+not acoustic quality or live wake-word capture.
+
+**VERIFIED publication:** the owner-authorised
+[publication job](https://github.com/evok3dx/OVOS-Commands/actions/runs/40371209195)
+published stable [Jarvis 4.8.8](https://github.com/evok3dx/OVOS-Commands/releases/tag/v4.8.8),
+verified its source tag, downloaded all 11 assets and compared their bytes with
+the validated SHA256SUMS. Source archive SHA-256:
+`924b33d22ea0fa9b13f6b7ceb2e43f59f82620a42c10a883bbe1f4d6a8d87c94`.
+
+**PLANNED live acceptance:** confirm one soft chime after an installed upgrade
+and normal command capture on the owner's desktop.
 
 ## 4.8.5 (published stable, 21 October 2026 UTC)
 
