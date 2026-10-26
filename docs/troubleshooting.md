@@ -19,7 +19,9 @@ required files as well as packages.
 
 Setup removes its own incomplete download workspace on failure/cancellation
 and its normal temporary stage on exit. Later setup removes only provably
-abandoned marked staging. A pending recovery journal, live process, symlinked
+abandoned marked staging and legacy native-text copies whose contents still
+match the generated policy exactly. Native installation/recovery text is also
+removed on ordinary success or failure. A pending recovery journal, live process, symlinked
 root or unknown legacy folder prevents removal. Shared Hugging Face caches,
 rollback backups and models are not rubbish and are never broadly wiped.
 Use a read-only size inventory before choosing legacy files to remove.

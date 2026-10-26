@@ -259,29 +259,87 @@ def verify_rule(native, expected):
         raise RuntimeError('Native rule differs from reviewed policy; refusing replacement')
 
 
+@contextlib.contextmanager
+def native_files(directory):
+    """Generated install text is temporary; recovery uses its recorded policy."""
+    if any(p.is_symlink() for p in (directory, *directory.parents)):
+        raise ValueError('Native staging must not follow symbolic links')
+    directory.mkdir(mode=0o700)
+    try:
+        yield directory
+    finally:
+        if directory.is_symlink():
+            raise ValueError('Native staging changed during setup')
+        if directory.exists():
+            shutil.rmtree(directory)
+
+
+def cleanup_native_artifacts(home):
+    """Retire exact generated native-text copies after recovery has finished."""
+    state = home / JOURNAL
+    base = state.parent
+    if state.exists() or state.is_symlink() or not base.is_dir():
+        return []
+    if any(p.is_symlink() for p in (base, *base.parents)):
+        return []
+    try:
+        account = pwd.getpwuid(os.getuid())
+        saved = read_choice(home) or {}
+        known = {}
+        for binary in (None, saved.get('model_binary')):
+            units, rule, _ = render(account.pw_uid, account.pw_gid, account.pw_name,
+                                    home, home / '.local/src/ovos-skill-jarvis-dispatcher', binary)
+            for name, text in {**units, f'90-jarvis-v4-{os.getuid()}.rules': rule}.items():
+                known.setdefault(name, set()).add(text)
+    except (OSError, ValueError, RuntimeError):
+        return []
+    removed = []
+    for directory in sorted(base.iterdir()):
+        if not re.fullmatch(r'(?:native-[A-Za-z0-9_-]{12}|restore-[0-9a-f]{16})', directory.name):
+            continue
+        try:
+            info = directory.lstat()
+            if (not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid()
+                    or info.st_mode & 0o077):
+                continue
+            children = list(directory.iterdir())
+            if any(path.name not in known or regular(path, private=True) not in known[path.name]
+                   for path in children):
+                continue
+            # These contain only exact generated native text. Do not erase a
+            # legacy tree or accept unknown files based on the folder's name.
+            for path in children:
+                path.unlink()
+            directory.rmdir()
+            removed.append(directory.name)
+        except (OSError, ValueError):
+            continue
+    return removed
+
+
 def apply_native(native, units, rule, originals, old_rule, directory):
     changed = units != originals or rule != old_rule
     if not changed:
         return False
     native.approve()
     verify_rule(native, old_rule if originals else None)
-    directory.mkdir(mode=0o700)
-    for name, body in units.items():
-        path = Path('/etc/systemd/system') / name
-        if name in originals:
-            if regular(path, owner=0) != originals[name]:
-                raise RuntimeError('Native data changed before update')
-        elif path.exists() or path.is_symlink():
-            raise RuntimeError('Native destination appeared during setup')
-        private_file(directory / name, body)
-    rule_name = f'90-jarvis-v4-{os.getuid()}.rules'
-    private_file(directory / rule_name, rule)
-    for name in units:
+    with native_files(directory):
+        for name, body in units.items():
+            path = Path('/etc/systemd/system') / name
+            if name in originals:
+                if regular(path, owner=0) != originals[name]:
+                    raise RuntimeError('Native data changed before update')
+            elif path.exists() or path.is_symlink():
+                raise RuntimeError('Native destination appeared during setup')
+            private_file(directory / name, body)
+        rule_name = f'90-jarvis-v4-{os.getuid()}.rules'
+        private_file(directory / rule_name, rule)
+        for name in units:
+            native.run('install', '-o', 'root', '-g', 'root', '-m', '0644', '--',
+                       directory / name, Path('/etc/systemd/system') / name)
         native.run('install', '-o', 'root', '-g', 'root', '-m', '0644', '--',
-                   directory / name, Path('/etc/systemd/system') / name)
-    native.run('install', '-o', 'root', '-g', 'root', '-m', '0644', '--',
-               directory / rule_name, Path('/etc/polkit-1/rules.d') / rule_name)
-    native.run('systemctl', 'daemon-reload')
+                   directory / rule_name, Path('/etc/polkit-1/rules.d') / rule_name)
+        native.run('systemctl', 'daemon-reload')
     return True
 
 
@@ -628,35 +686,35 @@ def recover_transaction(home, journal, native):
             stop_native_for_recovery(native, units, originals)
             # Remove only unchanged new files; restore only exact reviewed originals.
             recovery = state.parent / ('restore-' + secrets.token_hex(8))
-            recovery.mkdir(mode=0o700)
-            for name, body in units.items():
-                path = Path('/etc/systemd/system') / name
-                if not path.exists():
-                    continue
-                if regular(path, owner=0) not in {body, originals.get(name)}:
-                    raise RuntimeError('Native recovery found changed data; workers remain stopped')
-                if name in originals:
-                    private_file(recovery / name, originals[name])
-                    native.run('install', '-o', 'root', '-g', 'root', '-m', '0644', '--', recovery / name, path)
-                else:
-                    native.run('rm', '--', path)
-            rule_path = Path('/etc/polkit-1/rules.d') / f'90-jarvis-v4-{os.getuid()}.rules'
-            # A partial write may leave the old or new rule; neither permits arbitrary services.
-            result = native.run('sha256sum', '--', rule_path, capture=True, check=False)
-            digest = result.stdout.split()[:1]
-            reviewed_rules = (rule, old_rule) if originals else (rule,)
-            accepted = [hashlib.sha256(text.encode()).hexdigest() for text in reviewed_rules]
-            if digest and digest[0] not in accepted:
-                raise RuntimeError('Native rule changed during recovery; review required')
-            expected_rule = next((text for text in reviewed_rules
-                                  if digest and hashlib.sha256(text.encode()).hexdigest() == digest[0]), None)
-            verify_rule(native, expected_rule)
-            if originals:
-                private_file(recovery / rule_path.name, old_rule)
-                native.run('install', '-o', 'root', '-g', 'root', '-m', '0644', '--', recovery / rule_path.name, rule_path)
-            elif digest:
-                native.run('rm', '--', rule_path)
-            native.run('systemctl', 'daemon-reload')
+            with native_files(recovery):
+                for name, body in units.items():
+                    path = Path('/etc/systemd/system') / name
+                    if not path.exists():
+                        continue
+                    if regular(path, owner=0) not in {body, originals.get(name)}:
+                        raise RuntimeError('Native recovery found changed data; workers remain stopped')
+                    if name in originals:
+                        private_file(recovery / name, originals[name])
+                        native.run('install', '-o', 'root', '-g', 'root', '-m', '0644', '--', recovery / name, path)
+                    else:
+                        native.run('rm', '--', path)
+                rule_path = Path('/etc/polkit-1/rules.d') / f'90-jarvis-v4-{os.getuid()}.rules'
+                # A partial write may leave the old or new rule; neither permits arbitrary services.
+                result = native.run('sha256sum', '--', rule_path, capture=True, check=False)
+                digest = result.stdout.split()[:1]
+                reviewed_rules = (rule, old_rule) if originals else (rule,)
+                accepted = [hashlib.sha256(text.encode()).hexdigest() for text in reviewed_rules]
+                if digest and digest[0] not in accepted:
+                    raise RuntimeError('Native rule changed during recovery; review required')
+                expected_rule = next((text for text in reviewed_rules
+                                      if digest and hashlib.sha256(text.encode()).hexdigest() == digest[0]), None)
+                verify_rule(native, expected_rule)
+                if originals:
+                    private_file(recovery / rule_path.name, old_rule)
+                    native.run('install', '-o', 'root', '-g', 'root', '-m', '0644', '--', recovery / rule_path.name, rule_path)
+                elif digest:
+                    native.run('rm', '--', rule_path)
+                native.run('systemctl', 'daemon-reload')
         if not was_active and active(home):
             # Mapping files were created only by this transaction and have not been changed.
             _, _, dropins = render(account.pw_uid, account.pw_gid, account.pw_name, home, deployment, binary)
@@ -781,6 +839,7 @@ def run_install(arguments, home):
         status = subprocess.run(['bash', str(ROOT / 'scripts/install.sh'), *forwarded], env=environment).returncode
         if status == 0:
             atomic(home / CHOICE, saved)
+            cleanup_native_artifacts(home)
         return status
     deployment = home / '.local/src/ovos-skill-jarvis-dispatcher'
     originals, old_rule, original_binary = native_snapshot(account, home, deployment, saved, enabled)
@@ -900,6 +959,7 @@ def run_install(arguments, home):
             finish_desktop(home, desired)
             from cleanup_artifacts import clean
             clean(home, apply=True)
+            cleanup_native_artifacts(home)
             return 0
         finally:
             for key, value in previous_environment.items():

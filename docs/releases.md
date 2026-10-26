@@ -19,7 +19,8 @@ Health checks verify actual required files, not only package entry points.
 
 Successful work removes its temporary downloads/stage. Later installs clean
 only marked, abandoned user-owned staging; pending recovery and live processes
-block cleanup. Unknown old folders, shared caches, models and rollback data
+block cleanup. Exact generated legacy native-text copies are also retired;
+new native install/recovery text is temporary. Unknown old folders, shared caches, models and rollback data
 remain intact pending an owner-reviewed inventory. No broad home-directory wipe.
 
 **VERIFIED owner evidence:** cleanup removed the prior Whisper cache and the

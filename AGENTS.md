@@ -114,6 +114,8 @@ If any one of these layers is missing, the command change is incomplete.
   detect missing assets, not just installed packages or responding collectors.
 - Staging cleanup may remove only marked, user-owned abandoned operations with
   verified dead process/boot identity, and must stop while recovery is pending.
+  Legacy native-text copies require an exact comparison with generated policy;
+  their directory name alone never proves ownership.
   Keep active files, rollback backups, models, unknown legacy folders and shared
   caches. Do not infer that a directory is junk from its name, age or size.
 - The standard Jarvis wake-sound file is a managed app asset. Installation

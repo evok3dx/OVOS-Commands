@@ -6,6 +6,7 @@ Run only in an isolated test home; never remove a real account's cache.
 import os
 from pathlib import Path
 import shutil
+import sys
 import tempfile
 import wave
 
@@ -19,11 +20,16 @@ if (not home.name.startswith('jarvis-model-home.')
         or (home / '.jarvis-model-test-home').read_text() != 'isolated speech model test\n'):
     raise SystemExit('Missing isolated model-test home marker.')
 
-voice_models.prepare(home)
-disposable = home / '.cache'
-if disposable.is_symlink():
-    raise SystemExit('Disposable fixture must not be a link.')
-shutil.rmtree(disposable, ignore_errors=True)
+if '--offline' not in sys.argv[1:]:
+    voice_models.prepare(home)
+    disposable = home / '.cache'
+    if disposable.is_symlink():
+        raise SystemExit('Disposable fixture must not be a link.')
+    shutil.rmtree(disposable, ignore_errors=True)
+    voice_models.configure_environment(home)
+    # The installer and worker are different processes. HF constants bind at
+    # import time, so restart with the same offline environment a worker sees.
+    os.execv(sys.executable, [sys.executable, __file__, '--offline'])
 voice_models.configure_environment(home)
 os.environ['HF_HUB_OFFLINE'] = '1'
 os.environ['TRANSFORMERS_OFFLINE'] = '1'

@@ -73,7 +73,7 @@ def policy(path: Path = POLICY) -> dict:
         for item in repo['files']:
             name = item['path']
             parts = PurePosixPath(name)
-            if (not name or parts.is_absolute() or str(parts) != name
+            if (not name or not parts.parts or parts.is_absolute() or str(parts) != name
                     or '..' in parts.parts or '\\' in name or name in seen
                     or not re.fullmatch(r'[A-Za-z0-9_./-]+', name)
                     or type(item['bytes']) is not int or not 0 < item['bytes'] < 1_000_000_000
@@ -266,6 +266,8 @@ def prepare(home: Path, document: dict | None = None, downloader=fetch) -> None:
                     if local.is_symlink() or not valid_file(local, item):
                         raise RuntimeError('Speech model download failed SHA-256/size verification')
                     local.chmod(0o600)
+                    with local.open('rb') as stream:
+                        os.fsync(stream.fileno())
                     pending.append((local, destination))
             # Do not publish a reference to a partial or unverified download.
             for source, destination in pending:

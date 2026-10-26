@@ -13,6 +13,7 @@ from unittest.mock import patch
 
 import voice_models as models
 import cleanup_artifacts as cleanup
+import isolation_install as installation
 
 if os.getuid() == 0:
     raise SystemExit('Run speech storage tests as the ordinary user, without sudo.')
@@ -183,3 +184,45 @@ with tempfile.TemporaryDirectory() as folder:
     assert not stale.exists() and live.exists() and legacy.exists()
     assert owner.read_text() == 'preserve' and (base / 'backups/preserve').read_text() == 'rollback'
 print('PASS: staging cleanup is read-only by default and preserves live, unmarked, backup and recovery data')
+
+with tempfile.TemporaryDirectory() as folder:
+    root = Path(folder)
+    for failed in (False, True):
+        directory = root / ('native-failed' if failed else 'native-success')
+        try:
+            with installation.native_files(directory):
+                (directory / 'reviewed-unit.service').write_text('fixture')
+                if failed:
+                    raise InterruptedError('Fixture cancellation')
+        except InterruptedError:
+            pass
+        assert not directory.exists()
+    owner = root / 'owner'
+    owner.mkdir()
+    linked = root / 'native-link'
+    linked.symlink_to(owner, target_is_directory=True)
+    rejected(lambda: installation.native_files(linked).__enter__())
+    assert owner.exists()
+print('PASS: native installation/recovery scratch is removed on success and cancellation without following links')
+
+with tempfile.TemporaryDirectory() as folder:
+    home = Path(folder)
+    base = (home / installation.JOURNAL).parent
+    base.mkdir(parents=True)
+    stale = base / 'native-ABCDEF123456'
+    stale.mkdir(mode=0o700)
+    path = stale / 'reviewed.service'
+    path.write_text('exact generated fixture')
+    path.chmod(0o600)
+    unknown = base / 'restore-0123456789abcdef'
+    unknown.mkdir(mode=0o700)
+    (unknown / 'owner-data').write_text('preserve')
+    with patch.object(installation, 'render', return_value=({'reviewed.service': 'exact generated fixture'}, 'rule', {})), \
+         patch.object(installation, 'read_choice', return_value=None):
+        journal = home / installation.JOURNAL
+        journal.write_text('{}')
+        assert installation.cleanup_native_artifacts(home) == []
+        journal.unlink()
+        assert installation.cleanup_native_artifacts(home) == [stale.name]
+        assert not stale.exists() and (unknown / 'owner-data').read_text() == 'preserve'
+print('PASS: exact legacy native-text leftovers are cleaned only after recovery; unknown content is preserved')
