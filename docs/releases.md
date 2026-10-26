@@ -7,7 +7,7 @@ acceptance work. Durable design choices belong in
 under [`history/`](history/README.md). Other current documents link here rather
 than repeating release narratives.
 
-## 4.9.0 (candidate, 26 October 2026 UTC)
+## 4.9.0 (published stable, 26 October 2026 UTC)
 
 Keep required Whisper and Bella assets in permanent app data. Setup and both
 ordinary/isolated speech workers share the same location; reviewed upstream
@@ -20,20 +20,40 @@ Health checks verify actual required files, not only package entry points.
 Successful work removes its temporary downloads/stage. Later installs clean
 only marked, abandoned user-owned staging; pending recovery and live processes
 block cleanup. Exact generated legacy native-text copies are also retired;
-new native install/recovery text is temporary. Unknown old folders, shared caches, models and rollback data
-remain intact pending an owner-reviewed inventory. No broad home-directory wipe.
+new native install/recovery text is temporary. Unknown old folders, shared
+caches, models and rollback data remain intact pending an owner-reviewed
+inventory. No broad home-directory wipe.
 
 **VERIFIED owner evidence:** cleanup removed the prior Whisper cache and the
 Bella model/config/style. Separate Speech Note reading continued to work.
-OpenVINO returned normal short answers in about 2.6 seconds; Alpaca latency
-remains a separate, unresolved client/streaming investigation and is not claimed
-fixed by this Jarvis release. No private machine data is retained here.
+OpenVINO returned normal short answers in about 2.6 seconds. The owner later
+reported Alpaca resolved independently; this release changes neither Alpaca
+nor OpenVINO. No private machine data is retained here.
 
-**PLANNED validation:** ordinary-user CI on Python 3.10–3.13, storage/migration/
-corruption/cancellation and staging-cleanup regressions, fresh install/upgrade/
-rollback, the retained runtime, actual Whisper/Bella offline inference after
-isolated cache deletion, and the final clean archive with all 350 policy cases.
-Publication and owner live wake/speech acceptance remain pending.
+**VERIFIED automated release:** source
+`8d8b6ad37e8c9d48d7c46bc5ce3e1c20fe5f8086` passed ordinary-user
+[Python 3.10–3.13, security and native X11/GTK CI](https://github.com/evok3dx/OVOS-Commands/actions/runs/40391067916).
+[Release preparation](https://github.com/evok3dx/OVOS-Commands/actions/runs/40391067762)
+reverified the retained 296-wheel runtime, privacy and helper lifecycle; tested
+fresh installation/upgrade/rollback and storage migration, missing/corrupt
+files, cancellation and bounded cleanup; and ran actual Whisper transcription
+and Bella WAV generation offline in a fresh process after isolated cache
+deletion. The full final clean-archive suite and all 350 non-executing policy
+cases passed. The initial real-model fixture incorrectly reused Hugging Face
+constants imported during preparation; the final test starts a fresh offline
+worker process, matching installed startup. This was a fixture correction,
+not a relaxation of model or runtime integrity checks.
+
+**VERIFIED publication:** the owner explicitly authorised stable publication.
+The [publication job](https://github.com/evok3dx/OVOS-Commands/actions/runs/40392112959)
+published [Jarvis 4.9.0](https://github.com/evok3dx/OVOS-Commands/releases/tag/v4.9.0),
+verified the exact source tag and downloaded all 11 public assets to compare
+them with the validated SHA256SUMS. Source archive SHA-256:
+`f8fc31b1a9d995781319a69e1eb34a8d50e1420e5d0dc31f062874e1b8b6de3f`.
+
+**PLANNED live acceptance:** upgrade through the Control Centre and confirm
+wake listening and Jarvis's own spoken replies. Automated offline inference
+does not prove live microphone, playback, timing or desktop behaviour.
 
 ## 4.8.9 (published stable, 26 October 2026 UTC)
 

@@ -8,7 +8,7 @@ listener failed and Jarvis could not speak, while Speech Note reading still
 worked because it uses a separate engine. A responding diagnostic collector
 does not verify model files. This affects the pre-4.9 default storage path.
 
-**PLANNED for 4.9:** setup prepares hash-verified, revision-pinned assets in
+**VERIFIED automated for 4.9:** setup prepares hash-verified, revision-pinned assets in
 `~/.local/share/jarvis/models/hub`; ordinary and isolated speech workers use
 that same permanent location. Existing matching cache files are copied,
 otherwise setup downloads the reviewed files. Runtime isolation stays enabled
@@ -21,8 +21,8 @@ Setup removes its own incomplete download workspace on failure/cancellation
 and its normal temporary stage on exit. Later setup removes only provably
 abandoned marked staging and legacy native-text copies whose contents still
 match the generated policy exactly. Native installation/recovery text is also
-removed on ordinary success or failure. A pending recovery journal, live process, symlinked
-root or unknown legacy folder prevents removal. Shared Hugging Face caches,
+removed on ordinary success or failure. A pending recovery journal, live
+process, symlinked root or unknown legacy folder prevents removal. Shared Hugging Face caches,
 rollback backups and models are not rubbish and are never broadly wiped.
 Use a read-only size inventory before choosing legacy files to remove.
 See [release verification](releases.md) for the current validation status.
