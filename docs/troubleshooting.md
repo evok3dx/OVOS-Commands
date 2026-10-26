@@ -1,5 +1,14 @@
 # Troubleshooting Jarvis
 
+## Old wake beep remains after 4.8.8
+
+**VERIFIED owner symptom and source cause:** 4.8.8 installed the new packaged
+chime but preserved an active sound file with an unrecognised checksum. The
+legacy-hash migration gate treated those bytes as a custom cue. The 4.8.9
+correction refreshes the standard managed sound file on installation, leaving
+confirmation, volume and configured paths unchanged. No extra sound selector
+or manual replacement is required. See [release verification](releases.md).
+
 ## Fresh-install readiness after baseline preparation
 
 **VERIFIED symptom/source and owner-tested private correction:** a newly prepared

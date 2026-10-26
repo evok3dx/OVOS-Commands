@@ -1116,8 +1116,12 @@ if "$existing_deployment"; then
   fi
 fi
 
+# The standard cue is a managed app asset, refreshed on every installation.
+"$desktop_python" "$target_root/scripts/configure-audio-stack.py" \
+  --listening-sound "$listening_sound" \
+  --refresh-listening-sound "$target_root/voice/jarvis-ready.wav"
+
 if ! "$existing_deployment"; then
-  install -m 0644 "$target_root/voice/jarvis-ready.wav" "$listening_sound"
   "$desktop_python" "$target_root/scripts/configure-audio-stack.py" \
     --config "$ovos_config" --listening-sound "$listening_sound"
   if [[ "${JARVIS_TEST_MODE:-0}" != 1 ]]; then
@@ -1154,11 +1158,6 @@ else
   # machine-owned and untouched.
   "$desktop_python" "$target_root/scripts/configure-audio-stack.py" \
     --config "$ovos_config" --migrate-managed
-  # The sound is already in this transaction's rollback backup. Replace only
-  # the exact old default; custom, disabled and already-current cues stay intact.
-  "$desktop_python" "$target_root/scripts/configure-audio-stack.py" \
-    --config "$ovos_config" --listening-sound "$listening_sound" \
-    --refresh-listening-sound "$target_root/voice/jarvis-ready.wav"
   # Repair only the known released Jarvis default in the backed-up config.
   # Custom wake engines, models and thresholds stop for manual review.
   if [[ "$(python3 - "$ovos_config" <<'PY'

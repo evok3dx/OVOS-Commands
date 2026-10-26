@@ -7,6 +7,25 @@ acceptance work. Durable design choices belong in
 under [`history/`](history/README.md). Other current documents link here rather
 than repeating release narratives.
 
+## 4.8.9 (candidate, 26 October 2026 UTC)
+
+Fix upgrades that kept the old wake beep after 4.8.8. Refresh the standard
+managed sound file from the verified packaged two-note chime regardless of
+its old checksum. Recreate a missing cue and skip a redundant write when the
+correct bytes are already installed. Do not change confirmation, volume,
+configured sound paths, listener timing, models, routing, GUI or isolation.
+The original 4.8.8 preservation policy is superseded by the owner's direction
+to replace this managed asset. Separately configured sound files stay untouched.
+
+**VERIFIED owner report/source:** 4.8.8 had the new packaged sound, an active
+file with different bytes and the standard enabled sound path. This matches
+the legacy-hash refusal branch. The active file's origin remains unverified.
+
+**PLANNED validation/publication:** ordinary-user release CI, real installer
+upgrade and rollback with unknown old cue bytes, missing-file and failure
+regressions, the retained runtime and final clean-archive suite with all 350
+non-executing policy cases. Live installed wake playback remains acceptance.
+
 ## 4.8.8 (published stable, 26 October 2026 UTC)
 
 Replace the packaged wake beep with the owner-selected soft two-note chime.

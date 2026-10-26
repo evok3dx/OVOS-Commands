@@ -1119,7 +1119,8 @@ for helper in "${helpers[@]}"; do
 done
 
 # A normal upgrade changes managed program files while preserving machine-owned
-# configuration, personal phrases, sounds, shortcuts and private helpers.
+# configuration, personal phrases, shortcuts and private helpers. The standard
+# wake-sound file is a managed asset and must refresh even for unknown old bytes.
 preserve_home="$test_root/preserve"
 preserve_target="$preserve_home/.local/src/ovos-skill-jarvis-dispatcher"
 mkdir -p \
@@ -1162,7 +1163,6 @@ chmod 0755 "$preserve_home/.local/bin/jarvis-agent-window"
 cp -a "$preserve_home/.config/mycroft/mycroft.conf" \
   "$preserve_home/.config/jarvis/listen-shortcut.json" \
   "$preserve_home/.config/jarvis/custom-commands.json" \
-  "$preserve_home/.local/share/ovos/sounds/jarvis-ready.wav" \
   "$preserve_home/.local/bin/jarvis-agent-window" \
   "$test_root/preserve-expected/"
 
@@ -1172,16 +1172,17 @@ JARVIS_HOME="$preserve_home" JARVIS_TEST_MODE=1 \
 test ! -e "$preserve_target/legacy-only.txt"
 for file in \
   listen-shortcut.json custom-commands.json \
-  jarvis-ready.wav jarvis-agent-window; do
+  jarvis-agent-window; do
   case "$file" in
     mycroft.conf) actual="$preserve_home/.config/mycroft/$file" ;;
     listen-shortcut.json|custom-commands.json)
       actual="$preserve_home/.config/jarvis/$file" ;;
-    jarvis-ready.wav) actual="$preserve_home/.local/share/ovos/sounds/$file" ;;
     jarvis-agent-window) actual="$preserve_home/.local/bin/$file" ;;
   esac
   cmp "$test_root/preserve-expected/$file" "$actual"
 done
+cmp "$repo_root/voice/jarvis-ready.wav" \
+  "$preserve_home/.local/share/ovos/sounds/jarvis-ready.wav"
 python3 - "$preserve_home/.config/mycroft/mycroft.conf" <<'PY'
 import json
 import sys
@@ -1243,6 +1244,10 @@ upgrade_home="$test_root/upgrade"
 upgrade_target="$upgrade_home/.local/src/ovos-skill-jarvis-dispatcher"
 mkdir -p "$upgrade_target" "$upgrade_home/.local/bin" "$upgrade_home/.config/jarvis"
 mkdir -p "$upgrade_home/.config/autostart" "$upgrade_home/.local/share/applications"
+mkdir -p "$upgrade_home/.local/share/ovos/sounds"
+printf '%s\n' 'unknown previous managed wake cue' \
+  > "$upgrade_home/.local/share/ovos/sounds/jarvis-ready.wav"
+cp "$upgrade_home/.local/share/ovos/sounds/jarvis-ready.wav" "$test_root/old-managed-cue.wav"
 printf '%s\n' '[Desktop Entry]' 'Name=Previous Jarvis launcher' \
   > "$upgrade_home/.local/share/applications/jarvis-ovos.desktop"
 cp "$upgrade_home/.local/share/applications/jarvis-ovos.desktop" \
@@ -1282,6 +1287,8 @@ grep -Fxq 'Hidden=true' "$upgrade_home/.config/autostart/ovos-tray.desktop"
 grep -Fxq 'X-GNOME-Autostart-enabled=false' "$upgrade_home/.config/autostart/ovos-tray.desktop"
 grep -Fxq 'Hidden=true' "$upgrade_home/.config/autostart/jarvis-voice.desktop"
 cmp "$test_root/old-startup.json" "$upgrade_home/.config/jarvis/startup.json"
+cmp "$repo_root/voice/jarvis-ready.wav" \
+  "$upgrade_home/.local/share/ovos/sounds/jarvis-ready.wav"
 
 JARVIS_HOME="$upgrade_home" JARVIS_TEST_MODE=1 \
   bash "$upgrade_target/scripts/rollback.sh" --no-restart
@@ -1291,6 +1298,8 @@ test -f "$upgrade_target/legacy-only.txt"
 cmp "$test_root/old-mic-autostart.desktop" "$upgrade_home/.config/autostart/jarvis-mic-indicator.desktop"
 cmp "$test_root/old-jarvis-ovos.desktop" \
   "$upgrade_home/.local/share/applications/jarvis-ovos.desktop"
+cmp "$test_root/old-managed-cue.wav" \
+  "$upgrade_home/.local/share/ovos/sounds/jarvis-ready.wav"
 cmp "$repo_root/profiles/default.json" "$upgrade_home/.config/jarvis/profile.json"
 cmp "$test_root/old-startup.json" "$upgrade_home/.config/jarvis/startup.json"
 for helper in "${helpers[@]}"; do

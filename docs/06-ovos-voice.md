@@ -69,9 +69,11 @@ untouched.
 
 From 4.8.8 the default cue is a soft two-note chime, played once per listening
 acknowledgement. The WAV is 325 ms; existing playback padding is unchanged.
-Updates replace only the exact old Jarvis default. Custom sounds, alternate
-paths, disabled confirmation and already-current cues are preserved. The
-normal deployment backup retains the previous sound for rollback.
+From 4.8.9, installation refreshes the standard managed sound file regardless
+of the previous file's checksum. This includes installations that 4.8.8 skipped.
+Confirmation, volume and sound-path settings stay unchanged; separate sound
+files selected through a different path are not modified. The normal deployment
+transaction still covers this managed asset.
 
 Empty/noisy captures are silent. A real `Pause music` request remains valid;
 Jarvis does not solve false speech by blacklisting useful commands. The
